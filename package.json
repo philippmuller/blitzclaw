@@ -10,9 +10,12 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
+    "typecheck": "turbo run build --filter=@blitzclaw/db && tsc --noEmit --project apps/web/tsconfig.json && tsc --noEmit --project apps/cli/tsconfig.json",
+    "test:e2e": "./scripts/e2e-test.sh",
     "db:generate": "turbo run db:generate --filter=@blitzclaw/db",
     "db:push": "turbo run db:push --filter=@blitzclaw/db",
-    "db:studio": "turbo run db:studio --filter=@blitzclaw/db"
+    "db:studio": "turbo run db:studio --filter=@blitzclaw/db",
+    "db:seed": "npx tsx scripts/seed.ts"
   },
   "devDependencies": {
     "dotenv": "^17.2.4",
