@@ -40,3 +40,8 @@ coverage/
 # Misc
 *.log
 *.tsbuildinfo
+
+# Database
+data/
+*.db
+*.db-journal

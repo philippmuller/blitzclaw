@@ -1,0 +1,78 @@
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { prisma } from "@blitzclaw/db";
+
+const CREEM_API_KEY = process.env.CREEM_API_KEY;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+export async function POST(request: Request) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json();
+  const amountCents = body.amount_cents || 2000; // Default $20
+
+  // Minimum topup $10
+  if (amountCents < 1000) {
+    return NextResponse.json(
+      { error: "Minimum topup amount is $10 (1000 cents)" },
+      { status: 400 }
+    );
+  }
+
+  // Get or create user
+  let user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // Create Creem checkout session
+  // Creem API docs: https://docs.creem.io
+  try {
+    const response = await fetch("https://api.creem.io/v1/checkouts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": CREEM_API_KEY || "",
+      },
+      body: JSON.stringify({
+        product_id: "prod_blitzclaw_credits", // You'll need to create this in Creem dashboard
+        success_url: `${APP_URL}/dashboard?topup=success`,
+        request_id: `topup_${user.id}_${Date.now()}`,
+        metadata: {
+          user_id: user.id,
+          clerk_id: userId,
+          amount_cents: amountCents,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Creem API error:", error);
+      return NextResponse.json(
+        { error: "Failed to create checkout session" },
+        { status: 500 }
+      );
+    }
+
+    const checkout = await response.json();
+
+    return NextResponse.json({
+      checkoutUrl: checkout.checkout_url,
+      checkoutId: checkout.id,
+    });
+  } catch (error) {
+    console.error("Creem checkout error:", error);
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
+}

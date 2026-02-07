@@ -1,0 +1,22 @@
+{
+  "name": "blitzclaw",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "turbo run db:generate --filter=@blitzclaw/db",
+    "db:push": "turbo run db:push --filter=@blitzclaw/db",
+    "db:studio": "turbo run db:studio --filter=@blitzclaw/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "npm@10.8.0"
+}

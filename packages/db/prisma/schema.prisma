@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  clerkId         String    @unique
+  email           String
+  creemCustomerId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  balance   Balance?
+  instances Instance[]
+}
+
+model Balance {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditsCents         Int      @default(0)
+  autoTopupEnabled     Boolean  @default(false)
+  topupThresholdCents  Int      @default(500)
+  topupAmountCents     Int      @default(2000)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Instance {
+  id                  String         @id @default(cuid())
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hetznerServerId     String?
+  ipAddress           String?
+  status              InstanceStatus @default(PENDING)
+  channelType         ChannelType
+  channelConfig       String?        // JSON string for bot token, session data, etc.
+  personaTemplate     String         @default("assistant")
+  soulMd              String?
+  useOwnApiKey        Boolean        @default(false)
+  ownApiKeyEncrypted  String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  lastHealthCheck     DateTime?
+
+  usageLogs UsageLog[]
+  serverPool ServerPool?
+}
+
+enum InstanceStatus {
+  PENDING
+  PROVISIONING
+  ACTIVE
+  PAUSED
+  STOPPED
+  ERROR
+}
+
+enum ChannelType {
+  TELEGRAM
+  WHATSAPP
+}
+
+model UsageLog {
+  id          String   @id @default(cuid())
+  instanceId  String
+  instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  model       String
+  tokensIn    Int
+  tokensOut   Int
+  costCents   Int
+  timestamp   DateTime @default(now())
+}
+
+model ServerPool {
+  id              String           @id @default(cuid())
+  hetznerServerId String           @unique
+  ipAddress       String
+  status          ServerPoolStatus @default(AVAILABLE)
+  assignedTo      String?          @unique
+  instance        Instance?        @relation(fields: [assignedTo], references: [id])
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+enum ServerPoolStatus {
+  AVAILABLE
+  ASSIGNED
+  PROVISIONING
+}
