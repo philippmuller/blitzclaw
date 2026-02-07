@@ -62,23 +62,27 @@ run_test "Type check (tsc)" "npm run typecheck 2>/dev/null || npx tsc --noEmit -
 run_test "Pricing calculations" "npx tsx scripts/test-pricing.ts"
 
 # Telegram tests
-run_test "Telegram integration" "./scripts/test-telegram.sh"
+run_test "Telegram API validation" "./scripts/test-telegram.sh"
 
 # Database tests
-run_test "Database operations" "cd packages/db && npx tsx ../../scripts/test-database.ts"
+run_test "Database operations" "cd $PROJECT_DIR/packages/db && npx tsx ../../scripts/test-database.ts"
 
-# Hetzner deployment (optional)
+# Proxy logic tests
+run_test "Token proxy logic" "cd $PROJECT_DIR/packages/db && npx tsx ../../scripts/test-proxy-logic.ts"
+
+# Hetzner deployment tests (optional)
 if $FULL_TEST; then
-    echo -e "${YELLOW}▶ Hetzner deployment (full test)${NC}"
-    echo "  This creates a real server (~\$0.01 cost)"
+    echo -e "${YELLOW}▶ Hetzner deployment tests (full)${NC}"
+    echo "  These create real servers (~\$0.02 total)"
     if [ -n "$HETZNER_API_TOKEN" ]; then
-        run_test "Hetzner deployment" "./scripts/test-hetzner-deploy.sh"
+        run_test "Hetzner server provisioning" "./scripts/test-hetzner-deploy.sh"
+        run_test "Config deployment via SSH" "./scripts/test-config-deploy.sh"
     else
         echo -e "${YELLOW}  ⚠ Skipped (HETZNER_API_TOKEN not set)${NC}"
         echo ""
     fi
 else
-    echo -e "${YELLOW}▶ Hetzner deployment${NC}"
+    echo -e "${YELLOW}▶ Hetzner deployment tests${NC}"
     echo -e "  ${YELLOW}⚠ Skipped (use --full to include)${NC}"
     echo ""
 fi
