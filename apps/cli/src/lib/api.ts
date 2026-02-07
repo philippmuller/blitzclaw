@@ -68,3 +68,34 @@ export async function createTopup(amountCents: number) {
     body: JSON.stringify({ amount_cents: amountCents }),
   });
 }
+
+export async function getUsage(from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  
+  const query = params.toString() ? `?${params.toString()}` : "";
+  
+  return apiRequest<{
+    from: string;
+    to: string;
+    totalCostCents: number;
+    totalCostDollars: string;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    byModel: Array<{
+      model: string;
+      tokensIn: number;
+      tokensOut: number;
+      costCents: number;
+      costDollars: string;
+    }>;
+    instances: Array<{
+      id: string;
+      channelType: string;
+      status: string;
+      usageCount: number;
+      costCents: number;
+    }>;
+  }>(`/billing/usage${query}`);
+}

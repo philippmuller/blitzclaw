@@ -3,7 +3,7 @@ import chalk from "chalk";
 import open from "open";
 import ora from "ora";
 import { getToken } from "../lib/config.js";
-import { getBalance, createTopup, ApiError } from "../lib/api.js";
+import { getBalance, createTopup, getUsage, ApiError } from "../lib/api.js";
 
 function requireAuth() {
   const token = getToken();
@@ -111,12 +111,58 @@ export function billingCommand(): Command {
     .action(async (options) => {
       requireAuth();
       
-      // TODO: Implement usage endpoint
-      console.log(chalk.yellow("Usage history coming soon!"));
-      console.log(chalk.gray("This will show token usage breakdown by model and instance."));
+      const spinner = ora("Fetching usage...").start();
       
-      if (options.from) console.log(chalk.gray(`From: ${options.from}`));
-      if (options.to) console.log(chalk.gray(`To: ${options.to}`));
+      try {
+        const usage = await getUsage(options.from, options.to);
+        spinner.stop();
+        
+        if (options.format === "json") {
+          console.log(JSON.stringify(usage, null, 2));
+          return;
+        }
+        
+        const fromDate = new Date(usage.from).toLocaleDateString();
+        const toDate = new Date(usage.to).toLocaleDateString();
+        
+        console.log(chalk.bold(`Usage: ${fromDate} - ${toDate}`));
+        console.log("");
+        console.log(`  Total Cost:    ${chalk.green("$" + usage.totalCostDollars)}`);
+        console.log(`  Tokens In:     ${usage.totalTokensIn.toLocaleString()}`);
+        console.log(`  Tokens Out:    ${usage.totalTokensOut.toLocaleString()}`);
+        
+        if (usage.byModel.length > 0) {
+          console.log("");
+          console.log(chalk.bold("  By Model:"));
+          for (const model of usage.byModel) {
+            console.log(`    ${model.model}`);
+            console.log(`      Cost: $${model.costDollars} | In: ${model.tokensIn.toLocaleString()} | Out: ${model.tokensOut.toLocaleString()}`);
+          }
+        }
+        
+        if (usage.instances.length > 0) {
+          console.log("");
+          console.log(chalk.bold("  By Instance:"));
+          for (const instance of usage.instances) {
+            const costDollars = (instance.costCents / 100).toFixed(2);
+            console.log(`    ${instance.id.slice(0, 8)}... (${instance.channelType})`);
+            console.log(`      Cost: $${costDollars} | Requests: ${instance.usageCount}`);
+          }
+        }
+        
+        if (usage.totalCostCents === 0) {
+          console.log("");
+          console.log(chalk.gray("  No usage recorded for this period."));
+        }
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          spinner.fail("Session expired");
+          process.exit(1);
+        }
+        spinner.fail("Failed to fetch usage");
+        console.error(chalk.red((error as Error).message));
+        process.exit(1);
+      }
     });
 
   return billing;
