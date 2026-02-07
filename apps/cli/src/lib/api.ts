@@ -99,3 +99,115 @@ export async function getUsage(from?: string, to?: string) {
     }>;
   }>(`/billing/usage${query}`);
 }
+
+// Instance API
+
+export interface Instance {
+  id: string;
+  status: string;
+  channelType: string;
+  personaTemplate: string;
+  ipAddress: string | null;
+  hetznerServerId: string | null;
+  soulMd: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastHealthCheck: string | null;
+  channelConfig: Record<string, unknown> | null;
+  recentUsage: {
+    totalCostCents: number;
+    totalCostDollars: string;
+    totalTokensIn: number;
+    totalTokensOut: number;
+    logCount: number;
+  };
+}
+
+export async function listInstances() {
+  return apiRequest<{
+    instances: Array<{
+      id: string;
+      status: string;
+      channelType: string;
+      personaTemplate: string;
+      ipAddress: string | null;
+      createdAt: string;
+      lastHealthCheck: string | null;
+    }>;
+  }>("/instances");
+}
+
+export async function createInstance(options: {
+  channelType: string;
+  personaTemplate: string;
+  soulMd?: string;
+}) {
+  return apiRequest<{
+    id: string;
+    status: string;
+    ipAddress: string | null;
+    message: string;
+  }>("/instances", {
+    method: "POST",
+    body: JSON.stringify({
+      channel_type: options.channelType,
+      persona_template: options.personaTemplate,
+      soul_md: options.soulMd,
+    }),
+  });
+}
+
+export async function getInstance(id: string) {
+  return apiRequest<Instance>(`/instances/${id}`);
+}
+
+export async function deleteInstance(id: string) {
+  return apiRequest<{ success: boolean; message: string }>(`/instances/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function restartInstance(id: string) {
+  return apiRequest<{ success: boolean; message: string }>(
+    `/instances/${id}/restart`,
+    { method: "POST" }
+  );
+}
+
+// Admin API
+
+export async function getPoolStatus() {
+  return apiRequest<{
+    pool: {
+      available: number;
+      assigned: number;
+      provisioning: number;
+      total: number;
+    };
+    config: {
+      minPoolSize: number;
+      maxPoolSize: number;
+    };
+    health: {
+      healthy: boolean;
+      message: string;
+    };
+  }>("/admin/pool/status");
+}
+
+export async function provisionPool(count: number) {
+  return apiRequest<{
+    success: boolean;
+    provisioned: number;
+    errors: string[];
+    pool: {
+      available: number;
+      assigned: number;
+      provisioning: number;
+      total: number;
+    };
+  }>("/admin/pool/provision", {
+    method: "POST",
+    body: JSON.stringify({ count }),
+  });
+}
