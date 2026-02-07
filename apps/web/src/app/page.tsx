@@ -3,78 +3,178 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div className="text-2xl font-bold text-blue-600">⚡ BlitzClaw</div>
-        <div className="flex items-center gap-4">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                Sign In
-              </button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+    <main className="min-h-screen bg-background">
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background pointer-events-none" />
+      
+      <div className="relative">
+        <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
+          <div className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <span>⚡</span> BlitzClaw
+          </div>
+          <div className="flex items-center gap-4">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition">
+                  Sign In
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+              >
+                Dashboard
+              </Link>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+          </div>
+        </nav>
+
+        <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+          <div className="inline-block px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary mb-6">
+            🚀 One-click AI deployment
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+            Deploy Your AI Assistant in{" "}
+            <span className="text-primary">Seconds</span>
+          </h1>
+          <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+            One-click OpenClaw deployment. Telegram & WhatsApp ready.
+            <br />
+            Usage-based billing. No API keys needed.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30">
+                  Get Started Free →
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link
+                href="/dashboard"
+                className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
+              >
+                Go to Dashboard →
+              </Link>
+            </SignedIn>
+            <a
+              href="#features"
+              className="px-8 py-4 border border-border text-foreground text-lg font-medium rounded-xl hover:bg-secondary transition"
             >
-              Dashboard
-            </Link>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+              Learn More
+            </a>
+          </div>
         </div>
-      </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">
-          Deploy Your AI Assistant in{" "}
-          <span className="text-blue-600">Seconds</span>
-        </h1>
-        <p className="text-xl text-gray-600 mb-10">
-          One-click OpenClaw deployment. Telegram & WhatsApp ready.
-          <br />
-          Usage-based billing. No API keys needed.
-        </p>
-        <SignedOut>
-          <SignInButton mode="modal">
-            <button className="px-8 py-4 bg-blue-600 text-white text-lg rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
-              Get Started →
-            </button>
-          </SignInButton>
-        </SignedOut>
-        <SignedIn>
-          <Link
-            href="/dashboard"
-            className="inline-block px-8 py-4 bg-blue-600 text-white text-lg rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
-          >
-            Go to Dashboard →
-          </Link>
-        </SignedIn>
-      </div>
+        {/* Features */}
+        <div id="features" className="max-w-5xl mx-auto px-6 py-20 grid md:grid-cols-3 gap-8">
+          <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
+            <div className="text-3xl mb-4">🚀</div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Instant Setup</h3>
+            <p className="text-muted-foreground">
+              From signup to chatting with your AI in under 5 minutes. No DevOps required.
+            </p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
+            <div className="text-3xl mb-4">💰</div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Pay as You Go</h3>
+            <p className="text-muted-foreground">
+              $10 minimum balance. Only pay for what you use. No subscriptions.
+            </p>
+          </div>
+          <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
+            <div className="text-3xl mb-4">🔒</div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Your Own Instance</h3>
+            <p className="text-muted-foreground">
+              Dedicated server. Full isolation. Your data stays on your instance.
+            </p>
+          </div>
+        </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8">
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <div className="text-3xl mb-4">🚀</div>
-          <h3 className="text-lg font-semibold mb-2">Instant Setup</h3>
-          <p className="text-gray-600">
-            From signup to chatting with your AI in under 5 minutes.
-          </p>
+        {/* How it works */}
+        <div className="max-w-4xl mx-auto px-6 py-20">
+          <h2 className="text-3xl font-bold text-foreground text-center mb-12">How It Works</h2>
+          <div className="space-y-6">
+            <div className="flex items-start gap-4 p-6 bg-card border border-border rounded-xl">
+              <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold shrink-0">
+                1
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">Sign up & top up</h3>
+                <p className="text-muted-foreground">
+                  Create an account and add at least $10 to get started.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4 p-6 bg-card border border-border rounded-xl">
+              <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold shrink-0">
+                2
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">Create your AI instance</h3>
+                <p className="text-muted-foreground">
+                  Choose a persona template or create your own SOUL.md to define your AI&apos;s personality.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4 p-6 bg-card border border-border rounded-xl">
+              <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold shrink-0">
+                3
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">Connect Telegram</h3>
+                <p className="text-muted-foreground">
+                  Create a bot via BotFather, paste the token, and you&apos;re live!
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <div className="text-3xl mb-4">💰</div>
-          <h3 className="text-lg font-semibold mb-2">Pay as You Go</h3>
-          <p className="text-gray-600">
-            $10 minimum balance. Only pay for what you use.
-          </p>
+
+        {/* CTA */}
+        <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              Ready to deploy your AI?
+            </h2>
+            <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
+              Get your personal AI assistant running in minutes. No complex setup, no monthly subscriptions.
+            </p>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
+                  Start Now →
+                </button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <Link
+                href="/dashboard"
+                className="inline-block px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition"
+              >
+                Go to Dashboard →
+              </Link>
+            </SignedIn>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <div className="text-3xl mb-4">🔒</div>
-          <h3 className="text-lg font-semibold mb-2">Your Own Instance</h3>
-          <p className="text-gray-600">
-            Dedicated server. Full isolation. Your data stays yours.
-          </p>
-        </div>
+
+        {/* Footer */}
+        <footer className="border-t border-border py-8">
+          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-muted-foreground text-sm">
+              © 2026 BlitzClaw. All rights reserved.
+            </div>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition">Terms</a>
+              <a href="#" className="hover:text-foreground transition">Privacy</a>
+              <a href="#" className="hover:text-foreground transition">Support</a>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   );
