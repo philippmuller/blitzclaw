@@ -174,6 +174,71 @@ export async function restartInstance(id: string) {
   );
 }
 
+// Telegram API
+
+export interface TelegramBotInfo {
+  id: string;
+  username: string;
+  name: string;
+  link: string;
+}
+
+export async function validateTelegramToken(token: string) {
+  return apiRequest<{
+    success: boolean;
+    message: string;
+    bot: TelegramBotInfo;
+  }>("/telegram/validate", {
+    method: "POST",
+    body: JSON.stringify({ bot_token: token }),
+  });
+}
+
+export async function connectTelegram(instanceId: string, token: string) {
+  return apiRequest<{
+    success: boolean;
+    message: string;
+    bot: TelegramBotInfo;
+  }>(`/instances/${instanceId}/telegram/connect`, {
+    method: "POST",
+    body: JSON.stringify({ bot_token: token }),
+  });
+}
+
+export async function getTelegramInfo(instanceId: string) {
+  return apiRequest<{
+    connected: boolean;
+    bot: TelegramBotInfo;
+    instance_status: string;
+  }>(`/instances/${instanceId}/telegram/info`);
+}
+
+// Soul API
+
+export async function getSoul(instanceId: string) {
+  return apiRequest<{
+    soul_md: string;
+    persona_template: string;
+    has_custom_soul: boolean;
+    instance_status: string;
+  }>(`/instances/${instanceId}/soul`);
+}
+
+export async function updateSoul(instanceId: string, soulMd: string) {
+  return apiRequest<{
+    success: boolean;
+    message: string;
+    soul_md_length: number;
+    deployment: {
+      success: boolean;
+      message: string;
+    };
+  }>(`/instances/${instanceId}/soul`, {
+    method: "POST",
+    body: JSON.stringify({ soul_md: soulMd }),
+  });
+}
+
 // Admin API
 
 export async function getPoolStatus() {

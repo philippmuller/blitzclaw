@@ -5,6 +5,7 @@ import chalk from "chalk";
 import { authCommand } from "./commands/auth.js";
 import { billingCommand } from "./commands/billing.js";
 import { instancesCommand } from "./commands/instances.js";
+import { telegramCommand } from "./commands/telegram.js";
 import { adminCommand } from "./commands/admin.js";
 
 const program = new Command();
@@ -18,6 +19,7 @@ program
 program.addCommand(authCommand());
 program.addCommand(billingCommand());
 program.addCommand(instancesCommand());
+program.addCommand(telegramCommand());
 program.addCommand(adminCommand());
 
 // Global options

@@ -9,6 +9,8 @@ import {
   getInstance, 
   deleteInstance, 
   restartInstance,
+  getSoul,
+  updateSoul,
   ApiError 
 } from "../lib/api.js";
 
@@ -266,6 +268,96 @@ export function instancesCommand(): Command {
           process.exit(1);
         }
         spinner.fail("Failed to delete instance");
+        console.error(chalk.red((error as Error).message));
+        process.exit(1);
+      }
+    });
+
+  instances
+    .command("soul <id>")
+    .description("View or update instance SOUL.md")
+    .option("--file <path>", "Path to SOUL.md file to upload")
+    .option("--format <format>", "Output format (table|json)", "table")
+    .action(async (id, options) => {
+      requireAuth();
+      
+      // If file provided, update SOUL.md
+      if (options.file) {
+        let soulMd: string;
+        try {
+          soulMd = readFileSync(options.file, "utf-8");
+        } catch (error) {
+          console.error(chalk.red(`Failed to read file: ${options.file}`));
+          process.exit(1);
+        }
+        
+        const spinner = ora("Updating SOUL.md...").start();
+        
+        try {
+          const result = await updateSoul(id, soulMd);
+          spinner.stop();
+          
+          if (options.format === "json") {
+            console.log(JSON.stringify(result, null, 2));
+            return;
+          }
+          
+          console.log(chalk.green("✓ SOUL.md updated!"));
+          console.log("");
+          console.log(`  Length: ${result.soul_md_length} characters`);
+          console.log(`  Deployment: ${result.deployment.success ? chalk.green("Ready") : chalk.yellow(result.deployment.message)}`);
+          
+          if (!result.deployment.success) {
+            console.log("");
+            console.log(chalk.gray("Note: Config will be deployed when instance becomes active."));
+          }
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 404) {
+            spinner.fail("Instance not found");
+            process.exit(1);
+          }
+          spinner.fail("Failed to update SOUL.md");
+          console.error(chalk.red((error as Error).message));
+          process.exit(1);
+        }
+        return;
+      }
+      
+      // Otherwise, show current SOUL.md
+      const spinner = ora("Fetching SOUL.md...").start();
+      
+      try {
+        const result = await getSoul(id);
+        spinner.stop();
+        
+        if (options.format === "json") {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        
+        console.log(chalk.bold("SOUL.md\n"));
+        console.log(`  Persona Template:  ${result.persona_template}`);
+        console.log(`  Custom SOUL:       ${result.has_custom_soul ? chalk.green("Yes") : chalk.gray("No")}`);
+        console.log(`  Instance Status:   ${result.instance_status}`);
+        console.log("");
+        
+        if (result.soul_md) {
+          console.log(chalk.gray("─".repeat(50)));
+          console.log(result.soul_md);
+          console.log(chalk.gray("─".repeat(50)));
+        } else {
+          console.log(chalk.gray("(Using default persona template)"));
+        }
+        
+        console.log("");
+        console.log(chalk.gray("Update with:"));
+        console.log(chalk.cyan(`  blitzclaw instances soul ${id} --file ./SOUL.md`));
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          spinner.fail("Instance not found");
+          process.exit(1);
+        }
+        spinner.fail("Failed to fetch SOUL.md");
         console.error(chalk.red((error as Error).message));
         process.exit(1);
       }
