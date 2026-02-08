@@ -188,14 +188,24 @@ export default async function Home() {
 
         {/* Footer */}
         <footer className="border-t border-border py-8">
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-muted-foreground text-sm">
-              © 2026 BlitzClaw. All rights reserved.
+          <div className="max-w-7xl mx-auto px-6">
+            {/* Security Disclaimer */}
+            <div className="mb-6 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+              <p className="text-yellow-200/60 text-xs leading-relaxed text-center">
+                ⚠️ BlitzClaw instances are for personal use. Security risks increase with skills/integrations you enable.
+                We work to provide safe defaults but prompt injection and other vulnerabilities remain possible.
+                This is an open-source project — use at your own risk.
+              </p>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition">Terms</a>
-              <a href="#" className="hover:text-foreground transition">Privacy</a>
-              <a href="#" className="hover:text-foreground transition">Support</a>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-muted-foreground text-sm">
+                © 2026 BlitzClaw. All rights reserved.
+              </div>
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <a href="#" className="hover:text-foreground transition">Terms</a>
+                <a href="#" className="hover:text-foreground transition">Privacy</a>
+                <a href="#" className="hover:text-foreground transition">Support</a>
+              </div>
             </div>
           </div>
         </footer>

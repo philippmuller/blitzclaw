@@ -433,6 +433,18 @@ function OnboardingContent() {
             </div>
           )}
         </div>
+
+        {/* Security Disclaimer */}
+        <div className="mt-8 p-4 bg-yellow-900/20 border border-yellow-800/50 rounded-lg">
+          <p className="text-yellow-200/80 text-xs leading-relaxed">
+            <strong>⚠️ Security Notice:</strong> BlitzClaw instances are for personal use. 
+            Your assistant runs on a dedicated server with access to tools you enable. 
+            Security risks increase with skills and integrations you add (email, file access, etc.). 
+            We work to provide safe defaults, but prompt injection and other vulnerabilities remain possible. 
+            This is an open-source, hacker-friendly project — use at your own risk and avoid storing 
+            highly sensitive data. By continuing, you acknowledge these risks.
+          </p>
+        </div>
       </div>
     </div>
   );
