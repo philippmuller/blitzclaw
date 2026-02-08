@@ -88,8 +88,23 @@ export async function POST(request: Request) {
   if (!response.ok) {
     const errorText = await response.text();
     console.error("Creem checkout creation failed:", response.status, errorText);
+    console.error("Request was:", {
+      url: `${CREEM_API_URL}/checkouts`,
+      product_id: CREEM_SUBSCRIPTION_PRODUCT_ID,
+      user_id: user.id,
+    });
+    // Include debug info to help diagnose issues
     return NextResponse.json(
-      { error: "Failed to create checkout" },
+      { 
+        error: "Failed to create checkout",
+        debug: {
+          creem_status: response.status,
+          creem_error: errorText.substring(0, 500),
+          creem_url: CREEM_API_URL,
+          product_id_set: !!CREEM_SUBSCRIPTION_PRODUCT_ID,
+          product_id_prefix: CREEM_SUBSCRIPTION_PRODUCT_ID?.substring(0, 10),
+        }
+      },
       { status: 500 }
     );
   }
