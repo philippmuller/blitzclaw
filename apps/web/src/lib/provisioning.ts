@@ -68,12 +68,14 @@ export async function provisionPoolServer(options?: {
   }
 
   // Generate cloud-init script with full configuration
+  const braveApiKey = process.env.BRAVE_API_KEY;
   const cloudInit = generateCloudInit({
     instanceId: poolEntryId,
     proxySecret,
     gatewayToken,
     anthropicApiKey,
     telegramBotToken: options?.telegramBotToken,
+    braveApiKey,
   });
 
   // Create server on Hetzner

@@ -11,6 +11,7 @@ export interface CloudInitOptions {
   gatewayToken: string;
   anthropicApiKey: string;
   telegramBotToken?: string;
+  braveApiKey?: string;
   blitzclawApiUrl?: string;
 }
 
@@ -24,6 +25,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
     gatewayToken,
     anthropicApiKey,
     telegramBotToken,
+    braveApiKey,
     // Always use production URL for callbacks (preview URLs require Vercel auth)
     blitzclawApiUrl = "https://www.blitzclaw.com",
   } = options;
@@ -80,6 +82,21 @@ export function generateCloudInit(options: CloudInitOptions): string {
         }
       ]
     },
+    // Web tools config (Brave Search)
+    ...(braveApiKey ? {
+      tools: {
+        web: {
+          search: {
+            enabled: true,
+            provider: "brave",
+            apiKey: braveApiKey,
+          },
+          fetch: {
+            enabled: true,
+          },
+        },
+      },
+    } : {}),
     ...(telegramBotToken ? {
       channels: {
         telegram: {
