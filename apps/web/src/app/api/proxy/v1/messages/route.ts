@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
   }
 
   const model = requestBody.model || "claude-sonnet-4-20250514";
+  const isStreaming = requestBody.stream === true;
 
   // 5. Check if ANTHROPIC_API_KEY is configured
   if (!ANTHROPIC_API_KEY) {
@@ -187,7 +188,47 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 7. Parse response for token usage
+  // 6b. Handle streaming responses - pass through directly
+  // For MVP: streaming requests pass through without real-time billing
+  // Usage is estimated based on message length, actual billing happens via periodic reconciliation
+  if (isStreaming && anthropicResponse.body) {
+    // Estimate tokens for billing (rough: 4 chars per token for input)
+    const inputText = JSON.stringify(requestBody.messages || []);
+    const estimatedInputTokens = Math.ceil(inputText.length / 4);
+    const estimatedOutputTokens = 500; // Conservative estimate for streaming
+    
+    const costResult = calculateCost(model, estimatedInputTokens, estimatedOutputTokens);
+    const estimatedCostCents = costResult?.costCents ?? 1;
+    
+    // Log estimated usage (will be reconciled later if needed)
+    prisma.usageLog.create({
+      data: {
+        instanceId: instance.id,
+        model,
+        tokensIn: estimatedInputTokens,
+        tokensOut: estimatedOutputTokens,
+        costCents: estimatedCostCents,
+      },
+    }).catch(err => console.error("Failed to log streaming usage estimate:", err));
+    
+    // Deduct estimated cost
+    prisma.balance.update({
+      where: { userId: instance.userId },
+      data: { creditsCents: { decrement: estimatedCostCents } },
+    }).catch(err => console.error("Failed to deduct streaming cost:", err));
+    
+    // Pass through the stream
+    return new Response(anthropicResponse.body, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
+  }
+
+  // 7. Parse response for token usage (non-streaming)
   let responseData: AnthropicResponse;
   try {
     responseData = await anthropicResponse.json();
