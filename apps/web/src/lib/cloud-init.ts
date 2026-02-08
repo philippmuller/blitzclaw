@@ -46,7 +46,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
         token: gatewayToken
       },
       port: 18789,
-      bind: "loopback"
+      bind: "0.0.0.0"  // Expose for web UI access (token auth protects it)
     },
     models: {
       providers: {
@@ -239,6 +239,7 @@ ${JSON.stringify(authProfilesJson, null, 2).split('\n').map(line => '      ' + l
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 22/tcp
+      ufw allow 18789/tcp  # OpenClaw Web UI (token auth protected)
       ufw --force enable
       
       echo "=== Starting OpenClaw ==="

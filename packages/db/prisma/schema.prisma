@@ -46,6 +46,7 @@ model Instance {
   useOwnApiKey        Boolean        @default(false)
   ownApiKeyEncrypted  String?
   proxySecret         String?        @unique  // Token used to authenticate with billing proxy
+  gatewayToken        String?        // Token for web UI access
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   lastHealthCheck     DateTime?

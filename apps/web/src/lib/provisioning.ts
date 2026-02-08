@@ -378,6 +378,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       hetznerServerId: server.serverId,
       ipAddress: server.ipAddress,
       proxySecret: proxySecret,
+      gatewayToken: gatewayToken,  // For web UI access
       status: InstanceStatus.PROVISIONING,
     },
   });

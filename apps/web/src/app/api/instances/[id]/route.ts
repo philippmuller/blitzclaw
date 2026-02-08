@@ -47,6 +47,7 @@ export async function GET(
     channelType: instance.channelType,
     personaTemplate: instance.personaTemplate,
     model: instance.model,
+    gatewayToken: instance.gatewayToken,
     soulMd: instance.soulMd,
     ipAddress: instance.ipAddress,
     hetznerServerId: instance.hetznerServerId,

@@ -11,6 +11,7 @@ interface Instance {
   channelType: string;
   personaTemplate: string;
   model: string;
+  gatewayToken: string | null;
   soulMd: string | null;
   ipAddress: string | null;
   hetznerServerId: string | null;
@@ -255,6 +256,39 @@ export default function InstanceDetailPage() {
           currentModel={instance.model || "claude-opus-4-20250514"}
         />
       </div>
+
+      {/* Web UI Access */}
+      {instance.status === "ACTIVE" && instance.ipAddress && (
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">Web UI</h3>
+              <p className="text-xs text-muted-foreground">
+                Chat with your assistant directly in the browser
+              </p>
+            </div>
+            <a
+              href={`http://${instance.ipAddress}:18789`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open Web UI
+            </a>
+          </div>
+          {instance.gatewayToken && (
+            <div className="mt-3 p-3 bg-secondary/50 rounded-lg">
+              <p className="text-xs text-muted-foreground mb-1">Gateway Token (for authentication)</p>
+              <code className="text-xs font-mono text-foreground break-all select-all">
+                {instance.gatewayToken}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Telegram Setup or Connection Info */}
       {instance.channelType === "TELEGRAM" && (
