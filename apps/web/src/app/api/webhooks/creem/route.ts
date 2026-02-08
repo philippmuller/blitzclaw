@@ -10,28 +10,79 @@ function verifyCreemSignature(payload: string, signature: string): boolean {
     return true; // Skip in dev
   }
   
-  const expectedSignature = crypto
-    .createHmac("sha256", CREEM_WEBHOOK_SECRET)
+  // Try multiple signature formats - Creem may use different methods
+  const secret = CREEM_WEBHOOK_SECRET;
+  
+  // Method 1: Direct HMAC-SHA256 with hex output
+  const expectedHex = crypto
+    .createHmac("sha256", secret)
     .update(payload)
     .digest("hex");
   
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-  } catch {
-    return false;
+  // Method 2: HMAC-SHA256 with base64 output
+  const expectedBase64 = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64");
+  
+  // Method 3: Try with secret minus prefix
+  const secretWithoutPrefix = secret.replace(/^whsec_/, "");
+  const expectedHexNoPrefix = crypto
+    .createHmac("sha256", secretWithoutPrefix)
+    .update(payload)
+    .digest("hex");
+
+  console.log("Signature verification debug:", {
+    receivedSig: signature?.substring(0, 30),
+    expectedHex: expectedHex.substring(0, 30),
+    expectedBase64: expectedBase64.substring(0, 30),
+    expectedHexNoPrefix: expectedHexNoPrefix.substring(0, 30),
+  });
+  
+  // Try matching against any format
+  const sigToCheck = signature || "";
+  if (sigToCheck === expectedHex || 
+      sigToCheck === expectedBase64 || 
+      sigToCheck === expectedHexNoPrefix) {
+    return true;
   }
+  
+  // Try timing-safe comparison
+  try {
+    if (crypto.timingSafeEqual(Buffer.from(sigToCheck), Buffer.from(expectedHex))) return true;
+  } catch { /* length mismatch */ }
+  
+  try {
+    if (crypto.timingSafeEqual(Buffer.from(sigToCheck), Buffer.from(expectedBase64))) return true;
+  } catch { /* length mismatch */ }
+  
+  try {
+    if (crypto.timingSafeEqual(Buffer.from(sigToCheck), Buffer.from(expectedHexNoPrefix))) return true;
+  } catch { /* length mismatch */ }
+  
+  return false;
 }
 
 export async function POST(request: Request) {
   const payload = await request.text();
-  const signature = request.headers.get("x-creem-signature") || "";
+  
+  // Try multiple possible header names
+  const signature = request.headers.get("x-creem-signature") 
+    || request.headers.get("creem-signature")
+    || request.headers.get("x-webhook-signature")
+    || request.headers.get("x-signature")
+    || "";
 
+  // Log all headers for debugging
+  const headers: Record<string, string> = {};
+  request.headers.forEach((value, key) => {
+    headers[key] = key.toLowerCase().includes("sig") ? value : value.substring(0, 50);
+  });
+  
   // Log raw webhook for debugging
   console.log("=== CREEM WEBHOOK RECEIVED ===");
-  console.log("Signature:", signature ? signature.substring(0, 20) + "..." : "NONE");
+  console.log("Headers:", JSON.stringify(headers));
+  console.log("Signature found:", signature ? signature.substring(0, 40) + "..." : "NONE");
   console.log("Payload preview:", payload.substring(0, 500));
 
   // Verify webhook signature
