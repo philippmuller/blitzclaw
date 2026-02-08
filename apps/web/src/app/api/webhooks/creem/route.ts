@@ -91,11 +91,22 @@ export async function POST(request: Request) {
     case "subscription.active":
     case "subscription.paid": {
       const userId = metadata.user_id;
-      const amountCents = parseInt(metadata.amount_cents || data.amount || "2000", 10);
+      // €20/mo subscription includes €10 credits (1000 cents)
+      const SUBSCRIPTION_CREDITS_CENTS = 1000;
+      const amountCents = parseInt(metadata.amount_cents || String(SUBSCRIPTION_CREDITS_CENTS), 10);
+      const creemCustomerId = data.customer?.id || data.customer_id;
 
       if (!userId) {
         console.error(`No user_id in ${eventType} metadata:`, event);
         return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+      }
+
+      // Store Creem customer ID for future charges
+      if (creemCustomerId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { creemCustomerId },
+        });
       }
 
       // Credit balance for subscription payment
@@ -107,9 +118,9 @@ export async function POST(request: Request) {
         create: {
           userId,
           creditsCents: amountCents,
-          autoTopupEnabled: false,
-          topupThresholdCents: 500,
-          topupAmountCents: 2000,
+          autoTopupEnabled: true,
+          topupThresholdCents: 500, // €5
+          topupAmountCents: 1000, // €10 top-up
         },
       });
 
