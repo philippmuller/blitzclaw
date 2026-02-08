@@ -5,15 +5,38 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PersonaPicker, SoulEditor, getPersonaTemplate } from "@/components";
 
-type Step = "channel" | "persona" | "soul" | "confirm";
+type Step = "channel" | "persona" | "model" | "soul" | "confirm";
 type Channel = "telegram" | "whatsapp";
 type Persona = "assistant" | "developer" | "creative" | "custom";
+type Model = "claude-opus-4-20250514" | "claude-sonnet-4-20250514" | "claude-3-5-haiku-20241022";
+
+const MODELS: { id: Model; name: string; description: string; price: string }[] = [
+  {
+    id: "claude-opus-4-20250514",
+    name: "Claude Opus 4",
+    description: "Most intelligent. Best for complex tasks, coding, and deep analysis.",
+    price: "$10/$50 per MTok",
+  },
+  {
+    id: "claude-sonnet-4-20250514",
+    name: "Claude Sonnet 4",
+    description: "Balanced. Great for most tasks with good speed and quality.",
+    price: "$6/$30 per MTok",
+  },
+  {
+    id: "claude-3-5-haiku-20241022",
+    name: "Claude 3.5 Haiku",
+    description: "Fastest and cheapest. Good for simple tasks and high volume.",
+    price: "$1.60/$8 per MTok",
+  },
+];
 
 export default function NewInstancePage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("channel");
   const [channel, setChannel] = useState<Channel>("telegram");
   const [persona, setPersona] = useState<Persona>("assistant");
+  const [model, setModel] = useState<Model>("claude-opus-4-20250514");
   const [soulMd, setSoulMd] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +61,7 @@ export default function NewInstancePage() {
         body: JSON.stringify({
           channel_type: channel,
           persona_template: persona,
+          model: model,
           soul_md: soulMd || undefined,
         }),
       });
@@ -58,6 +82,7 @@ export default function NewInstancePage() {
   const steps: { id: Step; label: string }[] = [
     { id: "channel", label: "Channel" },
     { id: "persona", label: "Persona" },
+    { id: "model", label: "Model" },
     { id: "soul", label: "SOUL.md" },
     { id: "confirm", label: "Confirm" },
   ];
@@ -195,6 +220,57 @@ export default function NewInstancePage() {
                 Back
               </button>
               <button
+                onClick={() => setStep("model")}
+                className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Model Selection */}
+        {step === "model" && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-2">Select AI Model</h2>
+              <p className="text-muted-foreground">
+                Choose the Claude model for your assistant. You can&apos;t change this later without recreating the instance.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {MODELS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setModel(m.id)}
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
+                    model === m.id
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/50"
+                      : "border-border bg-card hover:border-primary/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-foreground">{m.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">{m.description}</p>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground bg-secondary px-2 py-1 rounded">
+                      {m.price}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-between">
+              <button
+                onClick={() => setStep("persona")}
+                className="px-6 py-2.5 border border-border text-foreground font-medium rounded-lg hover:bg-secondary transition"
+              >
+                Back
+              </button>
+              <button
                 onClick={() => setStep("soul")}
                 className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
               >
@@ -226,7 +302,7 @@ export default function NewInstancePage() {
 
             <div className="flex justify-between">
               <button
-                onClick={() => setStep("persona")}
+                onClick={() => setStep("model")}
                 className="px-6 py-2.5 border border-border text-foreground font-medium rounded-lg hover:bg-secondary transition"
               >
                 Back
@@ -263,6 +339,12 @@ export default function NewInstancePage() {
                 <span className="text-muted-foreground">Persona</span>
                 <span className="font-medium text-foreground">
                   {persona.charAt(0).toUpperCase() + persona.slice(1)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Model</span>
+                <span className="font-medium text-foreground">
+                  {MODELS.find(m => m.id === model)?.name || model}
                 </span>
               </div>
               <div className="flex justify-between">

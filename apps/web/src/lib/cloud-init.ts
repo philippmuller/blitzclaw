@@ -12,6 +12,7 @@ export interface CloudInitOptions {
   anthropicApiKey: string;
   telegramBotToken?: string;
   braveApiKey?: string;
+  model?: string;
   blitzclawApiUrl?: string;
 }
 
@@ -26,6 +27,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
     anthropicApiKey,
     telegramBotToken,
     braveApiKey,
+    model = "claude-opus-4-20250514",
     // Always use production URL for callbacks (preview URLs require Vercel auth)
     blitzclawApiUrl = "https://www.blitzclaw.com",
   } = options;
@@ -82,7 +84,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
       defaults: {
         workspace: "/root/.openclaw/workspace",
         model: {
-          primary: "blitzclaw/claude-opus-4-20250514"
+          primary: `blitzclaw/${model}`
         }
       },
       list: [

@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
     channel_type, 
     persona_template, 
     soul_md,
+    model,
     // New fields from onboarding
     telegramToken,
     persona,
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       channelType: channelType as "TELEGRAM" | "WHATSAPP",
       personaTemplate: selectedPersona,
+      model: model || "claude-opus-4-20250514",
       soulMd: soul_md,
       channelConfig: telegramToken ? JSON.stringify({ bot_token: telegramToken }) : body.channel_config,
     });

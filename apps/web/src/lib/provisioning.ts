@@ -49,6 +49,7 @@ export async function getPoolStatus() {
 export async function provisionPoolServer(options?: {
   telegramBotToken?: string;
   instanceId?: string;
+  model?: string;
 }): Promise<{
   id: string;
   hetznerServerId: string;
@@ -76,6 +77,7 @@ export async function provisionPoolServer(options?: {
     anthropicApiKey,
     telegramBotToken: options?.telegramBotToken,
     braveApiKey,
+    model: options?.model,
   });
 
   // Create server on Hetzner
@@ -291,6 +293,7 @@ export interface CreateInstanceOptions {
   userId: string;
   channelType: "TELEGRAM" | "WHATSAPP";
   personaTemplate: string;
+  model?: string;
   soulMd?: string;
   channelConfig?: string; // JSON string with bot_token, etc.
 }
@@ -301,7 +304,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   ipAddress: string | null;
   gatewayToken?: string;
 }> {
-  const { userId, channelType, personaTemplate, soulMd, channelConfig } = options;
+  const { userId, channelType, personaTemplate, model, soulMd, channelConfig } = options;
 
   // Parse channelConfig to extract bot token
   let telegramBotToken: string | undefined;
@@ -320,6 +323,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       userId,
       channelType,
       personaTemplate,
+      model: model || "claude-opus-4-20250514",
       soulMd: generateSoulMd(personaTemplate, soulMd),
       channelConfig,
       status: InstanceStatus.PENDING,
@@ -338,6 +342,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     const poolServer = await provisionPoolServer({
       telegramBotToken,
       instanceId: instance.id,
+      model: model || "claude-opus-4-20250514",
     });
     
     gatewayToken = poolServer.gatewayToken;
