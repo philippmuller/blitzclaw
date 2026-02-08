@@ -8,8 +8,10 @@
 export interface CloudInitOptions {
   instanceId: string;
   proxySecret: string;
-  blitzclawApiIp?: string;
-  proxyEndpoint?: string;
+  gatewayToken: string;
+  anthropicApiKey: string;
+  telegramBotToken?: string;
+  blitzclawApiUrl?: string;
 }
 
 /**
@@ -19,20 +21,33 @@ export function generateCloudInit(options: CloudInitOptions): string {
   const {
     instanceId,
     proxySecret,
-    blitzclawApiIp = "0.0.0.0/0", // Allow from anywhere initially, will tighten later
-    proxyEndpoint = "https://proxy.blitzclaw.com/v1",
+    gatewayToken,
+    anthropicApiKey,
+    telegramBotToken,
+    blitzclawApiUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : "https://www.blitzclaw.com",
   } = options;
 
-  // YAML cloud-config
+  // Generate OpenClaw config.yaml content
+  const openclawConfig = `model: anthropic/claude-sonnet-4-20250514
+gateway:
+  mode: local
+${telegramBotToken ? `channels:
+  telegram:
+    token: ${telegramBotToken}
+    default_channel: true` : ''}
+`;
+
+  // YAML cloud-config - using shell script for reliability
   const cloudConfig = `#cloud-config
 package_update: true
-package_upgrade: true
+package_upgrade: false
 
 packages:
   - curl
   - fail2ban
   - ufw
-  - jq
 
 write_files:
   - path: /etc/blitzclaw/instance_id
@@ -41,9 +56,10 @@ write_files:
   - path: /etc/blitzclaw/proxy_secret
     content: "${proxySecret}"
     permissions: '0600'
-  - path: /etc/blitzclaw/proxy_endpoint
-    content: "${proxyEndpoint}"
-    permissions: '0600'
+  - path: /root/.openclaw/config.yaml
+    content: |
+${openclawConfig.split('\n').map(line => '      ' + line).join('\n')}
+    permissions: '0644'
   - path: /etc/systemd/system/openclaw.service
     content: |
       [Unit]
@@ -54,9 +70,11 @@ write_files:
       Type=simple
       User=root
       WorkingDirectory=/root/.openclaw
-      ExecStart=/usr/bin/openclaw gateway start --foreground
+      ExecStart=/usr/bin/openclaw gateway --allow-unconfigured
       Restart=always
       RestartSec=10
+      Environment=ANTHROPIC_API_KEY=${anthropicApiKey}
+      Environment=OPENCLAW_GATEWAY_TOKEN=${gatewayToken}
       
       [Install]
       WantedBy=multi-user.target
@@ -69,44 +87,66 @@ write_files:
       
       Instance ID: ${instanceId}
     permissions: '0644'
+  - path: /root/setup-openclaw.sh
+    content: |
+      #!/bin/bash
+      set -e
+      
+      echo "=== Installing Node.js 22 ==="
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+      apt-get install -y nodejs
+      
+      # Verify node is installed
+      echo "Node version: $(node --version)"
+      echo "npm version: $(npm --version)"
+      
+      echo "=== Installing OpenClaw ==="
+      # Retry loop for npm install (can fail on fresh servers)
+      for i in 1 2 3; do
+        echo "Attempt $i..."
+        rm -rf /usr/lib/node_modules/openclaw 2>/dev/null || true
+        npm install -g openclaw && break
+        sleep 5
+      done
+      
+      # Verify openclaw is installed
+      echo "OpenClaw version: $(openclaw --version)"
+      
+      echo "=== Creating directories ==="
+      mkdir -p /root/.openclaw/workspace
+      
+      echo "=== Setting up firewall ==="
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow 22/tcp
+      ufw --force enable
+      
+      echo "=== Starting OpenClaw ==="
+      systemctl daemon-reload
+      systemctl enable openclaw
+      systemctl start openclaw
+      
+      # Wait for service to start
+      sleep 5
+      
+      echo "=== Checking service status ==="
+      systemctl status openclaw || true
+      
+      echo "=== Signaling ready ==="
+      curl -X POST "${blitzclawApiUrl}/api/internal/instance-ready" \\
+        -H "Content-Type: application/json" \\
+        -H "X-Instance-Secret: ${proxySecret}" \\
+        -d '{"instance_id": "${instanceId}"}' \\
+        || echo "Callback failed (non-fatal)"
+      
+      touch /etc/blitzclaw/ready
+      echo "=== Setup complete ==="
+    permissions: '0755'
 
 runcmd:
-  # Create directories
   - mkdir -p /etc/blitzclaw
   - mkdir -p /root/.openclaw/workspace
-  
-  # Install Node.js 22 (LTS)
-  - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-  - apt-get install -y nodejs
-  
-  # Install OpenClaw globally
-  - npm install -g openclaw
-  
-  # Setup firewall
-  - ufw default deny incoming
-  - ufw default allow outgoing
-  - ufw allow from ${blitzclawApiIp} to any port 22  # SSH from BlitzClaw API
-  - ufw allow 443/tcp  # HTTPS outbound (for API calls)
-  - ufw --force enable
-  
-  # Configure fail2ban
-  - systemctl enable fail2ban
-  - systemctl start fail2ban
-  
-  # Enable OpenClaw service (don't start yet - needs config)
-  - systemctl daemon-reload
-  - systemctl enable openclaw
-  
-  # Signal that server is ready for configuration
-  - |
-    curl -X POST "https://api.blitzclaw.com/api/internal/instance-ready" \\
-      -H "Content-Type: application/json" \\
-      -H "X-Instance-Secret: ${proxySecret}" \\
-      -d '{"instance_id": "${instanceId}"}' \\
-      || true  # Don't fail if callback fails
-  
-  # Create ready marker file
-  - touch /etc/blitzclaw/ready
+  - /root/setup-openclaw.sh >> /var/log/blitzclaw-setup.log 2>&1
 `;
 
   return cloudConfig;

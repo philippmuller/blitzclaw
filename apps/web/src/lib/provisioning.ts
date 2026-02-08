@@ -44,20 +44,35 @@ export async function getPoolStatus() {
 
 /**
  * Provision a new server and add it to the pool
+ * For pool servers, we provision without Telegram config (added later when assigned)
  */
-export async function provisionPoolServer(): Promise<{
+export async function provisionPoolServer(options?: {
+  telegramBotToken?: string;
+  instanceId?: string;
+}): Promise<{
   id: string;
   hetznerServerId: string;
   ipAddress: string;
+  gatewayToken: string;
 }> {
-  // Generate unique instance ID and secret for this server
-  const poolEntryId = `pool-${Date.now()}-${randomBytes(4).toString("hex")}`;
+  // Generate unique instance ID and secrets
+  const poolEntryId = options?.instanceId || `pool-${Date.now()}-${randomBytes(4).toString("hex")}`;
   const proxySecret = generateSecret();
+  const gatewayToken = generateSecret();
 
-  // Generate cloud-init script
+  // Get API key from environment
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicApiKey) {
+    throw new Error("ANTHROPIC_API_KEY not configured");
+  }
+
+  // Generate cloud-init script with full configuration
   const cloudInit = generateCloudInit({
     instanceId: poolEntryId,
     proxySecret,
+    gatewayToken,
+    anthropicApiKey,
+    telegramBotToken: options?.telegramBotToken,
   });
 
   // Create server on Hetzner
@@ -93,6 +108,7 @@ export async function provisionPoolServer(): Promise<{
     id: poolEntry.id,
     hetznerServerId: serverId.toString(),
     ipAddress,
+    gatewayToken,
   };
 }
 
@@ -279,8 +295,20 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   instanceId: string;
   status: InstanceStatus;
   ipAddress: string | null;
+  gatewayToken?: string;
 }> {
   const { userId, channelType, personaTemplate, soulMd, channelConfig } = options;
+
+  // Parse channelConfig to extract bot token
+  let telegramBotToken: string | undefined;
+  if (channelConfig) {
+    try {
+      const config = JSON.parse(channelConfig);
+      telegramBotToken = config.bot_token;
+    } catch (e) {
+      console.error("Failed to parse channelConfig:", e);
+    }
+  }
 
   // Create instance record
   const instance = await prisma.instance.create({
@@ -294,38 +322,42 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     },
   });
 
-  // Try to assign a server from the pool
-  let server = await assignServerToInstance(instance.id);
-
-  if (!server) {
-    // No server in pool - provision on-demand
-    console.log("No pool servers available, provisioning on-demand for instance:", instance.id);
+  // For on-demand provisioning with specific config (Telegram token),
+  // we always provision a new server with the config baked in
+  console.log("Provisioning on-demand server for instance:", instance.id);
+  
+  let gatewayToken: string | undefined;
+  let server: { serverId: string; ipAddress: string } | null = null;
+  
+  try {
+    const poolServer = await provisionPoolServer({
+      telegramBotToken,
+      instanceId: instance.id,
+    });
     
-    try {
-      const poolServer = await provisionPoolServer();
-      
-      // Immediately assign it to this instance
-      await prisma.serverPool.update({
-        where: { id: poolServer.id },
-        data: {
-          status: ServerPoolStatus.ASSIGNED,
-          assignedTo: instance.id,
-        },
-      });
-      
-      server = {
-        serverId: poolServer.hetznerServerId,
-        ipAddress: poolServer.ipAddress,
-      };
-    } catch (error) {
-      console.error("Failed to provision on-demand server:", error);
-      // Leave instance as PENDING, it can be manually fixed later
-      return {
-        instanceId: instance.id,
-        status: InstanceStatus.PENDING,
-        ipAddress: null,
-      };
-    }
+    gatewayToken = poolServer.gatewayToken;
+    
+    // Immediately assign it to this instance
+    await prisma.serverPool.update({
+      where: { id: poolServer.id },
+      data: {
+        status: ServerPoolStatus.ASSIGNED,
+        assignedTo: instance.id,
+      },
+    });
+    
+    server = {
+      serverId: poolServer.hetznerServerId,
+      ipAddress: poolServer.ipAddress,
+    };
+  } catch (error) {
+    console.error("Failed to provision on-demand server:", error);
+    // Leave instance as PENDING, it can be manually fixed later
+    return {
+      instanceId: instance.id,
+      status: InstanceStatus.PENDING,
+      ipAddress: null,
+    };
   }
 
   // Update instance with server info
@@ -342,6 +374,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     instanceId: instance.id,
     status: InstanceStatus.PROVISIONING,
     ipAddress: server.ipAddress,
+    gatewayToken,
   };
 }
 
