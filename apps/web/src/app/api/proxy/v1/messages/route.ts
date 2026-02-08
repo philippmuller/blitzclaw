@@ -10,7 +10,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, InstanceStatus } from "@blitzclaw/db";
-import { calculateCost, MINIMUM_BALANCE_CENTS } from "@/lib/pricing";
+import { calculateCost, MINIMUM_BALANCE_CENTS, DAILY_LIMIT_CENTS } from "@/lib/pricing";
+import { checkAndTriggerTopup } from "@/lib/auto-topup";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -111,6 +112,33 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 3b. Check daily spend limit
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  
+  const todayUsage = await prisma.usageLog.aggregate({
+    where: {
+      instance: { userId: instance.userId },
+      timestamp: { gte: todayStart },
+    },
+    _sum: { costCents: true },
+  });
+  
+  const todaySpendCents = todayUsage._sum.costCents ?? 0;
+  
+  if (todaySpendCents >= DAILY_LIMIT_CENTS) {
+    return NextResponse.json(
+      {
+        error: "Daily limit reached",
+        code: "DAILY_LIMIT_EXCEEDED",
+        message: `Daily spend limit of $${DAILY_LIMIT_CENTS / 100} reached. Limit resets at midnight.`,
+        todaySpend: todaySpendCents,
+        dailyLimit: DAILY_LIMIT_CENTS,
+      },
+      { status: 429 }
+    );
+  }
+
   // 4. Parse request body
   let requestBody: { model?: string; [key: string]: unknown };
   try {
@@ -195,8 +223,9 @@ export async function POST(req: NextRequest) {
   const { costCents } = costResult;
 
   // 9. Deduct from balance and log usage (atomic transaction)
+  let newBalanceCents = balance;
   try {
-    await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Create usage log
       await tx.usageLog.create({
         data: {
@@ -218,7 +247,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Check if balance went negative or below minimum - pause instance
+      // Check if balance went negative - pause instance
       if (updatedBalance.creditsCents < 0) {
         console.warn(`Instance ${instanceId} balance depleted, pausing...`);
         await tx.instance.update({
@@ -226,13 +255,32 @@ export async function POST(req: NextRequest) {
           data: { status: InstanceStatus.PAUSED },
         });
       }
+
+      return updatedBalance;
     });
+    
+    newBalanceCents = result.creditsCents;
   } catch (error) {
     // Log error but still return the response - we got the data, billing can be reconciled
     console.error(`Failed to log usage for instance ${instanceId}:`, error);
   }
 
-  // 10. Return response to instance
+  // 10. Check if auto top-up needed (async, don't block response)
+  const topupThreshold = instance.user.balance?.topupThresholdCents ?? 500;
+  if (newBalanceCents < topupThreshold && newBalanceCents >= 0) {
+    // Trigger auto top-up in background
+    checkAndTriggerTopup(instance.userId).then((result) => {
+      if (result.checkoutUrl) {
+        console.log(`Auto top-up triggered for user ${instance.userId}: ${result.checkoutUrl}`);
+      } else if (!result.success) {
+        console.warn(`Auto top-up failed for user ${instance.userId}: ${result.error}`);
+      }
+    }).catch((err) => {
+      console.error(`Auto top-up error for user ${instance.userId}:`, err);
+    });
+  }
+
+  // 11. Return response to instance
   return NextResponse.json(responseData);
 }
 

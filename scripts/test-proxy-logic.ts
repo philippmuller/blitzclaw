@@ -28,6 +28,7 @@ const PRICING: Record<string, { inputPer1M: number; outputPer1M: number }> = {
 
 const MARKUP = 1.5;
 const MIN_BALANCE_CENTS = 1000;
+const DAILY_LIMIT_CENTS = 20000; // $200/day
 const PROXY_SECRET = 'test-proxy-secret';
 
 function calculateCostCents(model: string, inputTokens: number, outputTokens: number): number {
@@ -78,6 +79,28 @@ async function processProxyRequest(req: ProxyRequest): Promise<ProxyResult> {
       success: false, 
       error: 'Insufficient balance', 
       errorCode: 402 
+    };
+  }
+
+  // 3b. Check daily limit
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  
+  const todayUsage = await prisma.usageLog.aggregate({
+    where: {
+      instance: { userId: instance.userId },
+      timestamp: { gte: todayStart },
+    },
+    _sum: { costCents: true },
+  });
+  
+  const todaySpendCents = todayUsage._sum.costCents ?? 0;
+  
+  if (todaySpendCents >= DAILY_LIMIT_CENTS) {
+    return {
+      success: false,
+      error: 'Daily limit exceeded',
+      errorCode: 429,
     };
   }
 
@@ -295,6 +318,35 @@ async function main() {
     
     const totalCost = logs.reduce((sum, log) => sum + log.costCents, 0);
     if (totalCost < 3) throw new Error('Total cost should be at least 3 cents');
+  });
+
+  // Test 7: Daily limit enforcement
+  await test('Reject request when daily limit exceeded', async () => {
+    const { instance, user } = await setupTestUser(50000); // $500 balance
+    
+    // Manually insert usage log that hits the daily limit
+    await prisma.usageLog.create({
+      data: {
+        instanceId: instance.id,
+        model: 'claude-sonnet-4',
+        tokensIn: 1000000,
+        tokensOut: 100000,
+        costCents: DAILY_LIMIT_CENTS, // Exactly at limit
+        timestamp: new Date(), // Today
+      },
+    });
+    
+    // Next request should be rejected
+    const result = await processProxyRequest({
+      instanceId: instance.id,
+      proxySecret: PROXY_SECRET,
+      model: 'claude-sonnet-4',
+      inputTokens: 1000,
+      outputTokens: 500,
+    });
+    
+    if (result.success) throw new Error('Expected failure due to daily limit');
+    if (result.errorCode !== 429) throw new Error(`Expected 429, got ${result.errorCode}`);
   });
 
   // Cleanup

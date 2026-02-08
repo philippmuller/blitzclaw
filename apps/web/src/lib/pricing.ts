@@ -109,6 +109,12 @@ export function getSupportedModels(): ModelPricing[] {
 export const MINIMUM_BALANCE_CENTS = 1000; // $10
 
 /**
+ * Maximum daily spend per account (in cents)
+ * Safety limit to prevent runaway costs
+ */
+export const DAILY_LIMIT_CENTS = 20000; // $200/day
+
+/**
  * Default model for new instances
  */
 export const DEFAULT_MODEL = "claude-sonnet-4-20250514";
