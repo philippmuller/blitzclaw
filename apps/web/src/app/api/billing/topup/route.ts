@@ -53,44 +53,47 @@ export async function POST(request: Request) {
 
   // Create Creem checkout session
   try {
+    const checkoutBody = {
+      product_id: productId,
+      success_url: `${APP_URL}/dashboard?topup=success`,
+      request_id: `topup_${user.id}_${Date.now()}`,
+    };
+    
+    console.log("Creating Creem checkout:", { 
+      url: `${CREEM_API_URL}/checkouts`,
+      productId,
+      userId: user.id,
+    });
+
     const response = await fetch(`${CREEM_API_URL}/checkouts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": CREEM_API_KEY || "",
       },
-      body: JSON.stringify({
-        product_id: productId,
-        success_url: `${APP_URL}/dashboard?topup=success`,
-        request_id: `topup_${user.id}_${Date.now()}`,
-        metadata: {
-          user_id: user.id,
-          clerk_id: userId,
-          amount_cents: String(amountCents),
-          type: "topup",
-        },
-      }),
+      body: JSON.stringify(checkoutBody),
     });
 
+    const responseText = await response.text();
+    
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Creem API error:", error);
+      console.error("Creem API error:", response.status, responseText);
       return NextResponse.json(
-        { error: "Failed to create checkout session" },
+        { error: `Creem error: ${response.status}`, details: responseText },
         { status: 500 }
       );
     }
 
-    const checkout = await response.json();
+    const checkout = JSON.parse(responseText);
 
     return NextResponse.json({
-      checkoutUrl: checkout.checkout_url,
+      checkoutUrl: checkout.checkout_url || checkout.url,
       checkoutId: checkout.id,
     });
   } catch (error) {
     console.error("Creem checkout error:", error);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: "Failed to create checkout session", details: String(error) },
       { status: 500 }
     );
   }
