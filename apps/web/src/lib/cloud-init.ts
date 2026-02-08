@@ -172,6 +172,11 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
       
       echo "=== Creating directories ==="
       mkdir -p /root/.openclaw/workspace
+      mkdir -p /root/.openclaw/agents/main/agent
+      mkdir -p /root/.openclaw/agents/main/sessions
+      chmod 700 /root/.openclaw
+      chmod 600 /root/.openclaw/openclaw.json
+      chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
       
       echo "=== Setting up firewall ==="
       ufw default deny incoming
@@ -234,7 +239,7 @@ export function generateOpenClawConfig(config: OpenClawConfig): string {
     agents: {
       defaults: {
         workspace: "/root/.openclaw/workspace",
-        model: config.model || "anthropic/claude-sonnet-4-20250514"
+        ...(config.model ? { model: { primary: config.model } } : {})
       },
       list: [
         {
