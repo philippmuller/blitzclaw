@@ -1,7 +1,30 @@
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton, auth } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@blitzclaw/db";
 
-export default function Home() {
+export default async function Home() {
+  // Check if user is signed in and needs onboarding
+  const { userId } = await auth();
+  
+  if (userId) {
+    // Check if user has completed onboarding (has balance or instances)
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { balance: true, instances: true },
+    });
+    
+    const hasBalance = (user?.balance?.creditsCents ?? 0) > 0;
+    const hasInstances = (user?.instances?.length ?? 0) > 0;
+    
+    // New user - redirect to onboarding
+    if (!hasBalance && !hasInstances) {
+      redirect("/onboarding");
+    }
+    
+    // Existing user - redirect to dashboard
+    redirect("/dashboard");
+  }
   return (
     <main className="min-h-screen bg-background">
       {/* Gradient Background */}
