@@ -62,9 +62,17 @@ export async function provisionPoolServer(): Promise<{
 
   // Create server on Hetzner
   const serverName = `blitz-pool-${Date.now()}`;
+  
+  // Get SSH key ID from env (must be configured in Hetzner)
+  const sshKeyId = process.env.HETZNER_SSH_KEY_ID;
+  if (!sshKeyId) {
+    console.warn("HETZNER_SSH_KEY_ID not set - server will not have SSH access");
+  }
+  
   const { serverId, ipAddress } = await createServer({
     name: serverName,
     userData: cloudInit,
+    sshKeys: sshKeyId ? [sshKeyId] : [],
     labels: {
       service: "blitzclaw",
       type: "pool",
