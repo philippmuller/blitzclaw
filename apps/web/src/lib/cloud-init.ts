@@ -82,7 +82,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
       defaults: {
         workspace: "/root/.openclaw/workspace",
         model: {
-          primary: "blitzclaw/claude-sonnet-4-20250514"
+          primary: "blitzclaw/claude-opus-4-20250514"
         }
       },
       list: [
