@@ -192,9 +192,11 @@ export async function POST(req: NextRequest) {
   if (isStreaming && anthropicResponse.body) {
     const decoder = new TextDecoder();
     
-    // Track usage from stream events
+    // Track usage from stream events (including cache tokens)
     let inputTokens = 0;
     let outputTokens = 0;
+    let cacheCreationTokens = 0;
+    let cacheReadTokens = 0;
     let buffer = "";
     
     // Create a transform stream that captures usage while passing through
@@ -217,12 +219,22 @@ export async function POST(req: NextRequest) {
                 
                 // message_start contains initial input token count
                 if (event.type === "message_start" && event.message?.usage) {
-                  inputTokens = event.message.usage.input_tokens || 0;
+                  const usage = event.message.usage;
+                  inputTokens = usage.input_tokens || 0;
+                  cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+                  cacheReadTokens = usage.cache_read_input_tokens || 0;
                 }
                 
                 // message_delta contains final output token count
                 if (event.type === "message_delta" && event.usage) {
                   outputTokens = event.usage.output_tokens || 0;
+                  // Also update cache tokens if present in delta
+                  if (event.usage.cache_creation_input_tokens) {
+                    cacheCreationTokens = event.usage.cache_creation_input_tokens;
+                  }
+                  if (event.usage.cache_read_input_tokens) {
+                    cacheReadTokens = event.usage.cache_read_input_tokens;
+                  }
                 }
               } catch {
                 // Ignore parse errors for partial JSON
@@ -234,11 +246,17 @@ export async function POST(req: NextRequest) {
       
       async flush() {
         // Stream complete - log actual usage
-        if (inputTokens > 0 || outputTokens > 0) {
-          const costResult = calculateCost(model, inputTokens, outputTokens);
+        // Total input = regular + cache_creation (1.25x) + cache_read (0.1x)
+        // For simplicity, we bill cache_creation as 1.25x input and cache_read as 0.1x input
+        const effectiveInputTokens = inputTokens + 
+          Math.ceil(cacheCreationTokens * 1.25) + 
+          Math.ceil(cacheReadTokens * 0.1);
+        
+        if (effectiveInputTokens > 0 || outputTokens > 0) {
+          const costResult = calculateCost(model, effectiveInputTokens, outputTokens);
           const costCents = costResult?.costCents ?? 1;
           
-          console.log(`Streaming complete: ${inputTokens} in, ${outputTokens} out, ${costCents}¢`);
+          console.log(`Streaming complete: in=${inputTokens} cache_create=${cacheCreationTokens} cache_read=${cacheReadTokens} out=${outputTokens} effective_in=${effectiveInputTokens} cost=${costCents}¢`);
           
           // Log usage and deduct balance
           try {
@@ -247,7 +265,7 @@ export async function POST(req: NextRequest) {
                 data: {
                   instanceId: instance.id,
                   model,
-                  tokensIn: inputTokens,
+                  tokensIn: effectiveInputTokens, // Store effective (includes cache adjustment)
                   tokensOut: outputTokens,
                   costCents,
                 },
