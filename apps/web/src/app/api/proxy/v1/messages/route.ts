@@ -10,8 +10,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, InstanceStatus } from "@blitzclaw/db";
-import { calculateCost, MINIMUM_BALANCE_CENTS, DAILY_LIMIT_CENTS } from "@/lib/pricing";
+import { calculateCost, DAILY_LIMIT_CENTS } from "@/lib/pricing";
 import { checkAndTriggerTopup } from "@/lib/auto-topup";
+import { sendLowBalanceWarning, sendCriticalBalanceWarning } from "@/lib/email";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -88,21 +89,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Check user balance
+  // 3. Check user balance - hard block at $0
   const balance = instance.user.balance?.creditsCents ?? 0;
   
-  if (balance < MINIMUM_BALANCE_CENTS) {
+  if (balance <= 0) {
     return NextResponse.json(
       {
-        error: "Insufficient balance",
-        code: "INSUFFICIENT_BALANCE",
-        message: `Minimum balance of $${MINIMUM_BALANCE_CENTS / 100} required. Current balance: $${(balance / 100).toFixed(2)}`,
+        error: "Balance depleted",
+        code: "BALANCE_DEPLETED",
+        message: "Your balance is empty. Please top up to continue using your assistant.",
         currentBalance: balance,
-        requiredBalance: MINIMUM_BALANCE_CENTS,
+        topUpUrl: "https://www.blitzclaw.com/dashboard/billing",
       },
       { status: 402 }
     );
   }
+  
+  // 3a. Auto-downgrade to Haiku when balance < $1 (stretches remaining credits)
+  const LOW_BALANCE_THRESHOLD = 100; // $1
+  const isLowBalance = balance < LOW_BALANCE_THRESHOLD;
 
   // 3b. Check daily spend limit
   const todayStart = new Date();
@@ -143,7 +148,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Use model from instance settings (allows dashboard override)
-  const model = instance.model || requestBody.model || "claude-opus-4-20250514";
+  // Auto-downgrade to Haiku when balance < $1 to stretch remaining credits
+  let model = instance.model || requestBody.model || "claude-opus-4-20250514";
+  let modelDowngraded = false;
+  
+  if (isLowBalance && model !== "claude-3-5-haiku-20241022") {
+    model = "claude-3-5-haiku-20241022";
+    modelDowngraded = true;
+    console.log(`Auto-downgraded to Haiku for instance ${instance.id} (balance: ${balance}¢)`);
+  }
+  
   // Override the model in the request to Anthropic
   requestBody.model = model;
   const isStreaming = requestBody.stream === true;
@@ -381,6 +395,47 @@ export async function POST(req: NextRequest) {
     }).catch((err) => {
       console.error(`Auto top-up error for user ${instance.userId}:`, err);
     });
+  }
+
+  // 10b. Send low balance email notifications (async, don't block)
+  const userEmail = instance.user.email;
+  const balanceRecord = instance.user.balance;
+  
+  if (userEmail && balanceRecord) {
+    const LOW_BALANCE_THRESHOLD = 500; // $5
+    const CRITICAL_BALANCE_THRESHOLD = 100; // $1
+    const EMAIL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const now = new Date();
+    
+    // Send $5 warning (if not sent recently)
+    if (newBalanceCents < LOW_BALANCE_THRESHOLD && newBalanceCents >= CRITICAL_BALANCE_THRESHOLD) {
+      const lastSent = balanceRecord.lastLowBalanceEmail;
+      if (!lastSent || (now.getTime() - lastSent.getTime()) > EMAIL_COOLDOWN_MS) {
+        sendLowBalanceWarning(userEmail, newBalanceCents).then(sent => {
+          if (sent) {
+            prisma.balance.update({
+              where: { userId: instance.userId },
+              data: { lastLowBalanceEmail: now },
+            }).catch(e => console.error("Failed to update lastLowBalanceEmail:", e));
+          }
+        }).catch(e => console.error("Low balance email error:", e));
+      }
+    }
+    
+    // Send $1 critical warning (if not sent recently)
+    if (newBalanceCents < CRITICAL_BALANCE_THRESHOLD && newBalanceCents > 0) {
+      const lastSent = balanceRecord.lastCriticalBalanceEmail;
+      if (!lastSent || (now.getTime() - lastSent.getTime()) > EMAIL_COOLDOWN_MS) {
+        sendCriticalBalanceWarning(userEmail, newBalanceCents).then(sent => {
+          if (sent) {
+            prisma.balance.update({
+              where: { userId: instance.userId },
+              data: { lastCriticalBalanceEmail: now },
+            }).catch(e => console.error("Failed to update lastCriticalBalanceEmail:", e));
+          }
+        }).catch(e => console.error("Critical balance email error:", e));
+      }
+    }
   }
 
   // 11. Return response to instance
