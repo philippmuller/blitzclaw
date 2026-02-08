@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { UserProfile } from "@clerk/nextjs";
 import { prisma } from "@blitzclaw/db";
+import { DeleteAccountButton } from "./DeleteAccountButton";
 
 export default async function SettingsPage() {
   const clerkUser = await currentUser();
@@ -124,12 +125,7 @@ export default async function SettingsPage() {
         <p className="text-sm text-muted-foreground mb-4">
           Irreversible actions that affect your account and data.
         </p>
-        <button
-          disabled
-          className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 font-medium rounded-lg hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Delete Account (Coming Soon)
-        </button>
+        <DeleteAccountButton />
       </div>
     </div>
   );
