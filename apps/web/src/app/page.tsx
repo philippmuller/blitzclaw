@@ -1,4 +1,5 @@
-import { SignedIn, SignedOut, SignInButton, UserButton, auth } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
