@@ -29,15 +29,58 @@ export function generateCloudInit(options: CloudInitOptions): string {
       : "https://www.blitzclaw.com",
   } = options;
 
-  // Generate OpenClaw config.yaml content
-  const openclawConfig = `model: anthropic/claude-sonnet-4-20250514
-gateway:
-  mode: local
-${telegramBotToken ? `channels:
-  telegram:
-    token: ${telegramBotToken}
-    default_channel: true` : ''}
-`;
+  // Generate OpenClaw config JSON
+  // Key requirements:
+  // - gateway.mode: "local" (required to skip setup wizard)
+  // - gateway.auth.token: for securing the gateway
+  // - channels.telegram.botToken: the Telegram token (not "token"!)
+  // - channels.telegram.enabled: true
+  // - channels.telegram.dmPolicy: "open" (no pairing for managed instances)
+  const openclawConfig = {
+    meta: {
+      lastTouchedVersion: "blitzclaw-provisioned",
+      lastTouchedAt: new Date().toISOString()
+    },
+    gateway: {
+      mode: "local",
+      auth: {
+        mode: "token",
+        token: gatewayToken
+      },
+      port: 18789,
+      bind: "loopback"
+    },
+    agents: {
+      defaults: {
+        workspace: "/root/.openclaw/workspace"
+      },
+      list: [
+        {
+          id: "main",
+          default: true,
+          identity: {
+            name: "Assistant",
+            emoji: "🤖"
+          }
+        }
+      ]
+    },
+    ...(telegramBotToken ? {
+      channels: {
+        telegram: {
+          enabled: true,
+          botToken: telegramBotToken,
+          dmPolicy: "open",     // No pairing for managed instances
+          allowFrom: ["*"]      // Required when dmPolicy is "open"
+        }
+      },
+      plugins: {
+        entries: {
+          telegram: { enabled: true }
+        }
+      }
+    } : {})
+  };
 
   // YAML cloud-config - using shell script for reliability
   const cloudConfig = `#cloud-config
@@ -48,6 +91,7 @@ packages:
   - curl
   - fail2ban
   - ufw
+  - jq
 
 write_files:
   - path: /etc/blitzclaw/instance_id
@@ -56,10 +100,10 @@ write_files:
   - path: /etc/blitzclaw/proxy_secret
     content: "${proxySecret}"
     permissions: '0600'
-  - path: /root/.openclaw/config.yaml
+  - path: /root/.openclaw/openclaw.json
     content: |
-${openclawConfig.split('\n').map(line => '      ' + line).join('\n')}
-    permissions: '0644'
+${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + line).join('\n')}
+    permissions: '0600'
   - path: /etc/systemd/system/openclaw.service
     content: |
       [Unit]
@@ -70,11 +114,9 @@ ${openclawConfig.split('\n').map(line => '      ' + line).join('\n')}
       Type=simple
       User=root
       WorkingDirectory=/root/.openclaw
-      ExecStart=/usr/bin/openclaw gateway --allow-unconfigured
+      ExecStart=/usr/bin/openclaw gateway
       Restart=always
       RestartSec=10
-      Environment=ANTHROPIC_API_KEY=${anthropicApiKey}
-      Environment=OPENCLAW_GATEWAY_TOKEN=${gatewayToken}
       
       [Install]
       WantedBy=multi-user.target
@@ -87,6 +129,22 @@ ${openclawConfig.split('\n').map(line => '      ' + line).join('\n')}
       
       Instance ID: ${instanceId}
     permissions: '0644'
+  - path: /root/.openclaw/agents/main/agent/auth-profiles.json
+    content: |
+      {
+        "version": 1,
+        "profiles": {
+          "anthropic:default": {
+            "type": "api_key",
+            "provider": "anthropic",
+            "key": "${anthropicApiKey}"
+          }
+        },
+        "lastGood": {
+          "anthropic": "anthropic:default"
+        }
+      }
+    permissions: '0600'
   - path: /root/setup-openclaw.sh
     content: |
       #!/bin/bash
@@ -146,6 +204,8 @@ ${openclawConfig.split('\n').map(line => '      ' + line).join('\n')}
 runcmd:
   - mkdir -p /etc/blitzclaw
   - mkdir -p /root/.openclaw/workspace
+  - mkdir -p /root/.openclaw/agents/main/agent
+  - chmod 700 /root/.openclaw/agents/main/agent
   - /root/setup-openclaw.sh >> /var/log/blitzclaw-setup.log 2>&1
 `;
 
@@ -153,38 +213,63 @@ runcmd:
 }
 
 /**
- * Generate the OpenClaw config.yaml for an instance
+ * Generate OpenClaw config JSON for an instance
  */
 export interface OpenClawConfig {
   model?: string;
-  proxyEndpoint: string;
+  proxyEndpoint?: string;
   instanceId: string;
-  proxySecret: string;
+  proxySecret?: string;
   telegramBotToken?: string;
   telegramAllowList?: string[];
 }
 
 export function generateOpenClawConfig(config: OpenClawConfig): string {
-  const yaml = `# BlitzClaw managed OpenClaw configuration
-# Instance ID: ${config.instanceId}
-# Do not edit manually - changes may be overwritten
+  const jsonConfig = {
+    meta: {
+      lastTouchedVersion: "blitzclaw-provisioned",
+      lastTouchedAt: new Date().toISOString(),
+      instanceId: config.instanceId
+    },
+    agents: {
+      defaults: {
+        workspace: "/root/.openclaw/workspace",
+        model: config.model || "anthropic/claude-sonnet-4-20250514"
+      },
+      list: [
+        {
+          id: "main",
+          default: true,
+          identity: {
+            name: "Assistant",
+            emoji: "🤖"
+          }
+        }
+      ]
+    },
+    ...(config.telegramBotToken ? {
+      channels: {
+        telegram: {
+          enabled: true,
+          botToken: config.telegramBotToken,
+          ...(config.telegramAllowList?.length ? {
+            dmPolicy: "allowlist",
+            allowFrom: config.telegramAllowList
+          } : {
+            dmPolicy: "open",
+            allowFrom: ["*"]
+          })
+        }
+      },
+      plugins: {
+        entries: {
+          telegram: { enabled: true }
+        }
+      }
+    } : {})
+  };
 
-openclaw:
-  model: ${config.model || "anthropic/claude-sonnet-4"}
-  apiEndpoint: ${config.proxyEndpoint}
-  
-  # BlitzClaw proxy authentication
-  headers:
-    X-BlitzClaw-Instance: ${config.instanceId}
-    X-BlitzClaw-Secret: ${config.proxySecret}
-${config.telegramBotToken ? `
-  telegram:
-    botToken: ${config.telegramBotToken}
-${config.telegramAllowList ? `    allowList:\n${config.telegramAllowList.map(id => `      - ${id}`).join('\n')}` : ''}
-` : ''}
-`;
-
-  return yaml;
+  return JSON.stringify(jsonConfig, null, 2);
 }
 
 /**
