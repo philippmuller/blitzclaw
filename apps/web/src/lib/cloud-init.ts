@@ -82,7 +82,22 @@ export function generateCloudInit(options: CloudInitOptions): string {
     } : {})
   };
 
-  // YAML cloud-config - using shell script for reliability
+  // Auth profiles JSON for the Anthropic API key
+  const authProfilesJson = {
+    version: 1,
+    profiles: {
+      "anthropic:default": {
+        type: "api_key",
+        provider: "anthropic",
+        key: anthropicApiKey
+      }
+    },
+    lastGood: {
+      anthropic: "anthropic:default"
+    }
+  };
+
+  // YAML cloud-config - write_files for all JSON, simple shell script
   const cloudConfig = `#cloud-config
 package_update: true
 package_upgrade: false
@@ -97,14 +112,23 @@ write_files:
   - path: /etc/blitzclaw/instance_id
     content: "${instanceId}"
     permissions: '0600'
+
   - path: /etc/blitzclaw/proxy_secret
     content: "${proxySecret}"
     permissions: '0600'
+
   - path: /root/.openclaw/openclaw.json
+    permissions: '0600'
     content: |
 ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + line).join('\n')}
+
+  - path: /root/.openclaw/agents/main/agent/auth-profiles.json
     permissions: '0600'
+    content: |
+${JSON.stringify(authProfilesJson, null, 2).split('\n').map(line => '      ' + line).join('\n')}
+
   - path: /etc/systemd/system/openclaw.service
+    permissions: '0644'
     content: |
       [Unit]
       Description=OpenClaw Gateway
@@ -120,16 +144,18 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
       
       [Install]
       WantedBy=multi-user.target
-    permissions: '0644'
+
   - path: /root/.openclaw/workspace/AGENTS.md
+    permissions: '0644'
     content: |
       # BlitzClaw Instance
       
       This is a managed OpenClaw instance provisioned by BlitzClaw.
       
       Instance ID: ${instanceId}
-    permissions: '0644'
+
   - path: /root/setup-openclaw.sh
+    permissions: '0755'
     content: |
       #!/bin/bash
       set -e
@@ -138,12 +164,10 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
       curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
       apt-get install -y nodejs
       
-      # Verify node is installed
       echo "Node version: $(node --version)"
       echo "npm version: $(npm --version)"
       
       echo "=== Installing OpenClaw ==="
-      # Retry loop for npm install (can fail on fresh servers)
       for i in 1 2 3; do
         echo "Attempt $i..."
         rm -rf /usr/lib/node_modules/openclaw 2>/dev/null || true
@@ -151,32 +175,11 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
         sleep 5
       done
       
-      # Verify openclaw is installed
       echo "OpenClaw version: $(openclaw --version)"
       
-      echo "=== Creating directories ==="
-      mkdir -p /root/.openclaw/workspace
-      mkdir -p /root/.openclaw/agents/main/agent
-      mkdir -p /root/.openclaw/agents/main/sessions
+      echo "=== Setting permissions ==="
       chmod 700 /root/.openclaw
       chmod 600 /root/.openclaw/openclaw.json
-      
-      echo "=== Creating auth-profiles.json ==="
-      cat > /root/.openclaw/agents/main/agent/auth-profiles.json << 'AUTHEOF'
-{
-  "version": 1,
-  "profiles": {
-    "anthropic:default": {
-      "type": "api_key",
-      "provider": "anthropic",
-      "key": "${anthropicApiKey}"
-    }
-  },
-  "lastGood": {
-    "anthropic": "anthropic:default"
-  }
-}
-AUTHEOF
       chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json
       
       echo "=== Setting up firewall ==="
@@ -190,27 +193,24 @@ AUTHEOF
       systemctl enable openclaw
       systemctl start openclaw
       
-      # Wait for service to start
       sleep 5
-      
-      echo "=== Checking service status ==="
       systemctl status openclaw || true
       
       echo "=== Signaling ready ==="
-      curl -X POST "${blitzclawApiUrl}/api/internal/instance-ready" \\
-        -H "Content-Type: application/json" \\
-        -H "X-Instance-Secret: ${proxySecret}" \\
-        -d '{"instance_id": "${instanceId}"}' \\
+      curl -X POST "${blitzclawApiUrl}/api/internal/instance-ready" \
+        -H "Content-Type: application/json" \
+        -H "X-Instance-Secret: ${proxySecret}" \
+        -d '{"instance_id": "${instanceId}"}' \
         || echo "Callback failed (non-fatal)"
       
       touch /etc/blitzclaw/ready
       echo "=== Setup complete ==="
-    permissions: '0755'
 
 runcmd:
   - mkdir -p /etc/blitzclaw
   - mkdir -p /root/.openclaw/workspace
   - mkdir -p /root/.openclaw/agents/main/agent
+  - mkdir -p /root/.openclaw/agents/main/sessions
   - chmod 700 /root/.openclaw/agents/main/agent
   - /root/setup-openclaw.sh >> /var/log/blitzclaw-setup.log 2>&1
 `;
