@@ -34,16 +34,16 @@ export default function Home() {
 
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="inline-block px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary mb-6">
-            🚀 One-click AI deployment
+            ⚡ Blazing fast AI deployment
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             Deploy Your AI Assistant in{" "}
-            <span className="text-primary">Seconds</span>
+            <span className="text-primary">Minutes</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            One-click OpenClaw deployment. Telegram & WhatsApp ready.
+            Your own OpenClaw instance. Telegram ready, WhatsApp coming soon.
             <br />
-            Usage-based billing. No API keys needed.
+            €20/mo subscription + usage-based billing. No API keys needed.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
@@ -81,9 +81,9 @@ export default function Home() {
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">💰</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Pay as You Go</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Simple Pricing</h3>
             <p className="text-muted-foreground">
-              $10 minimum balance. Only pay for what you use. No subscriptions.
+              €20/mo includes €10 credits. Pay for usage with auto top-up. €200/day limit.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
@@ -104,9 +104,9 @@ export default function Home() {
                 1
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-1">Sign up & top up</h3>
+                <h3 className="font-semibold text-foreground mb-1">Subscribe</h3>
                 <p className="text-muted-foreground">
-                  Create an account and add at least $10 to get started.
+                  €20/mo subscription includes €10 credits. Auto top-up keeps you running.
                 </p>
               </div>
             </div>
@@ -142,7 +142,7 @@ export default function Home() {
               Ready to deploy your AI?
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Get your personal AI assistant running in minutes. No complex setup, no monthly subscriptions.
+              Get your personal AI assistant running in minutes. No complex setup, no DevOps required.
             </p>
             <SignedOut>
               <SignInButton mode="modal">

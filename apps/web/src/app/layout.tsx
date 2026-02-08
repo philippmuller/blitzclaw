@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BlitzClaw - One-click OpenClaw Deployment",
-  description: "Deploy your AI assistant in seconds. Telegram & WhatsApp ready.",
+  description: "Deploy your AI assistant in minutes. Telegram ready, WhatsApp coming soon.",
 };
 
 export default function RootLayout({
