@@ -24,9 +24,8 @@ export function generateCloudInit(options: CloudInitOptions): string {
     gatewayToken,
     anthropicApiKey,
     telegramBotToken,
-    blitzclawApiUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : "https://www.blitzclaw.com",
+    // Always use production URL for callbacks (preview URLs require Vercel auth)
+    blitzclawApiUrl = "https://www.blitzclaw.com",
   } = options;
 
   // Generate OpenClaw config JSON
@@ -119,12 +118,12 @@ write_files:
 
   - path: /root/.openclaw/openclaw.json
     permissions: '0600'
-    content: |
+    content: |-
 ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + line).join('\n')}
 
   - path: /root/.openclaw/agents/main/agent/auth-profiles.json
     permissions: '0600'
-    content: |
+    content: |-
 ${JSON.stringify(authProfilesJson, null, 2).split('\n').map(line => '      ' + line).join('\n')}
 
   - path: /etc/systemd/system/openclaw.service
