@@ -13,6 +13,7 @@
     "typecheck": "turbo run build --filter=@blitzclaw/db && tsc --noEmit --project apps/web/tsconfig.json && tsc --noEmit --project apps/cli/tsconfig.json",
     "test": "npm run test:unit && npm run test:e2e:sim",
     "test:unit": "npx tsx scripts/test-pricing.ts && npx tsx scripts/test-proxy-logic.ts",
+    "test:auth": "npx tsx scripts/test-auth-redirect.ts",
     "test:e2e:sim": "npx tsx scripts/test-e2e-flow.ts",
     "test:e2e:real": "npx tsx scripts/test-real-e2e.ts --skip-hetzner",
     "test:e2e:full": "npx tsx scripts/test-real-e2e.ts",
