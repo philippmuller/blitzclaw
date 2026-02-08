@@ -103,6 +103,8 @@ export async function POST(request: Request) {
           creem_status: response.status,
           creem_error: errorText.substring(0, 500),
           creem_url: CREEM_API_URL,
+          success_url: successUrl,
+          app_url: APP_URL,
           product_id_set: !!CREEM_SUBSCRIPTION_PRODUCT_ID,
           product_id_prefix: CREEM_SUBSCRIPTION_PRODUCT_ID?.substring(0, 10),
         }
