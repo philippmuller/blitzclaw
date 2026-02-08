@@ -327,13 +327,13 @@ async function verifyUsageLogged(instanceId: string, expectedCost: number): Prom
     throw new Error('No usage logs found');
   }
   
-  const log = logs[0];
-  success(`Logged: ${log.tokensIn} in / ${log.tokensOut} out = ${log.costCents} cents`);
+  const usageLog = logs[0];
+  success(`Logged: ${usageLog.tokensIn} in / ${usageLog.tokensOut} out = ${usageLog.costCents} cents`);
   
-  if (Math.abs(log.costCents - expectedCost) <= 1) {
+  if (Math.abs(usageLog.costCents - expectedCost) <= 1) {
     success('Cost matches expected (within 1 cent tolerance)');
   } else {
-    fail(`Cost mismatch: expected ${expectedCost}, got ${log.costCents}`);
+    fail(`Cost mismatch: expected ${expectedCost}, got ${usageLog.costCents}`);
   }
 }
 
