@@ -35,7 +35,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
   // - channels.telegram.botToken: the Telegram token (not "token"!)
   // - channels.telegram.enabled: true
   // - channels.telegram.dmPolicy: "open" (no pairing for managed instances)
-  // - models.providers.blitzclaw-anthropic: Custom provider pointing to our billing proxy
+  // NOTE: For MVP, we use direct Anthropic calls. Billing proxy metering to be added later.
   const openclawConfig = {
     meta: {
       lastTouchedVersion: "blitzclaw-provisioned",
@@ -50,47 +50,9 @@ export function generateCloudInit(options: CloudInitOptions): string {
       port: 18789,
       bind: "loopback"
     },
-    models: {
-      providers: {
-        // Custom provider that routes through BlitzClaw billing proxy
-        "blitzclaw-anthropic": {
-          baseUrl: `${blitzclawApiUrl}/api/proxy/v1`,
-          api: "anthropic",
-          // Models available through the proxy (mirrors Anthropic's offerings)
-          models: [
-            {
-              id: "claude-sonnet-4-20250514",
-              name: "Claude Sonnet 4",
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 8192
-            },
-            {
-              id: "claude-opus-4-20250514",
-              name: "Claude Opus 4",
-              reasoning: true,
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 32000
-            },
-            {
-              id: "claude-haiku-3-5-20241022",
-              name: "Claude Haiku 3.5",
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 8192
-            }
-          ]
-        }
-      }
-    },
     agents: {
       defaults: {
-        workspace: "/root/.openclaw/workspace",
-        // Use our proxy provider by default
-        model: {
-          primary: "blitzclaw-anthropic/claude-sonnet-4-20250514"
-        }
+        workspace: "/root/.openclaw/workspace"
       },
       list: [
         {
@@ -120,19 +82,19 @@ export function generateCloudInit(options: CloudInitOptions): string {
     } : {})
   };
 
-  // Auth profiles JSON - use proxySecret as the "API key" for our proxy
-  // The proxy will validate this token and identify the instance
+  // Auth profiles JSON - direct Anthropic API key for MVP
+  // TODO: Implement billing proxy for usage metering
   const authProfilesJson = {
     version: 1,
     profiles: {
-      "blitzclaw-anthropic:default": {
+      "anthropic:default": {
         type: "api_key",
-        provider: "blitzclaw-anthropic",
-        key: proxySecret  // Instance-specific token, validated by our proxy
+        provider: "anthropic",
+        key: anthropicApiKey
       }
     },
     lastGood: {
-      "blitzclaw-anthropic": "blitzclaw-anthropic:default"
+      anthropic: "anthropic:default"
     }
   };
 
