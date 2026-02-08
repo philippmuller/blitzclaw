@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 import { BalanceCard } from "@/components";
+import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
 
 async function getUserWithUsage(clerkId: string) {
   const user = await prisma.user.findUnique({
@@ -72,12 +73,15 @@ export default async function BillingPage() {
             Manage your balance and view usage history.
           </p>
         </div>
-        <Link
-          href="/dashboard/billing/topup"
-          className="px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
-        >
-          Top Up Balance
-        </Link>
+        <div className="flex gap-3">
+          <ManageSubscriptionButton />
+          <Link
+            href="/dashboard/billing/topup"
+            className="px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+          >
+            Top Up Balance
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
