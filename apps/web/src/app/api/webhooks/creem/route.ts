@@ -98,8 +98,8 @@ export async function POST(request: Request) {
   }
 
   const event = JSON.parse(payload);
-  const eventType = event.event_type || event.type;
-  const data = event.data || event;
+  const eventType = event.eventType || event.event_type || event.type;
+  const data = event.object || event.data || event;
   const metadata = data?.metadata || {};
 
   // Also check for request_id which might contain user info
