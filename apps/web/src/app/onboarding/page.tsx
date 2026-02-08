@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink } from "lucide-react";
@@ -17,7 +17,7 @@ interface OnboardingState {
   instanceId: string | null;
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -435,5 +435,18 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    }>
+      <OnboardingContent />
+    </Suspense>
   );
 }
