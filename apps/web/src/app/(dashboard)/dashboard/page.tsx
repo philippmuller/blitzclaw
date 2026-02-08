@@ -1,4 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 import { BalanceCard, InstanceCard } from "@/components";
@@ -63,11 +64,18 @@ export default async function DashboardPage() {
 
   const user = await getOrCreateUser(clerkUser);
   const creditsCents = user.balance?.creditsCents ?? 0;
+  const totalInstances = user.instances.length;
+
+  // Redirect to onboarding if user hasn't completed setup
+  // (no subscription/balance AND no instances)
+  if (creditsCents === 0 && totalInstances === 0) {
+    redirect("/onboarding");
+  }
+
   const belowMinimum = creditsCents < 1000;
   const monthlyUsageCents = await getMonthlyUsage(user.id);
   
   const activeInstances = user.instances.filter(i => i.status === "ACTIVE").length;
-  const totalInstances = user.instances.length;
 
   return (
     <div className="space-y-8">
