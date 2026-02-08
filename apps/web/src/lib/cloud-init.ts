@@ -59,6 +59,20 @@ export function generateCloudInit(options: CloudInitOptions): string {
               input: ["text", "image"],
               contextWindow: 200000,
               maxTokens: 8192
+            },
+            {
+              id: "claude-opus-4-20250514",
+              name: "Claude Opus 4",
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 8192
+            },
+            {
+              id: "claude-3-5-haiku-20241022",
+              name: "Claude 3.5 Haiku",
+              input: ["text", "image"],
+              contextWindow: 200000,
+              maxTokens: 8192
             }
           ]
         }
@@ -139,6 +153,11 @@ packages:
   - fail2ban
   - ufw
   - jq
+  - chromium-browser
+  - fonts-liberation
+  - libnss3
+  - libatk-bridge2.0-0
+  - libgtk-3-0
 
 write_files:
   - path: /etc/blitzclaw/instance_id

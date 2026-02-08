@@ -12,13 +12,15 @@ export interface ModelPricing {
 
 // Base API costs (what we pay)
 const BASE_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = {
-  // Anthropic
+  // Anthropic - current models
+  "claude-opus-4-20250514": { inputPer1M: 1500, outputPer1M: 7500 },     // $15/$75
   "claude-sonnet-4-20250514": { inputPer1M: 300, outputPer1M: 1500 },    // $3/$15
   "claude-3-5-sonnet-20241022": { inputPer1M: 300, outputPer1M: 1500 },  // $3/$15
   "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },     // $0.80/$4
   "claude-3-haiku-20240307": { inputPer1M: 25, outputPer1M: 125 },       // $0.25/$1.25
   
   // Aliases (normalized)
+  "claude-opus-4": { inputPer1M: 1500, outputPer1M: 7500 },
   "claude-sonnet-4": { inputPer1M: 300, outputPer1M: 1500 },
   "claude-3-5-sonnet": { inputPer1M: 300, outputPer1M: 1500 },
   "claude-3-5-haiku": { inputPer1M: 80, outputPer1M: 400 },
