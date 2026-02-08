@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
   if (!ANTHROPIC_API_KEY) {
     // For testing without a real key, return a mock response
     if (process.env.NODE_ENV === "development") {
-      return mockAnthropicResponse(model, instanceId);
+      return mockAnthropicResponse(model, instance.id);
     }
     return NextResponse.json(
       { error: "Anthropic API key not configured" },
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
   const usage = responseData.usage;
   if (!usage) {
     // Return response without billing if no usage data
-    console.warn(`No usage data in response for instance ${instanceId}`);
+    console.warn(`No usage data in response for instance ${instance.id}`);
     return NextResponse.json(responseData);
   }
 
@@ -241,9 +241,9 @@ export async function POST(req: NextRequest) {
 
       // Check if balance went negative - pause instance
       if (updatedBalance.creditsCents < 0) {
-        console.warn(`Instance ${instanceId} balance depleted, pausing...`);
+        console.warn(`Instance ${instance.id} balance depleted, pausing...`);
         await tx.instance.update({
-          where: { id: instanceId },
+          where: { id: instance.id },
           data: { status: InstanceStatus.PAUSED },
         });
       }
@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
     newBalanceCents = result.creditsCents;
   } catch (error) {
     // Log error but still return the response - we got the data, billing can be reconciled
-    console.error(`Failed to log usage for instance ${instanceId}:`, error);
+    console.error(`Failed to log usage for instance ${instance.id}:`, error);
   }
 
   // 10. Check if auto top-up needed (async, don't block response)
