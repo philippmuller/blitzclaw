@@ -4,3 +4,4 @@ export { StatusBadge } from "./StatusBadge";
 export { TelegramSetup } from "./TelegramSetup";
 export { SoulEditor } from "./SoulEditor";
 export { PersonaPicker, getPersonaTemplate, personas } from "./PersonaPicker";
+export { ModelSelector } from "./ModelSelector";

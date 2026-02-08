@@ -142,7 +142,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const model = requestBody.model || "claude-sonnet-4-20250514";
+  // Use model from instance settings (allows dashboard override)
+  const model = instance.model || requestBody.model || "claude-opus-4-20250514";
+  // Override the model in the request to Anthropic
+  requestBody.model = model;
   const isStreaming = requestBody.stream === true;
 
   // 5. Check if ANTHROPIC_API_KEY is configured

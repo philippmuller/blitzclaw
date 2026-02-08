@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { StatusBadge, TelegramSetup, SoulEditor } from "@/components";
+import { StatusBadge, TelegramSetup, SoulEditor, ModelSelector } from "@/components";
 
 interface Instance {
   id: string;
   status: string;
   channelType: string;
   personaTemplate: string;
+  model: string;
   soulMd: string | null;
   ipAddress: string | null;
   hetznerServerId: string | null;
@@ -245,6 +246,14 @@ export default function InstanceDetailPage() {
             {instance.recentUsage.totalTokensIn.toLocaleString()} in / {instance.recentUsage.totalTokensOut.toLocaleString()} out
           </p>
         </div>
+      </div>
+
+      {/* Model Selector */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <ModelSelector
+          instanceId={instanceId}
+          currentModel={instance.model || "claude-opus-4-20250514"}
+        />
       </div>
 
       {/* Telegram Setup or Connection Info */}
