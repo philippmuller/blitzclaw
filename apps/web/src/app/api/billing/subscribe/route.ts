@@ -13,7 +13,7 @@ const CREEM_API_URL = process.env.CREEM_API_URL ||
     ? "https://test-api.creem.io/v1" 
     : "https://api.creem.io/v1");
 const CREEM_SUBSCRIPTION_PRODUCT_ID = process.env.CREEM_SUBSCRIPTION_PRODUCT_ID;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
 
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();

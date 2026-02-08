@@ -12,7 +12,7 @@ const CREEM_API_URL = process.env.CREEM_API_URL ||
   (process.env.CREEM_API_KEY?.includes('test') 
     ? "https://test-api.creem.io/v1" 
     : "https://api.creem.io/v1");
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
 
 interface TopupResult {
   success: boolean;
@@ -97,8 +97,7 @@ async function createCreemCharge(
       amount: amountCents,
       currency: "usd",
       customer_id: customerId,
-      success_url: `${APP_URL}/dashboard?topup=success`,
-      cancel_url: `${APP_URL}/dashboard?topup=cancelled`,
+      success_url: `${APP_URL}/dashboard`,
       metadata: {
         user_id: userId,
         amount_cents: String(amountCents),

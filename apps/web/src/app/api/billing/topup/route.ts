@@ -8,7 +8,7 @@ const CREEM_API_URL = process.env.CREEM_API_URL ||
   (CREEM_API_KEY?.includes('test') 
     ? "https://test-api.creem.io/v1" 
     : "https://api.creem.io/v1");
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim();
 
 export async function POST(request: Request) {
   const { userId } = await auth();
