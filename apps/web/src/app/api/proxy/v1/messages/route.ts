@@ -188,37 +188,86 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 6b. Handle streaming responses - pass through directly
-  // For MVP: streaming requests pass through without real-time billing
-  // Usage is estimated based on message length, actual billing happens via periodic reconciliation
+  // 6b. Handle streaming responses - parse SSE for actual usage
   if (isStreaming && anthropicResponse.body) {
-    // Estimate tokens for billing (rough: 4 chars per token for input)
-    const inputText = JSON.stringify(requestBody.messages || []);
-    const estimatedInputTokens = Math.ceil(inputText.length / 4);
-    const estimatedOutputTokens = 500; // Conservative estimate for streaming
+    const decoder = new TextDecoder();
     
-    const costResult = calculateCost(model, estimatedInputTokens, estimatedOutputTokens);
-    const estimatedCostCents = costResult?.costCents ?? 1;
+    // Track usage from stream events
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let buffer = "";
     
-    // Log estimated usage (will be reconciled later if needed)
-    prisma.usageLog.create({
-      data: {
-        instanceId: instance.id,
-        model,
-        tokensIn: estimatedInputTokens,
-        tokensOut: estimatedOutputTokens,
-        costCents: estimatedCostCents,
+    // Create a transform stream that captures usage while passing through
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        // Pass through immediately
+        controller.enqueue(chunk);
+        
+        // Parse for usage data
+        buffer += decoder.decode(chunk, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data && data !== "[DONE]") {
+              try {
+                const event = JSON.parse(data);
+                
+                // message_start contains initial input token count
+                if (event.type === "message_start" && event.message?.usage) {
+                  inputTokens = event.message.usage.input_tokens || 0;
+                }
+                
+                // message_delta contains final output token count
+                if (event.type === "message_delta" && event.usage) {
+                  outputTokens = event.usage.output_tokens || 0;
+                }
+              } catch {
+                // Ignore parse errors for partial JSON
+              }
+            }
+          }
+        }
       },
-    }).catch(err => console.error("Failed to log streaming usage estimate:", err));
+      
+      async flush() {
+        // Stream complete - log actual usage
+        if (inputTokens > 0 || outputTokens > 0) {
+          const costResult = calculateCost(model, inputTokens, outputTokens);
+          const costCents = costResult?.costCents ?? 1;
+          
+          console.log(`Streaming complete: ${inputTokens} in, ${outputTokens} out, ${costCents}¢`);
+          
+          // Log usage and deduct balance
+          try {
+            await prisma.$transaction([
+              prisma.usageLog.create({
+                data: {
+                  instanceId: instance.id,
+                  model,
+                  tokensIn: inputTokens,
+                  tokensOut: outputTokens,
+                  costCents,
+                },
+              }),
+              prisma.balance.update({
+                where: { userId: instance.userId },
+                data: { creditsCents: { decrement: costCents } },
+              }),
+            ]);
+          } catch (err) {
+            console.error("Failed to log streaming usage:", err);
+          }
+        }
+      },
+    });
     
-    // Deduct estimated cost
-    prisma.balance.update({
-      where: { userId: instance.userId },
-      data: { creditsCents: { decrement: estimatedCostCents } },
-    }).catch(err => console.error("Failed to deduct streaming cost:", err));
+    // Pipe the response through our transform
+    const stream = anthropicResponse.body.pipeThrough(transformStream);
     
-    // Pass through the stream
-    return new Response(anthropicResponse.body, {
+    return new Response(stream, {
       status: 200,
       headers: {
         "Content-Type": "text/event-stream",
