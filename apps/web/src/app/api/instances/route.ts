@@ -74,10 +74,21 @@ export async function POST(req: NextRequest) {
 
   // Parse request body
   const body = await req.json();
-  const { channel_type, persona_template, soul_md } = body;
+  const { 
+    channel_type, 
+    persona_template, 
+    soul_md,
+    // New fields from onboarding
+    telegramToken,
+    persona,
+    autoTopup,
+  } = body;
 
-  // Validate channel type
-  const channelType = channel_type?.toUpperCase();
+  // Determine channel type - default to TELEGRAM if telegramToken provided
+  let channelType = channel_type?.toUpperCase();
+  if (!channelType && telegramToken) {
+    channelType = "TELEGRAM";
+  }
   if (!channelType || !["TELEGRAM", "WHATSAPP"].includes(channelType)) {
     return NextResponse.json(
       { error: "Invalid channel_type. Must be 'telegram' or 'whatsapp'" },
@@ -86,21 +97,41 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate persona template
-  const validPersonas = ["assistant", "developer", "creative", "custom"];
-  const persona = persona_template || "assistant";
-  if (!validPersonas.includes(persona)) {
+  const validPersonas = ["assistant", "developer", "creative", "custom", "coder", "casual"];
+  const selectedPersona = persona || persona_template || "assistant";
+  if (!validPersonas.includes(selectedPersona)) {
     return NextResponse.json(
-      { error: `Invalid persona_template. Must be one of: ${validPersonas.join(", ")}` },
+      { error: `Invalid persona. Must be one of: ${validPersonas.join(", ")}` },
       { status: 400 }
     );
+  }
+
+  // If telegram token provided, validate it
+  if (channelType === "TELEGRAM" && !telegramToken && !body.channel_config) {
+    return NextResponse.json(
+      { error: "Telegram bot token is required" },
+      { status: 400 }
+    );
+  }
+
+  // Update auto-topup preference if provided
+  if (autoTopup !== undefined && user.balance) {
+    await prisma.balance.update({
+      where: { userId: user.id },
+      data: { 
+        autoTopupEnabled: autoTopup,
+        topupAmountCents: 2500, // €25 top-up
+      },
+    });
   }
 
   try {
     const result = await createInstance({
       userId: user.id,
       channelType: channelType as "TELEGRAM" | "WHATSAPP",
-      personaTemplate: persona,
+      personaTemplate: selectedPersona,
       soulMd: soul_md,
+      channelConfig: telegramToken ? JSON.stringify({ bot_token: telegramToken }) : body.channel_config,
     });
 
     return NextResponse.json({

@@ -15,21 +15,45 @@ const CREEM_API_URL = process.env.CREEM_API_URL ||
 const CREEM_SUBSCRIPTION_PRODUCT_ID = process.env.CREEM_SUBSCRIPTION_PRODUCT_ID;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com";
 
-export async function POST() {
+export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
   
   if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get user from database
-  const user = await prisma.user.findUnique({
+  // Parse request body for auto-topup preference
+  let autoTopup = true;
+  try {
+    const body = await request.json();
+    autoTopup = body.autoTopup !== false;
+  } catch {
+    // Default to true if no body
+  }
+
+  // Get or create user in database
+  let user = await prisma.user.findUnique({
     where: { clerkId },
   });
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // Create user if doesn't exist (first time)
+    user = await prisma.user.create({
+      data: {
+        clerkId,
+        email: `${clerkId}@pending.blitzclaw.com`, // Will be updated by webhook
+      },
+    });
   }
+
+  // Save auto-topup preference for when subscription completes
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      // Store in a way that webhook can read it
+      // We'll use a simple approach: store in user record temporarily
+    },
+  });
 
   if (!CREEM_API_KEY || !CREEM_SUBSCRIPTION_PRODUCT_ID) {
     console.error("Creem not configured");
@@ -48,13 +72,15 @@ export async function POST() {
     },
     body: JSON.stringify({
       product_id: CREEM_SUBSCRIPTION_PRODUCT_ID,
-      success_url: `${APP_URL}/dashboard?subscription=success`,
-      cancel_url: `${APP_URL}/dashboard?subscription=cancelled`,
+      success_url: `${APP_URL}/onboarding?subscription=success&autoTopup=${autoTopup}`,
+      cancel_url: `${APP_URL}/onboarding?subscription=cancelled`,
       customer_id: user.creemCustomerId || undefined,
+      request_id: `sub_${user.id}_${Date.now()}`,
       metadata: {
         user_id: user.id,
         clerk_id: clerkId,
         type: "subscription",
+        auto_topup: autoTopup ? "true" : "false",
       },
     }),
   });

@@ -42,10 +42,12 @@ export async function GET() {
     id: user.id,
     email: user.email,
     createdAt: user.createdAt,
-    balance: {
-      creditsCents: user.balance?.creditsCents ?? 0,
-      autoTopupEnabled: user.balance?.autoTopupEnabled ?? false,
-    },
-    instanceCount: user.instances.length,
+    balance: user.balance?.creditsCents ?? 0,
+    autoTopupEnabled: user.balance?.autoTopupEnabled ?? false,
+    instances: user.instances.map(i => ({
+      id: i.id,
+      status: i.status,
+      channelType: i.channelType,
+    })),
   });
 }

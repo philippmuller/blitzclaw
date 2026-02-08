@@ -264,6 +264,7 @@ export interface CreateInstanceOptions {
   channelType: "TELEGRAM" | "WHATSAPP";
   personaTemplate: string;
   soulMd?: string;
+  channelConfig?: string; // JSON string with bot_token, etc.
 }
 
 export async function createInstance(options: CreateInstanceOptions): Promise<{
@@ -271,7 +272,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   status: InstanceStatus;
   ipAddress: string | null;
 }> {
-  const { userId, channelType, personaTemplate, soulMd } = options;
+  const { userId, channelType, personaTemplate, soulMd, channelConfig } = options;
 
   // Create instance record
   const instance = await prisma.instance.create({
@@ -280,6 +281,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       channelType,
       personaTemplate,
       soulMd: generateSoulMd(personaTemplate, soulMd),
+      channelConfig,
       status: InstanceStatus.PENDING,
     },
   });

@@ -46,8 +46,11 @@ export async function POST(request: Request) {
     // ============ CHECKOUT ============
     case "checkout.completed": {
       const userId = metadata.user_id;
-      const amountCents = parseInt(metadata.amount_cents || data.amount || "2000", 10);
+      // Subscription includes €10 credits (1000 cents)
+      const SUBSCRIPTION_CREDITS = 1000;
+      const amountCents = parseInt(metadata.amount_cents || String(SUBSCRIPTION_CREDITS), 10);
       const creemCustomerId = data.customer?.id || data.customer_id;
+      const autoTopup = metadata.auto_topup !== "false"; // Default true
 
       if (!userId) {
         console.error("No user_id in checkout.completed metadata:", event);
@@ -62,18 +65,19 @@ export async function POST(request: Request) {
         });
       }
 
-      // Credit the user's balance
+      // Credit the user's balance with auto-topup preference
       await prisma.balance.upsert({
         where: { userId },
         update: {
           creditsCents: { increment: amountCents },
+          autoTopupEnabled: autoTopup,
         },
         create: {
           userId,
           creditsCents: amountCents,
-          autoTopupEnabled: true, // Enable auto top-up by default
-          topupThresholdCents: 500, // $5 threshold
-          topupAmountCents: 2000, // $20 top-up
+          autoTopupEnabled: autoTopup,
+          topupThresholdCents: 500, // €5 threshold
+          topupAmountCents: 2500, // €25 top-up
         },
       });
 
@@ -83,7 +87,7 @@ export async function POST(request: Request) {
         data: { status: "ACTIVE" },
       });
 
-      console.log(`✅ Credited ${amountCents} cents to user ${userId}, customer: ${creemCustomerId || 'unknown'}`);
+      console.log(`✅ Credited ${amountCents} cents to user ${userId}, autoTopup: ${autoTopup}, customer: ${creemCustomerId || 'unknown'}`);
       break;
     }
 
