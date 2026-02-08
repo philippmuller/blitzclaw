@@ -7,7 +7,11 @@
 import { prisma } from "@blitzclaw/db";
 
 const CREEM_API_KEY = process.env.CREEM_API_KEY;
-const CREEM_API_URL = process.env.CREEM_API_URL || "https://api.creem.io/v1";
+// Test mode uses test-api.creem.io
+const CREEM_API_URL = process.env.CREEM_API_URL || 
+  (process.env.CREEM_API_KEY?.includes('test') 
+    ? "https://test-api.creem.io/v1" 
+    : "https://api.creem.io/v1");
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com";
 
 interface TopupResult {

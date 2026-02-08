@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
 
 const CREEM_API_KEY = process.env.CREEM_API_KEY;
+// Test mode uses test-api.creem.io
+const CREEM_API_URL = process.env.CREEM_API_URL || 
+  (CREEM_API_KEY?.includes('test') 
+    ? "https://test-api.creem.io/v1" 
+    : "https://api.creem.io/v1");
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 export async function POST(request: Request) {
@@ -35,7 +40,7 @@ export async function POST(request: Request) {
   // Create Creem checkout session
   // Creem API docs: https://docs.creem.io
   try {
-    const response = await fetch("https://api.creem.io/v1/checkouts", {
+    const response = await fetch(`${CREEM_API_URL}/checkouts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
