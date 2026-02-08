@@ -47,13 +47,14 @@ export async function POST(request: Request) {
         "x-api-key": CREEM_API_KEY || "",
       },
       body: JSON.stringify({
-        product_id: "prod_blitzclaw_credits", // You'll need to create this in Creem dashboard
+        product_id: process.env.CREEM_TOPUP_PRODUCT_ID || process.env.CREEM_SUBSCRIPTION_PRODUCT_ID,
         success_url: `${APP_URL}/dashboard?topup=success`,
         request_id: `topup_${user.id}_${Date.now()}`,
         metadata: {
           user_id: user.id,
           clerk_id: userId,
-          amount_cents: amountCents,
+          amount_cents: String(amountCents),
+          type: "topup",
         },
       }),
     });
