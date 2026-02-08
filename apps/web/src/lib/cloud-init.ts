@@ -129,22 +129,6 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
       
       Instance ID: ${instanceId}
     permissions: '0644'
-  - path: /root/.openclaw/agents/main/agent/auth-profiles.json
-    content: |
-      {
-        "version": 1,
-        "profiles": {
-          "anthropic:default": {
-            "type": "api_key",
-            "provider": "anthropic",
-            "key": "${anthropicApiKey}"
-          }
-        },
-        "lastGood": {
-          "anthropic": "anthropic:default"
-        }
-      }
-    permissions: '0600'
   - path: /root/setup-openclaw.sh
     content: |
       #!/bin/bash
@@ -176,7 +160,24 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
       mkdir -p /root/.openclaw/agents/main/sessions
       chmod 700 /root/.openclaw
       chmod 600 /root/.openclaw/openclaw.json
-      chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json 2>/dev/null || true
+      
+      echo "=== Creating auth-profiles.json ==="
+      cat > /root/.openclaw/agents/main/agent/auth-profiles.json << 'AUTHEOF'
+{
+  "version": 1,
+  "profiles": {
+    "anthropic:default": {
+      "type": "api_key",
+      "provider": "anthropic",
+      "key": "${anthropicApiKey}"
+    }
+  },
+  "lastGood": {
+    "anthropic": "anthropic:default"
+  }
+}
+AUTHEOF
+      chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json
       
       echo "=== Setting up firewall ==="
       ufw default deny incoming
