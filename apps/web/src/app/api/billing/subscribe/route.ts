@@ -64,6 +64,9 @@ export async function POST(request: Request) {
   }
 
   // Create Creem subscription checkout
+  // Note: Creem doesn't support cancel_url, and success_url must be a simple URL
+  const successUrl = `${APP_URL}/onboarding`;
+  
   const response = await fetch(`${CREEM_API_URL}/checkouts`, {
     method: "POST",
     headers: {
@@ -72,8 +75,7 @@ export async function POST(request: Request) {
     },
     body: JSON.stringify({
       product_id: CREEM_SUBSCRIPTION_PRODUCT_ID,
-      success_url: `${APP_URL}/onboarding?subscription=success&autoTopup=${autoTopup}`,
-      cancel_url: `${APP_URL}/onboarding?subscription=cancelled`,
+      success_url: successUrl,
       customer_id: user.creemCustomerId || undefined,
       request_id: `sub_${user.id}_${Date.now()}`,
       metadata: {
