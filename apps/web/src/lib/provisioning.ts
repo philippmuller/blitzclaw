@@ -287,32 +287,53 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   });
 
   // Try to assign a server from the pool
-  const server = await assignServerToInstance(instance.id);
+  let server = await assignServerToInstance(instance.id);
 
-  if (server) {
-    // Update instance with server info
-    await prisma.instance.update({
-      where: { id: instance.id },
-      data: {
-        hetznerServerId: server.serverId,
-        ipAddress: server.ipAddress,
-        status: InstanceStatus.PROVISIONING,
-      },
-    });
-
-    return {
-      instanceId: instance.id,
-      status: InstanceStatus.PROVISIONING,
-      ipAddress: server.ipAddress,
-    };
+  if (!server) {
+    // No server in pool - provision on-demand
+    console.log("No pool servers available, provisioning on-demand for instance:", instance.id);
+    
+    try {
+      const poolServer = await provisionPoolServer();
+      
+      // Immediately assign it to this instance
+      await prisma.serverPool.update({
+        where: { id: poolServer.id },
+        data: {
+          status: ServerPoolStatus.ASSIGNED,
+          assignedTo: instance.id,
+        },
+      });
+      
+      server = {
+        serverId: poolServer.hetznerServerId,
+        ipAddress: poolServer.ipAddress,
+      };
+    } catch (error) {
+      console.error("Failed to provision on-demand server:", error);
+      // Leave instance as PENDING, it can be manually fixed later
+      return {
+        instanceId: instance.id,
+        status: InstanceStatus.PENDING,
+        ipAddress: null,
+      };
+    }
   }
 
-  // No server available, provision on-demand
-  // For MVP, we'll just leave it as PENDING and let the pool manager handle it
+  // Update instance with server info
+  await prisma.instance.update({
+    where: { id: instance.id },
+    data: {
+      hetznerServerId: server.serverId,
+      ipAddress: server.ipAddress,
+      status: InstanceStatus.PROVISIONING,
+    },
+  });
+
   return {
     instanceId: instance.id,
-    status: InstanceStatus.PENDING,
-    ipAddress: null,
+    status: InstanceStatus.PROVISIONING,
+    ipAddress: server.ipAddress,
   };
 }
 
