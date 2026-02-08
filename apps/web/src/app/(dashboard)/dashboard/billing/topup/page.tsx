@@ -4,37 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 
 const amounts = [
-  { cents: 1000, label: "$10" },
-  { cents: 2000, label: "$20" },
-  { cents: 5000, label: "$50" },
-  { cents: 10000, label: "$100" },
+  { cents: 2500, label: "€25", productEnvKey: "CREEM_TOPUP_PRODUCT_ID" },
+  { cents: 5000, label: "€50", productEnvKey: "CREEM_TOPUP_50_PRODUCT_ID" },
 ];
 
 export default function TopupPage() {
-  const [selectedAmount, setSelectedAmount] = useState(2000);
-  const [customAmount, setCustomAmount] = useState("");
-  const [useCustom, setUseCustom] = useState(false);
+  const [selectedAmount, setSelectedAmount] = useState(2500);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAmount = () => {
-    if (useCustom && customAmount) {
-      const parsed = parseFloat(customAmount);
-      if (!isNaN(parsed) && parsed >= 10) {
-        return Math.round(parsed * 100);
-      }
-    }
-    return selectedAmount;
-  };
-
   const handleTopup = async () => {
-    const amountCents = getAmount();
-    
-    if (amountCents < 1000) {
-      setError("Minimum top-up amount is $10");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -42,7 +21,7 @@ export default function TopupPage() {
       const res = await fetch("/api/billing/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount_cents: amountCents }),
+        body: JSON.stringify({ amount_cents: selectedAmount }),
       });
 
       const data = await res.json();
@@ -82,62 +61,21 @@ export default function TopupPage() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Select Amount</h2>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {amounts.map((amount) => (
               <button
                 key={amount.cents}
-                onClick={() => {
-                  setSelectedAmount(amount.cents);
-                  setUseCustom(false);
-                }}
-                className={`p-4 rounded-xl border text-center transition-all ${
-                  !useCustom && selectedAmount === amount.cents
+                onClick={() => setSelectedAmount(amount.cents)}
+                className={`p-6 rounded-xl border text-center transition-all ${
+                  selectedAmount === amount.cents
                     ? "border-primary bg-primary/10 ring-2 ring-primary/50"
                     : "border-border bg-card hover:border-primary/50"
                 }`}
               >
-                <span className="text-2xl font-bold text-foreground">{amount.label}</span>
+                <span className="text-3xl font-bold text-foreground">{amount.label}</span>
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Custom Amount */}
-        <div>
-          <button
-            onClick={() => setUseCustom(true)}
-            className={`w-full p-4 rounded-xl border text-left transition-all ${
-              useCustom
-                ? "border-primary bg-primary/10 ring-2 ring-primary/50"
-                : "border-border bg-card hover:border-primary/50"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-foreground">Custom Amount</span>
-              {useCustom && (
-                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              )}
-            </div>
-          </button>
-          
-          {useCustom && (
-            <div className="mt-3">
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <input
-                  type="number"
-                  min="10"
-                  step="1"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="Enter amount (min $10)"
-                  className="w-full pl-8 pr-4 py-3 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Summary */}
@@ -145,7 +83,7 @@ export default function TopupPage() {
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Amount to add</span>
             <span className="text-2xl font-bold text-foreground">
-              ${(getAmount() / 100).toFixed(2)}
+              €{(selectedAmount / 100).toFixed(2)}
             </span>
           </div>
         </div>
@@ -159,7 +97,7 @@ export default function TopupPage() {
         {/* Checkout Button */}
         <button
           onClick={handleTopup}
-          disabled={loading || getAmount() < 1000}
+          disabled={loading}
           className="w-full px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? (
@@ -191,19 +129,19 @@ export default function TopupPage() {
         <ul className="space-y-2 text-sm text-muted-foreground">
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">✓</span>
-            Pay-as-you-go: Only pay for what you use
+            Usage-based: Pay for tokens used with 100% markup
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">✓</span>
-            $10 minimum balance required for active instances
+            €5 minimum balance required for active instances
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">✓</span>
-            No subscriptions or hidden fees
+            Auto top-up available to keep you running
           </li>
           <li className="flex items-start gap-2">
             <span className="text-green-400 mt-0.5">✓</span>
-            Credits never expire
+            €200/day spending limit for safety
           </li>
         </ul>
       </div>

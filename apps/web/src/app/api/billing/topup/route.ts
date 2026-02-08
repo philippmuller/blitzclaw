@@ -37,8 +37,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // Select the right product based on amount
+  // €25 = 2500 cents, €50 = 5000 cents
+  let productId = process.env.CREEM_TOPUP_PRODUCT_ID; // Default €25
+  if (amountCents >= 5000) {
+    productId = process.env.CREEM_TOPUP_50_PRODUCT_ID || productId;
+  }
+
+  if (!productId) {
+    return NextResponse.json(
+      { error: "Top-up product not configured" },
+      { status: 500 }
+    );
+  }
+
   // Create Creem checkout session
-  // Creem API docs: https://docs.creem.io
   try {
     const response = await fetch(`${CREEM_API_URL}/checkouts`, {
       method: "POST",
@@ -47,7 +60,7 @@ export async function POST(request: Request) {
         "x-api-key": CREEM_API_KEY || "",
       },
       body: JSON.stringify({
-        product_id: process.env.CREEM_TOPUP_PRODUCT_ID || process.env.CREEM_SUBSCRIPTION_PRODUCT_ID,
+        product_id: productId,
         success_url: `${APP_URL}/dashboard?topup=success`,
         request_id: `topup_${user.id}_${Date.now()}`,
         metadata: {
