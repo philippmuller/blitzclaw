@@ -54,6 +54,7 @@ export async function provisionPoolServer(options?: {
   hetznerServerId: string;
   ipAddress: string;
   gatewayToken: string;
+  proxySecret: string;
 }> {
   // Generate unique instance ID and secrets
   const poolEntryId = options?.instanceId || `pool-${Date.now()}-${randomBytes(4).toString("hex")}`;
@@ -109,6 +110,7 @@ export async function provisionPoolServer(options?: {
     hetznerServerId: serverId.toString(),
     ipAddress,
     gatewayToken,
+    proxySecret,
   };
 }
 
@@ -327,6 +329,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   console.log("Provisioning on-demand server for instance:", instance.id);
   
   let gatewayToken: string | undefined;
+  let proxySecret: string | undefined;
   let server: { serverId: string; ipAddress: string } | null = null;
   
   try {
@@ -336,6 +339,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     });
     
     gatewayToken = poolServer.gatewayToken;
+    proxySecret = poolServer.proxySecret;
     
     // Immediately assign it to this instance
     await prisma.serverPool.update({
@@ -360,12 +364,13 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     };
   }
 
-  // Update instance with server info
+  // Update instance with server info including proxySecret for billing proxy auth
   await prisma.instance.update({
     where: { id: instance.id },
     data: {
       hetznerServerId: server.serverId,
       ipAddress: server.ipAddress,
+      proxySecret: proxySecret,
       status: InstanceStatus.PROVISIONING,
     },
   });

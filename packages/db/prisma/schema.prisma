@@ -44,6 +44,7 @@ model Instance {
   soulMd              String?
   useOwnApiKey        Boolean        @default(false)
   ownApiKeyEncrypted  String?
+  proxySecret         String?        @unique  // Token used to authenticate with billing proxy
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   lastHealthCheck     DateTime?

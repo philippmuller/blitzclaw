@@ -35,32 +35,24 @@ interface AnthropicResponse {
 
 /**
  * POST /api/proxy/v1/messages - Proxy to Anthropic Messages API
+ * 
+ * Auth: Instances send their proxySecret as the x-api-key header.
+ * We look up the instance by this secret and validate.
  */
 export async function POST(req: NextRequest) {
-  // 1. Validate proxy credentials
-  const instanceId = req.headers.get("X-BlitzClaw-Instance");
-  const instanceSecret = req.headers.get("X-BlitzClaw-Secret");
+  // 1. Get the proxy token from x-api-key header (standard Anthropic header)
+  const proxyToken = req.headers.get("x-api-key");
 
-  if (!instanceId || !instanceSecret) {
+  if (!proxyToken) {
     return NextResponse.json(
-      { error: "Missing X-BlitzClaw-Instance or X-BlitzClaw-Secret headers" },
+      { error: "Missing x-api-key header" },
       { status: 401 }
     );
   }
 
-  // Verify signing secret matches (simple validation)
-  // In production, each instance would have its own secret stored in DB
-  if (!PROXY_SIGNING_SECRET) {
-    console.error("PROXY_SIGNING_SECRET not configured");
-    return NextResponse.json(
-      { error: "Proxy not configured" },
-      { status: 500 }
-    );
-  }
-
-  // 2. Look up instance and user
+  // 2. Look up instance by proxySecret (stored in Instance table)
   const instance = await prisma.instance.findUnique({
-    where: { id: instanceId },
+    where: { proxySecret: proxyToken },
     include: {
       user: {
         include: {
