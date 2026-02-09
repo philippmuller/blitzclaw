@@ -131,14 +131,14 @@ export const TIERS = {
   },
   basic: {
     name: "Basic",
-    priceEur: 20,
+    priceEur: 19,
     creditsCents: 1000, // €10
     productIdEnv: "CREEM_SUBSCRIPTION_PRODUCT_ID",
   },
   pro: {
     name: "Pro", 
-    priceEur: 120,
-    creditsCents: 11000, // €110
+    priceEur: 119,
+    creditsCents: 10000, // €100
     productIdEnv: "CREEM_SUBSCRIPTION_PRO_PRODUCT_ID",
   },
 } as const;

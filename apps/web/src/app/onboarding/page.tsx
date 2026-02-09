@@ -584,8 +584,9 @@ function OnboardingContent() {
               <p className="text-gray-400 mb-6">
                 Setting up your server and connecting to Telegram...
               </p>
-              <div className="text-sm text-gray-500">
-                This usually takes 1-2 minutes
+              <div className="text-sm text-gray-500 space-y-1">
+                <p>This usually takes 1-2 minutes</p>
+                <p className="text-gray-600">We&apos;ll email you when your assistant is ready</p>
               </div>
             </div>
           )}
@@ -598,8 +599,7 @@ function OnboardingContent() {
             Your assistant runs on a dedicated server with access to tools you enable. 
             Security risks increase with skills and integrations you add (email, file access, etc.). 
             We work to provide safe defaults, but prompt injection and other vulnerabilities remain possible. 
-            This is an open-source, hacker-friendly project — use at your own risk and avoid storing 
-            highly sensitive data. By continuing, you acknowledge these risks.
+            Use at your own risk and avoid storing highly sensitive data. By continuing, you acknowledge these risks.
           </p>
         </div>
       </div>
