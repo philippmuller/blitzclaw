@@ -84,6 +84,16 @@ export async function getCreemProduct(productId: string) {
   );
 }
 
+/**
+ * Cancel a Creem subscription
+ */
+export async function cancelCreemSubscription(subscriptionId: string): Promise<void> {
+  await creemFetch(`/subscriptions/${subscriptionId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export function verifyCreemWebhook(payload: string, signatureHeader: string | null): boolean {
   const secret = process.env.CREEM_WEBHOOK_SECRET;
   
