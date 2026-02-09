@@ -397,20 +397,23 @@ async function testVerifyAnthropicConfig() {
     
     if (mode === "byok") {
       // BYOK should have direct Anthropic key
-      const anthropicProfile = parsed.anthropic || parsed.profiles?.anthropic;
-      if (anthropicProfile?.apiKey && anthropicProfile.apiKey.startsWith("sk-ant-")) {
+      // Profile structure: { profiles: { "anthropic:default": { key: "sk-ant-..." } } }
+      const anthropicProfile = parsed.profiles?.["anthropic:default"] || parsed.profiles?.anthropic;
+      const key = anthropicProfile?.key || anthropicProfile?.apiKey;
+      if (key && key.startsWith("sk-ant-")) {
         pass("BYOK Anthropic key configured", "Key starts with sk-ant-*****");
       } else {
-        fail("BYOK Anthropic key configured", "Key not found or invalid");
+        fail("BYOK Anthropic key configured", `Key not found or invalid. Found: ${JSON.stringify(parsed.profiles)}`);
         return false;
       }
     } else {
       // Managed should point to BlitzClaw proxy
-      const anthropicProfile = parsed.anthropic || parsed.profiles?.anthropic;
-      if (anthropicProfile?.apiUrl && anthropicProfile.apiUrl.includes("blitzclaw.com")) {
-        pass("Managed proxy configured", anthropicProfile.apiUrl);
+      // Profile structure: { profiles: { "blitzclaw:default": { key: "..." } } }
+      const blitzclawProfile = parsed.profiles?.["blitzclaw:default"];
+      if (blitzclawProfile?.key) {
+        pass("Managed proxy configured", "Proxy key configured");
       } else {
-        fail("Managed proxy configured", "Proxy URL not configured");
+        fail("Managed proxy configured", `Profile not found. Found: ${JSON.stringify(parsed.profiles)}`);
         return false;
       }
     }
