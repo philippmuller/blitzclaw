@@ -12,9 +12,9 @@ const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com")
 
 // Creem Product IDs (configure these in env)
 const CREEM_PRODUCT_IDS: Record<string, string | undefined> = {
-  byok: process.env.CREEM_PRODUCT_BYOK,     // €14/mo - server only, BYOK
-  basic: process.env.CREEM_PRODUCT_BASIC,   // Future: managed billing basic
-  pro: process.env.CREEM_PRODUCT_PRO,       // Future: managed billing pro
+  byok: process.env.CREEM_PRODUCT_BYOK,                   // €14/mo - BYOK
+  basic: process.env.CREEM_SUBSCRIPTION_PRODUCT_ID,       // €19/mo - Basic managed
+  pro: process.env.CREEM_SUBSCRIPTION_PRO_PRODUCT_ID,     // €119/mo - Pro managed
 };
 
 type TierKey = "byok" | "basic" | "pro";
