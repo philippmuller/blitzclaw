@@ -91,6 +91,15 @@ export async function POST(request: Request) {
   const successUrl = `${APP_URL}/onboarding?subscription=success&tier=${tier}`;
 
   try {
+    console.log("Creating Creem checkout with:", {
+      productId,
+      customerEmail: user.email,
+      successUrl,
+      tier,
+      hasCreemApiKey: !!process.env.CREEM_API_KEY,
+      creemApiUrl: process.env.CREEM_API_URL,
+    });
+    
     const { checkoutUrl } = await createCreemCheckout({
       productId,
       customerEmail: user.email,
@@ -104,11 +113,16 @@ export async function POST(request: Request) {
       },
     });
 
+    console.log("Creem checkout created successfully:", checkoutUrl);
     return NextResponse.json({ checkoutUrl });
   } catch (error) {
     console.error("Creem checkout creation failed:", error);
+    console.error("Error details:", {
+      message: (error as Error).message,
+      stack: (error as Error).stack,
+    });
     return NextResponse.json(
-      { error: "Failed to create checkout. Please try again." },
+      { error: "Failed to create checkout. Please try again.", details: (error as Error).message },
       { status: 500 }
     );
   }

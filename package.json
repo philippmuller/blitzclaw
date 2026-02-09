@@ -14,9 +14,13 @@
     "test": "npm run test:unit && npm run test:e2e:sim",
     "test:unit": "npx tsx scripts/test-pricing.ts && npx tsx scripts/test-proxy-logic.ts",
     "test:auth": "npx tsx scripts/test-auth-redirect.ts",
+    "test:auth:helper": "npx tsx scripts/test-helpers.ts",
+    "test:auth:flows": "npx tsx scripts/test-authenticated-flows.ts",
+    "test:auth:delete": "npx tsx scripts/test-account-delete.ts",
     "test:e2e:sim": "npx tsx scripts/test-e2e-flow.ts",
     "test:e2e:real": "npx tsx scripts/test-real-e2e.ts --skip-hetzner",
     "test:e2e:full": "npx tsx scripts/test-real-e2e.ts",
+    "test:e2e:auth": "npx tsx scripts/test-authenticated-flows.ts",
     "test:hetzner": "bash scripts/test-hetzner-deploy.sh",
     "test:all": "npm run test:unit && npm run test:e2e:full",
     "db:generate": "turbo run db:generate --filter=@blitzclaw/db",
@@ -25,6 +29,7 @@
     "db:seed": "npx tsx scripts/seed.ts"
   },
   "devDependencies": {
+    "@clerk/backend": "^2.30.0",
     "dotenv": "^17.2.4",
     "turbo": "^2.8.0",
     "typescript": "^5.7.0"

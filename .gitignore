@@ -45,3 +45,5 @@ coverage/
 data/
 *.db
 *.db-journal
+.env.production
+.env.vercel
