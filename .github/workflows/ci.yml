@@ -64,12 +64,9 @@ jobs:
       - name: Generate Prisma Client
         run: npm run db:generate
 
-      - name: Build all packages
-        run: npm run build
-        env:
-          # Dummy values for build (Clerk requires these at build time)
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
-          CLERK_SECRET_KEY: sk_test_dummy
+      # Build CLI and DB packages (Next.js build requires real Clerk keys, handled by Vercel)
+      - name: Build packages
+        run: npx turbo run build --filter=blitzclaw --filter=@blitzclaw/db
 
   e2e:
     name: E2E Test
