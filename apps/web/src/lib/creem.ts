@@ -138,7 +138,7 @@ export const TIERS = {
   pro: {
     name: "Pro", 
     priceEur: 119,
-    creditsCents: 10000, // €100
+    creditsCents: 11000, // €110
     productIdEnv: "CREEM_SUBSCRIPTION_PRO_PRODUCT_ID",
   },
 } as const;

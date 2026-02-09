@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, InstanceStatus } from "@blitzclaw/db";
+import { sendInstanceReadyEmail } from "@/lib/email";
 
 /**
  * POST /api/internal/instance-ready
  * 
  * Called by cloud-init when an instance finishes setup.
- * Marks the instance as ACTIVE.
+ * Marks the instance as ACTIVE and sends email notification.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +17,32 @@ export async function POST(req: NextRequest) {
     const secret = req.headers.get("x-instance-secret");
     if (!secret) {
       return NextResponse.json({ error: "Missing secret" }, { status: 401 });
+    }
+
+    // Helper to send notification email
+    async function notifyUser(instanceId: string) {
+      try {
+        const inst = await prisma.instance.findUnique({
+          where: { id: instanceId },
+          include: { user: true },
+        });
+        if (inst?.user?.email) {
+          // Try to extract bot username from channel config
+          let botUsername = "your_bot";
+          if (inst.channelConfig) {
+            try {
+              const config = JSON.parse(inst.channelConfig);
+              botUsername = config.botUsername || config.bot_username || "your_bot";
+            } catch {
+              // Ignore parse errors
+            }
+          }
+          await sendInstanceReadyEmail(inst.user.email, botUsername);
+          console.log(`📧 Sent instance ready email to ${inst.user.email}`);
+        }
+      } catch (e) {
+        console.error("Failed to send instance ready email:", e);
+      }
     }
 
     // Find the instance or pool entry
@@ -46,6 +73,9 @@ export async function POST(req: NextRequest) {
       
       console.log(`Instance ${poolEntry.assignedTo} marked as ACTIVE`);
       
+      // Send email notification
+      await notifyUser(poolEntry.assignedTo);
+      
       return NextResponse.json({ 
         ok: true, 
         instanceId: poolEntry.assignedTo,
@@ -73,6 +103,9 @@ export async function POST(req: NextRequest) {
       });
       
       console.log(`Instance ${instance.id} marked as ACTIVE`);
+      
+      // Send email notification
+      await notifyUser(instance.id);
       
       return NextResponse.json({ 
         ok: true, 

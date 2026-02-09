@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
     model,
     // New fields from onboarding
     telegramToken,
+    telegramBotUsername,
     persona,
     autoTopup,
     anthropicKey, // For BYOK - can also use user.anthropicKey
@@ -143,7 +144,9 @@ export async function POST(req: NextRequest) {
       personaTemplate: selectedPersona,
       model: model || "claude-opus-4-20250514",
       soulMd: soul_md,
-      channelConfig: telegramToken ? JSON.stringify({ bot_token: telegramToken }) : body.channel_config,
+      channelConfig: telegramToken 
+        ? JSON.stringify({ bot_token: telegramToken, botUsername: telegramBotUsername }) 
+        : body.channel_config,
       byokMode: isByokUser,
       anthropicKey: isByokUser ? effectiveAnthropicKey : undefined,
     });

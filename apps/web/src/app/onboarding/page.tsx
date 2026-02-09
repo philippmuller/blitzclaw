@@ -195,6 +195,7 @@ function OnboardingContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           telegramToken: state.telegramToken,
+          telegramBotUsername: state.telegramBotName,
           persona: state.persona,
           autoTopup: state.autoTopup,
           anthropicKey: anthropicKey || undefined,

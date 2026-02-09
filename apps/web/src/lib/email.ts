@@ -115,6 +115,46 @@ export async function sendCriticalBalanceWarning(email: string, balanceCents: nu
 }
 
 /**
+ * Send instance ready notification
+ */
+export async function sendInstanceReadyEmail(
+  email: string, 
+  botUsername: string
+): Promise<boolean> {
+  return sendEmail({
+    to: email,
+    subject: "🚀 Your BlitzClaw assistant is ready!",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #22c55e;">✅ Your AI Assistant is Live!</h2>
+        <p>Great news! Your BlitzClaw instance is now running and ready to chat.</p>
+        <p style="margin: 24px 0; padding: 16px; background: #f0fdf4; border-radius: 8px;">
+          <strong>Start chatting:</strong> Open Telegram and message <a href="https://t.me/${botUsername}" style="color: #2563eb; font-weight: 600;">@${botUsername}</a>
+        </p>
+        <p>Your assistant is powered by Claude and ready to help with:</p>
+        <ul style="color: #666;">
+          <li>Questions and research</li>
+          <li>Writing and editing</li>
+          <li>Code help and debugging</li>
+          <li>Daily planning and reminders</li>
+        </ul>
+        <p style="margin: 24px 0;">
+          <a href="${APP_URL}/dashboard" 
+             style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+            View Dashboard
+          </a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #999; font-size: 12px;">
+          <a href="${APP_URL}/dashboard/billing" style="color: #999;">Manage billing</a> · 
+          <a href="${APP_URL}" style="color: #999;">BlitzClaw</a>
+        </p>
+      </div>
+    `,
+  });
+}
+
+/**
  * Send balance depleted notification
  */
 export async function sendBalanceDepletedNotice(email: string): Promise<boolean> {

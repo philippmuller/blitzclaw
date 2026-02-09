@@ -4,9 +4,55 @@ import { prisma } from "@blitzclaw/db";
 
 const VALID_MODELS = [
   "claude-opus-4-20250514",
-  "claude-sonnet-4-20250514",
+  "claude-sonnet-4-20250514", 
   "claude-3-5-haiku-20241022",
 ];
+
+/**
+ * Update the OpenClaw config on the remote server via gateway API
+ */
+async function updateRemoteConfig(
+  ipAddress: string,
+  gatewayToken: string,
+  model: string,
+  useOwnApiKey: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const modelPrefix = useOwnApiKey ? "anthropic" : "blitzclaw";
+  const fullModel = `${modelPrefix}/${model}`;
+  
+  try {
+    // Use the gateway's config.patch API to update the model
+    const res = await fetch(`http://${ipAddress}:18789/api/config/patch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${gatewayToken}`,
+      },
+      body: JSON.stringify({
+        patch: {
+          agents: {
+            defaults: {
+              model: {
+                primary: fullModel,
+              },
+            },
+          },
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`Failed to update remote config: ${res.status} ${text}`);
+      return { ok: false, error: `Gateway returned ${res.status}` };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Error updating remote config:", error);
+    return { ok: false, error: (error as Error).message };
+  }
+}
 
 /**
  * PATCH /api/instances/[id]/model - Update instance model
@@ -56,15 +102,30 @@ export async function PATCH(
     );
   }
 
-  // Update instance
+  // Update instance in database
   const updated = await prisma.instance.update({
     where: { id },
     data: { model },
   });
 
+  // Try to update the remote server config
+  let remoteUpdateStatus = "not_attempted";
+  if (instance.ipAddress && instance.gatewayToken && instance.status === "ACTIVE") {
+    const result = await updateRemoteConfig(
+      instance.ipAddress,
+      instance.gatewayToken,
+      model,
+      instance.useOwnApiKey
+    );
+    remoteUpdateStatus = result.ok ? "success" : `failed: ${result.error}`;
+  }
+
   return NextResponse.json({
     id: updated.id,
     model: updated.model,
-    message: "Model updated. Changes take effect immediately.",
+    remoteUpdate: remoteUpdateStatus,
+    message: remoteUpdateStatus === "success" 
+      ? "Model updated on server. Changes take effect on next message."
+      : "Model saved. Server update may require restart.",
   });
 }
