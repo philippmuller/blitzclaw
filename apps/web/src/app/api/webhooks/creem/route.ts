@@ -24,14 +24,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // Log full payload for debugging
+  console.log("📨 Creem webhook raw payload:", JSON.stringify(event, null, 2));
+
   const eventType = event.type || event.event || event.event_type;
   const data = event.data || event.object || event;
-  const metadata = data.metadata || data.custom_data || {};
+  
+  // Creem might nest metadata differently - check multiple locations
+  const metadata = data.metadata || data.custom_data || event.metadata || event.custom_data || {};
 
   console.log(`Creem webhook: ${eventType}`, {
     userId: metadata.user_id,
     tier: metadata.tier,
     type: metadata.type,
+    hasData: !!data,
+    dataKeys: Object.keys(data || {}),
+    metadataKeys: Object.keys(metadata),
   });
 
   // Handle different event types
@@ -45,8 +53,14 @@ export async function POST(request: Request) {
       const subscriptionType = metadata.type;
 
       if (!userId) {
-        console.error("No user_id in webhook payload");
-        break;
+        console.error("No user_id in webhook payload. Full metadata:", JSON.stringify(metadata));
+        console.error("Full data object:", JSON.stringify(data));
+        // Return error so Creem knows it failed
+        return NextResponse.json({ 
+          error: "No user_id in metadata",
+          received_metadata: metadata,
+          received_data_keys: Object.keys(data || {}),
+        }, { status: 400 });
       }
 
       // Get credits based on tier
