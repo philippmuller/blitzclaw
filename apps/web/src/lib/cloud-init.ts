@@ -289,7 +289,8 @@ ${JSON.stringify(authProfilesJson, null, 2).split('\n').map(line => '      ' + l
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 22/tcp
-      ufw allow 18789/tcp  # OpenClaw Web UI (token auth protected)
+      # Port 18789 NOT exposed - Web UI only accessible via SSH tunnel if needed
+      # Users chat via Telegram, no public web UI for MVP
       ufw --force enable
       
       echo "=== Starting OpenClaw ==="
