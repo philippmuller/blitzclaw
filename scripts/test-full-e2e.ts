@@ -235,8 +235,8 @@ async function testCreateInstance() {
 
     if (resp.ok && data.id) {
       testInstanceId = data.id;
-      testServerId = data.serverId || null;
-      testServerIp = data.ip || null;
+      testServerId = data.hetznerServerId || null;
+      testServerIp = data.ipAddress || null;
       pass("Instance created", `ID: ${data.id}, Status: ${data.status}`, Date.now() - start);
       return true;
     } else if (resp.status === 402) {
@@ -284,9 +284,9 @@ async function testWaitForProvisioning() {
       }
 
       if (data.status === "ACTIVE") {
-        testServerIp = data.ip;
-        testServerId = data.serverId;
-        pass("Provisioning complete", `IP: ${data.ip}`, Date.now() - start);
+        testServerIp = data.ipAddress;
+        testServerId = data.hetznerServerId;
+        pass("Provisioning complete", `IP: ${data.ipAddress}`, Date.now() - start);
         return true;
       }
 
