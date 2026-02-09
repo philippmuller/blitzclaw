@@ -1,19 +1,20 @@
 /**
- * Subscribe endpoint - creates a Paddle subscription checkout
+ * Subscribe endpoint - creates a Creem subscription checkout
+ * BYOK users pay €14/mo flat, managed billing users pay more (coming soon)
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
-import { createCheckout } from "@/lib/paddle";
+import { createCreemCheckout } from "@/lib/creem";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
 
-// Paddle Price IDs (configure these in env)
-const PADDLE_PRICE_IDS: Record<string, string | undefined> = {
-  byok: process.env.PADDLE_PRICE_BYOK,      // €19/mo - server only, BYOK
-  basic: process.env.PADDLE_PRICE_BASIC,    // €20/mo - includes €10 credits
-  pro: process.env.PADDLE_PRICE_PRO,        // €120/mo - includes €110 credits
+// Creem Product IDs (configure these in env)
+const CREEM_PRODUCT_IDS: Record<string, string | undefined> = {
+  byok: process.env.CREEM_PRODUCT_BYOK,     // €14/mo - server only, BYOK
+  basic: process.env.CREEM_PRODUCT_BASIC,   // Future: managed billing basic
+  pro: process.env.CREEM_PRODUCT_PRO,       // Future: managed billing pro
 };
 
 type TierKey = "byok" | "basic" | "pro";
@@ -75,11 +76,11 @@ export async function POST(request: Request) {
     });
   }
 
-  // Get price ID for selected tier
-  const priceId = PADDLE_PRICE_IDS[tier];
+  // Get product ID for selected tier
+  const productId = CREEM_PRODUCT_IDS[tier];
   
-  if (!priceId) {
-    console.error(`Paddle price not configured for tier: ${tier}`);
+  if (!productId) {
+    console.error(`Creem product not configured for tier: ${tier}`);
     return NextResponse.json(
       { error: `Billing not configured for ${tier} plan. Please try again later.` },
       { status: 500 }
@@ -87,14 +88,12 @@ export async function POST(request: Request) {
   }
 
   const successUrl = `${APP_URL}/onboarding?subscription=success&tier=${tier}`;
-  const cancelUrl = `${APP_URL}/onboarding?subscription=cancelled`;
 
   try {
-    const { checkoutUrl } = await createCheckout({
-      priceId,
+    const { checkoutUrl } = await createCreemCheckout({
+      productId,
       customerEmail: user.email,
       successUrl,
-      cancelUrl,
       customData: {
         user_id: user.id,
         clerk_id: clerkId,
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkoutUrl });
   } catch (error) {
-    console.error("Paddle checkout creation failed:", error);
+    console.error("Creem checkout creation failed:", error);
     return NextResponse.json(
       { error: "Failed to create checkout. Please try again." },
       { status: 500 }

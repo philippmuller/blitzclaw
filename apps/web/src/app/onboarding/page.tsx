@@ -294,7 +294,7 @@ function OnboardingContent() {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-lg font-semibold">Bring Your Own Key</span>
-                      <span className="text-2xl font-bold">€19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                      <span className="text-2xl font-bold">€14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                     </div>
                     <ul className="text-gray-400 text-sm space-y-1">
                       <li>✓ Use your Anthropic API key</li>
@@ -376,7 +376,7 @@ function OnboardingContent() {
                     "Coming Soon"
                   ) : (
                     <>
-                      Continue with BYOK (€19/mo)
+                      Continue with BYOK (€14/mo)
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}
