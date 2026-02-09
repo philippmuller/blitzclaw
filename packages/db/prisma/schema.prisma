@@ -11,9 +11,11 @@ model User {
   id              String    @id @default(cuid())
   clerkId         String    @unique
   email           String
-  creemCustomerId String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  creemCustomerId       String?
+  paddleCustomerId      String?
+  paddleSubscriptionId  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   balance   Balance?
   instances Instance[]

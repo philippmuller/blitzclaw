@@ -35,7 +35,7 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if returning from Creem checkout
+  // Check if returning from Paddle checkout
   useEffect(() => {
     const subscription = searchParams.get("subscription");
     if (subscription === "success") {
@@ -89,7 +89,7 @@ function OnboardingContent() {
       // Save auto-topup preference
       localStorage.setItem("blitzclaw_auto_topup", state.autoTopup ? "true" : "false");
       
-      // Redirect to Creem
+      // Redirect to Paddle
       window.location.href = checkoutUrl;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");

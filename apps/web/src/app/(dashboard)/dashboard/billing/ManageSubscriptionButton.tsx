@@ -21,7 +21,7 @@ export function ManageSubscriptionButton() {
         throw new Error(data.error || "Failed to open portal");
       }
 
-      // Redirect to Creem customer portal
+      // Redirect to Paddle customer portal
       window.location.href = data.portalUrl;
     } catch (err) {
       setError((err as Error).message);

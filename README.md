@@ -48,7 +48,7 @@ blitzclaw telegram connect <instance_id> --token <your_bot_token>
 | Feature | Status |
 |---------|--------|
 | Google OAuth signup | ✅ |
-| Creem billing (MoR) | ✅ |
+| Paddle billing (MoR) | ✅ |
 | Telegram integration | ✅ |
 | Custom SOUL.md | ✅ |
 | Persona templates | ✅ |
@@ -153,7 +153,7 @@ npm run db:studio     # Open Prisma Studio
 │           ┌─────┴─────┐      │          │
 │           ▼           ▼      ▼          │
 │       ┌───────┐  ┌───────┐ ┌───────┐   │
-│       │ Clerk │  │ Creem │ │Hetzner│   │
+│       │ Clerk │  │ Paddle │ │Hetzner│   │
 │       └───────┘  └───────┘ └───────┘   │
 └─────────────────────────────────────────┘
                     │

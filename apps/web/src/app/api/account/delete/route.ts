@@ -1,8 +1,8 @@
 /**
  * Delete Account endpoint
- * 
+ *
  * Deletes user account and all associated data:
- * - Cancels Creem subscription
+ * - Cancels Paddle subscription
  * - Deletes Hetzner servers
  * - Deletes all database records
  */
@@ -11,21 +11,15 @@ import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
 import { deleteServer } from "@/lib/hetzner";
-
-const CREEM_API_KEY = process.env.CREEM_API_KEY;
-const CREEM_API_URL = process.env.CREEM_API_URL || 
-  (CREEM_API_KEY?.includes('test') 
-    ? "https://test-api.creem.io/v1" 
-    : "https://api.creem.io/v1");
+import { cancelSubscription } from "@/lib/paddle";
 
 export async function DELETE() {
   const { userId: clerkId } = await auth();
-  
+
   if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get user from database
   const user = await prisma.user.findUnique({
     where: { clerkId },
     include: {
@@ -40,50 +34,13 @@ export async function DELETE() {
 
   const errors: string[] = [];
 
-  // 1. Cancel Creem subscription (if exists)
-  if (user.creemCustomerId && CREEM_API_KEY) {
+  // 1. Cancel Paddle subscription (if exists)
+  if (user.paddleSubscriptionId) {
     try {
-      // List customer's subscriptions
-      const subsResponse = await fetch(
-        `${CREEM_API_URL}/subscriptions?customer_id=${user.creemCustomerId}`,
-        {
-          headers: {
-            "x-api-key": CREEM_API_KEY,
-          },
-        }
-      );
-      
-      if (subsResponse.ok) {
-        const subsData = await subsResponse.json();
-        const subscriptions = subsData.items || subsData.data || [];
-        
-        // Cancel each active subscription
-        for (const sub of subscriptions) {
-          if (sub.status === "active" || sub.status === "trialing") {
-            const cancelResponse = await fetch(
-              `${CREEM_API_URL}/subscriptions/${sub.id}/cancel`,
-              {
-                method: "POST",
-                headers: {
-                  "x-api-key": CREEM_API_KEY,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ cancel_at_period_end: false }), // Immediate cancellation
-              }
-            );
-            
-            if (!cancelResponse.ok) {
-              const errorText = await cancelResponse.text();
-              console.error(`Failed to cancel subscription ${sub.id}:`, errorText);
-              errors.push(`Failed to cancel subscription: ${errorText}`);
-            } else {
-              console.log(`Cancelled subscription ${sub.id} for user ${user.id}`);
-            }
-          }
-        }
-      }
+      await cancelSubscription(user.paddleSubscriptionId);
+      console.log(`Cancelled Paddle subscription ${user.paddleSubscriptionId} for user ${user.id}`);
     } catch (error) {
-      console.error("Failed to cancel Creem subscription:", error);
+      console.error("Failed to cancel Paddle subscription:", error);
       errors.push(`Subscription cancellation error: ${(error as Error).message}`);
     }
   }
@@ -103,12 +60,12 @@ export async function DELETE() {
 
   // 3. Delete from ServerPool (if any assigned)
   await prisma.serverPool.deleteMany({
-    where: { assignedTo: { in: user.instances.map(i => i.id) } },
+    where: { assignedTo: { in: user.instances.map((i) => i.id) } },
   });
 
   // 4. Delete usage logs
   await prisma.usageLog.deleteMany({
-    where: { instanceId: { in: user.instances.map(i => i.id) } },
+    where: { instanceId: { in: user.instances.map((i) => i.id) } },
   });
 
   // 5. Delete instances

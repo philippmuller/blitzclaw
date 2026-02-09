@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 
 const amounts = [
-  { cents: 2500, label: "€25", productEnvKey: "CREEM_TOPUP_PRODUCT_ID" },
-  { cents: 5000, label: "€50", productEnvKey: "CREEM_TOPUP_50_PRODUCT_ID" },
+  { cents: 1000, label: "€10", productEnvKey: "PADDLE_TOPUP_10_PRICE_ID" },
+  { cents: 2500, label: "€25", productEnvKey: "PADDLE_TOPUP_25_PRICE_ID" },
+  { cents: 5000, label: "€50", productEnvKey: "PADDLE_TOPUP_50_PRICE_ID" },
 ];
 
 export default function TopupPage() {
@@ -30,8 +31,13 @@ export default function TopupPage() {
         throw new Error(data.error || "Failed to create checkout");
       }
 
-      // Redirect to Creem checkout
-      window.location.href = data.checkoutUrl;
+      // Redirect to Paddle checkout if additional authorization is required
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create checkout");
       setLoading(false);
@@ -61,7 +67,7 @@ export default function TopupPage() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Select Amount</h2>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             {amounts.map((amount) => (
               <button
                 key={amount.cents}
@@ -119,7 +125,7 @@ export default function TopupPage() {
         </button>
 
         <p className="text-xs text-muted-foreground text-center">
-          Secure payment via Creem. All major cards accepted.
+          Secure payment via Paddle. All major cards accepted.
         </p>
       </div>
 

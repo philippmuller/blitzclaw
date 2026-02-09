@@ -385,11 +385,11 @@ export async function POST(req: NextRequest) {
   // 10. Check if auto top-up needed (async, don't block response)
   const topupThreshold = instance.user.balance?.topupThresholdCents ?? 500;
   if (newBalanceCents < topupThreshold && newBalanceCents >= 0) {
-    // Trigger auto top-up in background
+    // Trigger auto top-up in background (Paddle charges directly if subscription exists)
     checkAndTriggerTopup(instance.userId).then((result) => {
-      if (result.checkoutUrl) {
-        console.log(`Auto top-up triggered for user ${instance.userId}: ${result.checkoutUrl}`);
-      } else if (!result.success) {
+      if (result.success) {
+        console.log(`Auto top-up successful for user ${instance.userId}`);
+      } else {
         console.warn(`Auto top-up failed for user ${instance.userId}: ${result.error}`);
       }
     }).catch((err) => {

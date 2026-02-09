@@ -10,7 +10,7 @@ This guide covers deploying BlitzClaw to production.
 - A Hetzner Cloud account (for user instances)
 - A Supabase account (or any PostgreSQL database)
 - Clerk account (authentication)
-- Creem account (billing/MoR)
+- Paddle account (billing/MoR)
 
 ## Environment Variables
 
@@ -25,13 +25,19 @@ CLERK_WEBHOOK_SECRET=whsec_...
 
 Get these from your [Clerk Dashboard](https://dashboard.clerk.dev).
 
-### Billing (Creem)
+### Billing (Paddle)
 ```bash
-CREEM_API_KEY=creem_live_...
-CREEM_WEBHOOK_SECRET=whsec_...
+PADDLE_API_KEY=...
+PADDLE_WEBHOOK_SECRET=...
+PADDLE_CLIENT_TOKEN=...
+PADDLE_SUBSCRIPTION_PRICE_ID=...
+PADDLE_TOPUP_10_PRICE_ID=...
+PADDLE_TOPUP_25_PRICE_ID=...
+PADDLE_TOPUP_50_PRICE_ID=...
+PADDLE_ENVIRONMENT=production
 ```
 
-Get these from your [Creem Dashboard](https://creem.io/dashboard).
+Get these from your [Paddle Dashboard](https://vendors.paddle.com).
 
 ### Infrastructure (Hetzner)
 ```bash
@@ -145,14 +151,15 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
    - `user.deleted`
 4. Copy the signing secret to `CLERK_WEBHOOK_SECRET`
 
-### Creem Webhooks
+### Paddle Webhooks
 
-1. Go to Creem Dashboard → Webhooks
-2. Add endpoint: `https://your-domain.com/api/webhooks/creem`
+1. Go to Paddle Dashboard → Webhooks
+2. Add endpoint: `https://your-domain.com/api/webhooks/paddle`
 3. Subscribe to events:
-   - `checkout.completed`
-   - `payment.failed`
-4. Copy the signing secret to `CREEM_WEBHOOK_SECRET`
+   - `transaction.completed`
+   - `subscription.created`
+   - `subscription.canceled`
+4. Copy the signing secret to `PADDLE_WEBHOOK_SECRET`
 
 ## DNS & Domain Setup
 
@@ -174,7 +181,7 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
 ## Post-Deployment Checklist
 
 - [ ] Verify Clerk authentication works (sign up, sign in)
-- [ ] Test Creem checkout flow (top-up balance)
+- [ ] Test Paddle checkout flow (top-up balance)
 - [ ] Webhooks receiving events (check logs)
 - [ ] Database connected (check /api/auth/me)
 - [ ] Hetzner API working (test instance creation)
@@ -203,7 +210,7 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
 1. Verify webhook URL is correct
 2. Check signing secret matches
 3. Look at Vercel function logs
-4. Test with Clerk/Creem webhook testing tools
+4. Test with Clerk/Paddle webhook testing tools
 
 ### Database Connection Issues
 

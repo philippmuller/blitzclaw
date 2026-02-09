@@ -28,8 +28,15 @@ Add these in Vercel Dashboard → Settings → Environment Variables:
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 
-# Billing (Creem) - get from Creem Dashboard
-CREEM_API_KEY=creem_test_...
+# Billing (Paddle) - get from Paddle Dashboard
+PADDLE_API_KEY=...
+PADDLE_WEBHOOK_SECRET=...
+PADDLE_CLIENT_TOKEN=...
+PADDLE_SUBSCRIPTION_PRICE_ID=...
+PADDLE_TOPUP_10_PRICE_ID=...
+PADDLE_TOPUP_25_PRICE_ID=...
+PADDLE_TOPUP_50_PRICE_ID=...
+PADDLE_ENVIRONMENT=sandbox
 
 # Infrastructure (Hetzner) - get from Hetzner Cloud Console
 HETZNER_API_TOKEN=...
@@ -67,13 +74,13 @@ API_URL=https://your-domain.vercel.app/api
    - Events: `user.created`, `user.deleted`
    - Copy signing secret → add as `CLERK_WEBHOOK_SECRET` env var
 
-### 5. Configure Creem
+### 5. Configure Paddle
 
-1. Go to [Creem Dashboard](https://creem.io)
+1. Go to [Paddle Dashboard](https://vendors.paddle.com)
 2. Webhooks → Add:
-   - URL: `https://your-domain.vercel.app/api/webhooks/creem`
-   - Events: `checkout.completed`, `payment.failed`
-   - Copy signing secret → add as `CREEM_WEBHOOK_SECRET` env var
+   - URL: `https://your-domain.vercel.app/api/webhooks/paddle`
+   - Events: `transaction.completed`, `subscription.created`, `subscription.canceled`
+   - Copy signing secret → add as `PADDLE_WEBHOOK_SECRET` env var
 
 ### 6. Custom Domain (Optional)
 
@@ -106,13 +113,13 @@ blitzclaw telegram connect <instance_id> --token <bot_token>
 
 - [ ] **Rotate all API keys** (exposed in Discord during development)
   - Clerk: Dashboard → API Keys → Rotate
-  - Creem: Dashboard → API Keys → Regenerate
+  - Paddle: Dashboard → API Keys → Regenerate
   - Hetzner: Cloud Console → Security → API Tokens → Delete & Create New
   - Anthropic: Console → API Keys → Create New Key
   - Neon: Project Settings → Connection String → Reset Password
 
 - [ ] Switch to production Clerk keys (pk_live_*, sk_live_*)
-- [ ] Switch to production Creem keys
+- [ ] Switch to production Paddle keys
 - [ ] Enable Cloudflare protection (optional)
 - [ ] Set up monitoring (Sentry DSN in env vars)
 
