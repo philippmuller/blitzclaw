@@ -67,7 +67,7 @@ export default async function Home() {
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Your own OpenClaw instance. Telegram ready, WhatsApp coming soon.
             <br />
-            €20/mo subscription + usage-based billing. No API keys needed.
+            Bring your own Anthropic key, or use our pay-as-you-go billing.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
@@ -105,9 +105,9 @@ export default async function Home() {
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">💰</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Simple Pricing</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Flexible Pricing</h3>
             <p className="text-muted-foreground">
-              €20/mo includes €10 credits. Pay for usage with auto top-up. €200/day limit.
+              BYOK: €19/mo with your Anthropic key. Or use our billing at API cost + small fee.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
@@ -128,9 +128,9 @@ export default async function Home() {
                 1
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-1">Subscribe</h3>
+                <h3 className="font-semibold text-foreground mb-1">Choose your plan</h3>
                 <p className="text-muted-foreground">
-                  €20/mo subscription includes €10 credits. Auto top-up keeps you running.
+                  BYOK at €19/mo with your Anthropic API key, or use our managed billing with pay-as-you-go credits.
                 </p>
               </div>
             </div>

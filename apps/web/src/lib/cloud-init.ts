@@ -14,6 +14,7 @@ export interface CloudInitOptions {
   braveApiKey?: string;
   model?: string;
   blitzclawApiUrl?: string;
+  byokMode?: boolean;  // If true, use user's Anthropic key directly (no proxy)
 }
 
 /**
@@ -30,10 +31,76 @@ export function generateCloudInit(options: CloudInitOptions): string {
     model = "claude-opus-4-20250514",
     // Always use production URL for callbacks (preview URLs require Vercel auth)
     blitzclawApiUrl = "https://www.blitzclaw.com",
+    byokMode = false,
   } = options;
 
+  // Generate model provider config based on mode
+  const modelsConfig = byokMode ? {
+    // BYOK mode: use Anthropic directly with user's key
+    providers: {
+      "anthropic": {
+        models: [
+          {
+            id: "claude-sonnet-4-20250514",
+            name: "Claude Sonnet 4",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          },
+          {
+            id: "claude-opus-4-20250514",
+            name: "Claude Opus 4",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          },
+          {
+            id: "claude-3-5-haiku-20241022",
+            name: "Claude 3.5 Haiku",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          }
+        ]
+      }
+    }
+  } : {
+    // Managed mode: route through BlitzClaw billing proxy
+    providers: {
+      "blitzclaw": {
+        baseUrl: `${blitzclawApiUrl}/api/proxy`,
+        api: "anthropic-messages",
+        models: [
+          {
+            id: "claude-sonnet-4-20250514",
+            name: "Claude Sonnet 4",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          },
+          {
+            id: "claude-opus-4-20250514",
+            name: "Claude Opus 4",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          },
+          {
+            id: "claude-3-5-haiku-20241022",
+            name: "Claude 3.5 Haiku",
+            input: ["text", "image"],
+            contextWindow: 200000,
+            maxTokens: 8192
+          }
+        ]
+      }
+    }
+  };
+
+  // Model prefix depends on mode
+  const modelPrefix = byokMode ? "anthropic" : "blitzclaw";
+
   // Generate OpenClaw config JSON
-  // Routes API calls through BlitzClaw billing proxy for usage metering
   const openclawConfig = {
     meta: {
       lastTouchedVersion: "blitzclaw-provisioned",
@@ -48,43 +115,12 @@ export function generateCloudInit(options: CloudInitOptions): string {
       port: 18789,
       bind: "0.0.0.0"  // Expose for web UI access (token auth protects it)
     },
-    models: {
-      providers: {
-        // BlitzClaw billing proxy - routes through our server for metering
-        "blitzclaw": {
-          baseUrl: `${blitzclawApiUrl}/api/proxy`,
-          api: "anthropic-messages",  // Use Anthropic Messages API format
-          models: [
-            {
-              id: "claude-sonnet-4-20250514",
-              name: "Claude Sonnet 4",
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 8192
-            },
-            {
-              id: "claude-opus-4-20250514",
-              name: "Claude Opus 4",
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 8192
-            },
-            {
-              id: "claude-3-5-haiku-20241022",
-              name: "Claude 3.5 Haiku",
-              input: ["text", "image"],
-              contextWindow: 200000,
-              maxTokens: 8192
-            }
-          ]
-        }
-      }
-    },
+    models: modelsConfig,
     agents: {
       defaults: {
         workspace: "/root/.openclaw/workspace",
         model: {
-          primary: `blitzclaw/${model}`
+          primary: `${modelPrefix}/${model}`
         }
       },
       list: [
@@ -130,8 +166,22 @@ export function generateCloudInit(options: CloudInitOptions): string {
     } : {})
   };
 
-  // Auth profiles - proxySecret as API key for our billing proxy
-  const authProfilesJson = {
+  // Auth profiles - depends on mode
+  const authProfilesJson = byokMode ? {
+    // BYOK mode: use Anthropic directly
+    version: 1,
+    profiles: {
+      "anthropic:default": {
+        type: "api_key",
+        provider: "anthropic",
+        key: anthropicApiKey
+      }
+    },
+    lastGood: {
+      anthropic: "anthropic:default"
+    }
+  } : {
+    // Managed mode: proxySecret as API key for our billing proxy
     version: 1,
     profiles: {
       "blitzclaw:default": {

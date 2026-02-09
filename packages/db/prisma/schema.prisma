@@ -15,6 +15,8 @@ model User {
   creemSubscriptionId   String?
   paddleCustomerId      String?
   paddleSubscriptionId  String?
+  anthropicKey          String?   // BYOK users' Anthropic API key (encrypted in production)
+  billingMode           String    @default("byok")  // "byok" or "managed"
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

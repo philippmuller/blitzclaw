@@ -58,18 +58,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Check balance
-  const balance = user.balance?.creditsCents ?? 0;
-  if (balance < MINIMUM_BALANCE_CENTS) {
-    return NextResponse.json(
-      { 
-        error: "Insufficient balance",
-        message: `Minimum balance of $${MINIMUM_BALANCE_CENTS / 100} required to create an instance`,
-        currentBalance: balance,
-        requiredBalance: MINIMUM_BALANCE_CENTS,
-      },
-      { status: 402 }
-    );
+  // Check if BYOK user (no balance check required)
+  const isByokUser = user.billingMode === "byok" && !!user.anthropicKey;
+  
+  // Check balance (skip for BYOK users)
+  if (!isByokUser) {
+    const balance = user.balance?.creditsCents ?? 0;
+    if (balance < MINIMUM_BALANCE_CENTS) {
+      return NextResponse.json(
+        { 
+          error: "Insufficient balance",
+          message: `Minimum balance of $${MINIMUM_BALANCE_CENTS / 100} required to create an instance`,
+          currentBalance: balance,
+          requiredBalance: MINIMUM_BALANCE_CENTS,
+        },
+        { status: 402 }
+      );
+    }
   }
 
   // Parse request body
@@ -83,7 +88,11 @@ export async function POST(req: NextRequest) {
     telegramToken,
     persona,
     autoTopup,
+    anthropicKey, // For BYOK - can also use user.anthropicKey
   } = body;
+  
+  // Use anthropicKey from request or from user profile
+  const effectiveAnthropicKey = anthropicKey || user.anthropicKey;
 
   // Determine channel type - default to TELEGRAM if telegramToken provided
   let channelType = channel_type?.toUpperCase();
@@ -134,6 +143,8 @@ export async function POST(req: NextRequest) {
       model: model || "claude-opus-4-20250514",
       soulMd: soul_md,
       channelConfig: telegramToken ? JSON.stringify({ bot_token: telegramToken }) : body.channel_config,
+      byokMode: isByokUser,
+      anthropicKey: isByokUser ? effectiveAnthropicKey : undefined,
     });
 
     return NextResponse.json({

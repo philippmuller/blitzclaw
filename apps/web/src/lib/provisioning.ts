@@ -50,6 +50,8 @@ export async function provisionPoolServer(options?: {
   telegramBotToken?: string;
   instanceId?: string;
   model?: string;
+  byokMode?: boolean;
+  anthropicKey?: string;
 }): Promise<{
   id: string;
   hetznerServerId: string;
@@ -62,10 +64,16 @@ export async function provisionPoolServer(options?: {
   const proxySecret = generateSecret();
   const gatewayToken = generateSecret();
 
-  // Get API key from environment
-  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  // Get API key - use user's key for BYOK, otherwise platform key
+  const byokMode = options?.byokMode || false;
+  const anthropicApiKey = byokMode && options?.anthropicKey 
+    ? options.anthropicKey 
+    : process.env.ANTHROPIC_API_KEY;
+    
   if (!anthropicApiKey) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
+    throw new Error(byokMode 
+      ? "Anthropic API key required for BYOK mode" 
+      : "ANTHROPIC_API_KEY not configured");
   }
 
   // Generate cloud-init script with full configuration
@@ -78,6 +86,7 @@ export async function provisionPoolServer(options?: {
     telegramBotToken: options?.telegramBotToken,
     braveApiKey,
     model: options?.model,
+    byokMode,
   });
 
   // Create server on Hetzner
@@ -296,6 +305,8 @@ export interface CreateInstanceOptions {
   model?: string;
   soulMd?: string;
   channelConfig?: string; // JSON string with bot_token, etc.
+  byokMode?: boolean;     // If true, use user's Anthropic key directly
+  anthropicKey?: string;  // User's Anthropic API key (for BYOK)
 }
 
 export async function createInstance(options: CreateInstanceOptions): Promise<{
@@ -304,7 +315,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   ipAddress: string | null;
   gatewayToken?: string;
 }> {
-  const { userId, channelType, personaTemplate, model, soulMd, channelConfig } = options;
+  const { userId, channelType, personaTemplate, model, soulMd, channelConfig, byokMode, anthropicKey } = options;
 
   // Parse channelConfig to extract bot token
   let telegramBotToken: string | undefined;
@@ -327,6 +338,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       soulMd: generateSoulMd(personaTemplate, soulMd),
       channelConfig,
       status: InstanceStatus.PENDING,
+      useOwnApiKey: byokMode || false,
     },
   });
 
@@ -343,6 +355,8 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       telegramBotToken,
       instanceId: instance.id,
       model: model || "claude-opus-4-20250514",
+      byokMode,
+      anthropicKey,
     });
     
     gatewayToken = poolServer.gatewayToken;

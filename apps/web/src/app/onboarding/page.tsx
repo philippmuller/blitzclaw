@@ -8,12 +8,15 @@ import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink }
 type Step = "billing" | "telegram" | "persona" | "launching";
 
 type Tier = "basic" | "pro";
+type BillingMode = "byok" | "managed";
 
 interface OnboardingState {
   step: Step;
   hasSubscription: boolean;
+  billingMode: BillingMode;
   tier: Tier;
   autoTopup: boolean;
+  anthropicKey: string;
   telegramToken: string;
   telegramBotName: string;
   persona: string;
@@ -29,8 +32,10 @@ function OnboardingContent() {
   const [state, setState] = useState<OnboardingState>({
     step: "billing",
     hasSubscription: false,
+    billingMode: "byok",
     tier: "basic",
     autoTopup: true,
+    anthropicKey: "",
     telegramToken: "",
     telegramBotName: "",
     persona: "assistant",
@@ -81,7 +86,11 @@ function OnboardingContent() {
       const res = await fetch("/api/billing/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier: state.tier, autoTopup: state.autoTopup }),
+        body: JSON.stringify({ 
+          tier: state.billingMode === "byok" ? "byok" : state.tier, 
+          autoTopup: state.autoTopup,
+          anthropicKey: state.billingMode === "byok" ? state.anthropicKey : undefined,
+        }),
       });
       
       if (!res.ok) {
@@ -91,8 +100,11 @@ function OnboardingContent() {
       
       const { checkoutUrl } = await res.json();
       
-      // Save auto-topup preference
+      // Save auto-topup preference and anthropic key for instance creation
       localStorage.setItem("blitzclaw_auto_topup", state.autoTopup ? "true" : "false");
+      if (state.billingMode === "byok" && state.anthropicKey) {
+        localStorage.setItem("blitzclaw_anthropic_key", state.anthropicKey);
+      }
       
       // Redirect to Paddle
       window.location.href = checkoutUrl;
@@ -132,6 +144,9 @@ function OnboardingContent() {
     setError(null);
     setState(s => ({ ...s, step: "launching" }));
     
+    // Get anthropic key from localStorage (saved during subscription)
+    const anthropicKey = localStorage.getItem("blitzclaw_anthropic_key");
+    
     try {
       const res = await fetch("/api/instances", {
         method: "POST",
@@ -140,6 +155,7 @@ function OnboardingContent() {
           telegramToken: state.telegramToken,
           persona: state.persona,
           autoTopup: state.autoTopup,
+          anthropicKey: anthropicKey || undefined,
         }),
       });
       
@@ -265,72 +281,102 @@ function OnboardingContent() {
               </div>
               
               <div className="space-y-6">
-                {/* Tier Selection */}
+                {/* Billing Mode Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Basic Tier */}
+                  {/* BYOK Option */}
                   <button
-                    onClick={() => setState(s => ({ ...s, tier: "basic" }))}
+                    onClick={() => setState(s => ({ ...s, billingMode: "byok" }))}
                     className={`p-5 rounded-xl border text-left transition-all ${
-                      state.tier === "basic"
+                      state.billingMode === "byok"
                         ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
                         : "border-gray-700 bg-gray-800 hover:border-gray-600"
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <span className="text-lg font-semibold">Basic</span>
-                      <span className="text-2xl font-bold">€20<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                      <span className="text-lg font-semibold">Bring Your Own Key</span>
+                      <span className="text-2xl font-bold">€19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                     </div>
                     <ul className="text-gray-400 text-sm space-y-1">
-                      <li>✓ €10 credits included</li>
-                      <li>✓ Your own AI assistant</li>
-                      <li>✓ Telegram integration</li>
-                      <li>✓ 24/7 uptime</li>
+                      <li>✓ Use your Anthropic API key</li>
+                      <li>✓ Pay Anthropic directly</li>
+                      <li>✓ Full control over costs</li>
+                      <li>✓ Dedicated server included</li>
                     </ul>
                   </button>
 
-                  {/* Pro Tier */}
+                  {/* Managed Option */}
                   <button
-                    onClick={() => setState(s => ({ ...s, tier: "pro" }))}
+                    onClick={() => setState(s => ({ ...s, billingMode: "managed" }))}
                     className={`p-5 rounded-xl border text-left transition-all relative ${
-                      state.tier === "pro"
+                      state.billingMode === "managed"
                         ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
                         : "border-gray-700 bg-gray-800 hover:border-gray-600"
                     }`}
                   >
-                    <span className="absolute -top-2 right-3 bg-blue-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
+                    <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Coming Soon</span>
                     <div className="flex justify-between items-start mb-3">
-                      <span className="text-lg font-semibold">Pro</span>
-                      <span className="text-2xl font-bold">€120<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                      <span className="text-lg font-semibold">Managed Billing</span>
+                      <span className="text-2xl font-bold">€20<span className="text-sm text-gray-400 font-normal">/mo+</span></span>
                     </div>
                     <ul className="text-gray-400 text-sm space-y-1">
-                      <li>✓ €110 credits included</li>
-                      <li>✓ Everything in Basic</li>
-                      <li>✓ Priority support</li>
-                      <li>✓ Best for power users</li>
+                      <li>✓ No API key needed</li>
+                      <li>✓ Pay-as-you-go credits</li>
+                      <li>✓ Auto top-up available</li>
+                      <li>✓ Simplest setup</li>
                     </ul>
                   </button>
                 </div>
 
+                {/* BYOK: Anthropic Key Input */}
+                {state.billingMode === "byok" && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Anthropic API Key</label>
+                      <input
+                        type="password"
+                        value={state.anthropicKey}
+                        onChange={(e) => setState(s => ({ ...s, anthropicKey: e.target.value }))}
+                        placeholder="sk-ant-api03-..."
+                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">console.anthropic.com</a>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Managed: Coming Soon Notice */}
+                {state.billingMode === "managed" && (
+                  <div className="text-sm text-yellow-200/80 bg-yellow-900/20 rounded-lg p-4 border border-yellow-800/50">
+                    <p>
+                      Managed billing is coming soon! For now, please use BYOK mode with your own Anthropic API key.
+                    </p>
+                  </div>
+                )}
+
                 {/* Info Box */}
                 <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4">
                   <p className="mb-2">
-                    Every plan runs on its own <strong className="text-gray-300">secure, isolated container</strong> with encrypted access.
+                    Every plan runs on its own <strong className="text-gray-300">secure, isolated server</strong> with encrypted access.
                   </p>
                   <p>
-                    <strong className="text-gray-300">Daily limit:</strong> €200/day maximum spend • <strong className="text-gray-300">Typical usage:</strong> €2-40/day
+                    <strong className="text-gray-300">BYOK:</strong> You control costs directly with Anthropic • <strong className="text-gray-300">Typical usage:</strong> $2-40/day
                   </p>
                 </div>
 
                 <button
                   onClick={handleSubscribe}
-                  disabled={loading}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
+                  disabled={loading || state.billingMode === "managed" || (state.billingMode === "byok" && !state.anthropicKey.startsWith("sk-ant-"))}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : state.billingMode === "managed" ? (
+                    "Coming Soon"
                   ) : (
                     <>
-                      Continue with {state.tier === "basic" ? "Basic" : "Pro"} Plan
+                      Continue with BYOK (€19/mo)
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}
