@@ -33,7 +33,7 @@ function OnboardingContent() {
   const [state, setState] = useState<OnboardingState>({
     step: "billing",
     hasSubscription: false,
-    hasOwnKey: true, // Default to BYOK
+    hasOwnKey: false, // Default to managed billing
     billingMode: "byok",
     tier: "basic",
     autoTopup: true,
