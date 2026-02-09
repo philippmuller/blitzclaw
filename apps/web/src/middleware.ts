@@ -4,6 +4,9 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/terms",
+  "/privacy",
+  "/refund",
   "/api/webhooks/(.*)",
   "/api/proxy/(.*)", // Proxy endpoints use their own auth (X-BlitzClaw-Instance header)
 ]);

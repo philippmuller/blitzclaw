@@ -35,6 +35,7 @@ export default function NewInstancePage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("channel");
   const [channel, setChannel] = useState<Channel>("telegram");
+  const [telegramToken, setTelegramToken] = useState("");
   const [persona, setPersona] = useState<Persona>("assistant");
   const [model, setModel] = useState<Model>("claude-opus-4-20250514");
   const [soulMd, setSoulMd] = useState("");
@@ -63,6 +64,7 @@ export default function NewInstancePage() {
           persona_template: persona,
           model: model,
           soul_md: soulMd || undefined,
+          telegramToken: channel === "telegram" ? telegramToken : undefined,
         }),
       });
 
@@ -189,10 +191,30 @@ export default function NewInstancePage() {
               </button>
             </div>
 
+            {/* Telegram Bot Token Input */}
+            {channel === "telegram" && (
+              <div className="space-y-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">Telegram Bot Token</span>
+                  <p className="text-xs text-muted-foreground mt-1 mb-2">
+                    Get this from <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@BotFather</a> on Telegram
+                  </p>
+                  <input
+                    type="text"
+                    value={telegramToken}
+                    onChange={(e) => setTelegramToken(e.target.value)}
+                    placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                    className="w-full px-4 py-2.5 bg-secondary border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 font-mono text-sm"
+                  />
+                </label>
+              </div>
+            )}
+
             <div className="flex justify-end">
               <button
                 onClick={() => setStep("persona")}
-                className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+                disabled={channel === "telegram" && !telegramToken.trim()}
+                className="px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Continue
               </button>
@@ -335,6 +357,14 @@ export default function NewInstancePage() {
                   {channel.charAt(0).toUpperCase() + channel.slice(1)}
                 </span>
               </div>
+              {channel === "telegram" && telegramToken && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Bot Token</span>
+                  <span className="font-medium text-foreground font-mono text-sm">
+                    {telegramToken.slice(0, 10)}...{telegramToken.slice(-4)}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Persona</span>
                 <span className="font-medium text-foreground">

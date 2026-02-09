@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink } from "lucide-react";
 
 type Step = "billing" | "telegram" | "persona" | "launching";
 
+type Tier = "basic" | "pro";
+
 interface OnboardingState {
   step: Step;
   hasSubscription: boolean;
+  tier: Tier;
   autoTopup: boolean;
   telegramToken: string;
   telegramBotName: string;
@@ -19,12 +22,14 @@ interface OnboardingState {
 
 function OnboardingContent() {
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const [state, setState] = useState<OnboardingState>({
     step: "billing",
     hasSubscription: false,
+    tier: "basic",
     autoTopup: true,
     telegramToken: "",
     telegramBotName: "",
@@ -76,7 +81,7 @@ function OnboardingContent() {
       const res = await fetch("/api/billing/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ autoTopup: state.autoTopup }),
+        body: JSON.stringify({ tier: state.tier, autoTopup: state.autoTopup }),
       });
       
       if (!res.ok) {
@@ -200,6 +205,12 @@ function OnboardingContent() {
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-2">Welcome to BlitzClaw</h1>
           <p className="text-gray-400">Let's get your AI assistant running in minutes</p>
+          <button
+            onClick={() => signOut({ redirectUrl: "/" })}
+            className="mt-4 text-sm text-gray-500 hover:text-gray-300 underline"
+          >
+            Cancel and return to home
+          </button>
         </div>
 
         {/* Progress Steps */}
@@ -250,47 +261,63 @@ function OnboardingContent() {
             <div>
               <div className="flex items-center gap-3 mb-6">
                 <CreditCard className="w-8 h-8 text-blue-500" />
-                <h2 className="text-2xl font-semibold">Set Up Billing</h2>
+                <h2 className="text-2xl font-semibold">Choose Your Plan</h2>
               </div>
               
               <div className="space-y-6">
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-lg font-medium">BlitzClaw Subscription</span>
-                    <span className="text-2xl font-bold">€20<span className="text-sm text-gray-400">/mo</span></span>
-                  </div>
-                  <ul className="text-gray-400 text-sm space-y-1">
-                    <li>✓ €10 credits included each month</li>
-                    <li>✓ Deploy your own AI assistant</li>
-                    <li>✓ Telegram integration</li>
-                    <li>✓ Usage-based pricing with 100% markup</li>
-                  </ul>
-                </div>
-
-                <div className="bg-gray-800/50 rounded-lg p-4">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={state.autoTopup}
-                      onChange={(e) => setState(s => ({ ...s, autoTopup: e.target.checked }))}
-                      className="mt-1 w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div>
-                      <span className="font-medium">Keep me funded</span>
-                      <p className="text-sm text-gray-400 mt-1">
-                        Automatically add €25 when your balance falls below €5. 
-                        You can change this anytime in settings.
-                      </p>
+                {/* Tier Selection */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Basic Tier */}
+                  <button
+                    onClick={() => setState(s => ({ ...s, tier: "basic" }))}
+                    className={`p-5 rounded-xl border text-left transition-all ${
+                      state.tier === "basic"
+                        ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-lg font-semibold">Basic</span>
+                      <span className="text-2xl font-bold">€20<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                     </div>
-                  </label>
+                    <ul className="text-gray-400 text-sm space-y-1">
+                      <li>✓ €10 credits included</li>
+                      <li>✓ Your own AI assistant</li>
+                      <li>✓ Telegram integration</li>
+                      <li>✓ 24/7 uptime</li>
+                    </ul>
+                  </button>
+
+                  {/* Pro Tier */}
+                  <button
+                    onClick={() => setState(s => ({ ...s, tier: "pro" }))}
+                    className={`p-5 rounded-xl border text-left transition-all relative ${
+                      state.tier === "pro"
+                        ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                    }`}
+                  >
+                    <span className="absolute -top-2 right-3 bg-blue-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-lg font-semibold">Pro</span>
+                      <span className="text-2xl font-bold">€120<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                    </div>
+                    <ul className="text-gray-400 text-sm space-y-1">
+                      <li>✓ €110 credits included</li>
+                      <li>✓ Everything in Basic</li>
+                      <li>✓ Priority support</li>
+                      <li>✓ Best for power users</li>
+                    </ul>
+                  </button>
                 </div>
 
-                <div className="text-sm text-gray-500 bg-gray-800/30 rounded-lg p-3">
+                {/* Info Box */}
+                <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4">
                   <p className="mb-2">
-                    <strong>Daily limit:</strong> €200/day maximum spend
+                    Every plan runs on its own <strong className="text-gray-300">secure, isolated container</strong> with encrypted access.
                   </p>
                   <p>
-                    <strong>Typical usage:</strong> €2-40/day depending on conversation volume
+                    <strong className="text-gray-300">Daily limit:</strong> €200/day maximum spend • <strong className="text-gray-300">Typical usage:</strong> €2-40/day
                   </p>
                 </div>
 
@@ -303,7 +330,7 @@ function OnboardingContent() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      Continue to Payment
+                      Continue with {state.tier === "basic" ? "Basic" : "Pro"} Plan
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}

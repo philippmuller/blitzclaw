@@ -1,13 +1,12 @@
 /**
- * Subscribe endpoint - creates a Paddle subscription checkout
+ * Subscribe endpoint - creates a Creem subscription checkout
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
-import { createCheckout } from "@/lib/paddle";
+import { createCreemCheckout, getTierProductId, TIERS, TierKey } from "@/lib/creem";
 
-const PADDLE_SUBSCRIPTION_PRICE_ID = process.env.PADDLE_SUBSCRIPTION_PRICE_ID;
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
 
 export async function POST(request: Request) {
@@ -17,13 +16,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Parse request body for auto-topup preference
+  // Parse request body
+  let tier: TierKey = "basic";
   let autoTopup = true;
+  
   try {
     const body = await request.json();
+    if (body.tier === "pro" || body.tier === "basic") {
+      tier = body.tier;
+    }
     autoTopup = body.autoTopup !== false;
   } catch {
-    // Default to true if no body
+    // Default values
   }
 
   // Get or create user in database
@@ -40,22 +44,28 @@ export async function POST(request: Request) {
     });
   }
 
-  if (!PADDLE_SUBSCRIPTION_PRICE_ID) {
-    console.error("Paddle subscription price not configured");
-    return NextResponse.json({ error: "Billing not configured" }, { status: 500 });
+  // Get product ID for selected tier
+  const productId = getTierProductId(tier);
+  
+  if (!productId) {
+    console.error(`Creem product not configured for tier: ${tier}`);
+    return NextResponse.json(
+      { error: `Billing not configured for ${TIERS[tier].name} plan` },
+      { status: 500 }
+    );
   }
 
-  const successUrl = `${APP_URL}/onboarding?subscription=success`;
+  const successUrl = `${APP_URL}/onboarding?subscription=success&tier=${tier}`;
 
   try {
-    const { checkoutUrl } = await createCheckout({
-      priceId: PADDLE_SUBSCRIPTION_PRICE_ID,
-      customerId: user.paddleCustomerId || undefined,
-      customerEmail: user.email,
+    const { checkoutUrl } = await createCreemCheckout({
+      productId,
       successUrl,
+      customerEmail: user.email,
       customData: {
         user_id: user.id,
         clerk_id: clerkId,
+        tier: tier,
         type: "subscription",
         auto_topup: autoTopup ? "true" : "false",
       },
@@ -63,7 +73,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checkoutUrl });
   } catch (error) {
-    console.error("Paddle checkout creation failed:", error);
+    console.error("Creem checkout creation failed:", error);
     return NextResponse.json(
       { error: "Failed to create checkout" },
       { status: 500 }

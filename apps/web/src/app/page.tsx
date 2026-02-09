@@ -202,9 +202,10 @@ export default async function Home() {
                 © 2026 BlitzClaw. All rights reserved.
               </div>
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                <a href="#" className="hover:text-foreground transition">Terms</a>
-                <a href="#" className="hover:text-foreground transition">Privacy</a>
-                <a href="#" className="hover:text-foreground transition">Support</a>
+                <Link href="/terms" className="hover:text-foreground transition">Terms</Link>
+                <Link href="/privacy" className="hover:text-foreground transition">Privacy</Link>
+                <Link href="/refund" className="hover:text-foreground transition">Refunds</Link>
+                <a href="mailto:support@blitzclaw.com" className="hover:text-foreground transition">Support</a>
               </div>
             </div>
           </div>
