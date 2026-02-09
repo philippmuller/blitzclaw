@@ -216,7 +216,7 @@ export default async function Home() {
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              "Read & summarize email",
+              "Read & summarize messages",
               "Draft replies",
               "Schedule meetings",
               "Remind you of deadlines",
@@ -225,7 +225,7 @@ export default async function Home() {
               "Research competitors",
               "Generate invoices",
               "Track expenses",
-              "Book travel",
+              "Research travel",
               "Write contracts",
               "Monitor news",
               "Translate messages",
@@ -257,7 +257,7 @@ export default async function Home() {
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Sign up & subscribe</h3>
                 <p className="text-muted-foreground">
-                  €14/mo gets you a dedicated server. Bring your own Anthropic API key — you control your AI costs.
+                  Your subscription gets you a dedicated server. Bring your own Anthropic API key — you control your AI costs.
                 </p>
               </div>
             </div>
@@ -279,7 +279,7 @@ export default async function Home() {
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Start chatting</h3>
                 <p className="text-muted-foreground">
-                  Your assistant is live. Message it on Telegram and watch it work.
+                  Your assistant is live. Message it on Telegram and watch it work. Slack, Discord, and WhatsApp coming soon — included in your subscription.
                 </p>
               </div>
             </div>
