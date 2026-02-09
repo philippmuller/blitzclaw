@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // Store anthropic key encrypted (for BYOK users)
+  // Store anthropic key and billing mode (for BYOK users)
   if (tier === "byok" && anthropicKey) {
     await prisma.user.update({
       where: { id: user.id },
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
         // Store key for later use in instance creation
         // In production, encrypt this!
         anthropicKey: anthropicKey,
+        billingMode: "byok",
       },
     });
   }

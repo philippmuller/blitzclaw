@@ -56,12 +56,14 @@ export async function POST(request: Request) {
       const subscriptionId = data.subscription_id || data.id;
       const customerId = data.customer_id || data.customer?.id;
       
-      if (subscriptionId || customerId) {
+      if (subscriptionId || customerId || tier) {
         await prisma.user.update({
           where: { id: userId },
           data: {
             ...(subscriptionId && { creemSubscriptionId: subscriptionId }),
             ...(customerId && { creemCustomerId: customerId }),
+            // Set billing mode based on tier
+            billingMode: tier === "byok" ? "byok" : "managed",
           },
         }).catch((e) => {
           console.warn("Could not update user subscription info:", e);

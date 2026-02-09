@@ -114,6 +114,12 @@ export function verifyCreemWebhook(payload: string, signatureHeader: string | nu
 
 // Tier configuration
 export const TIERS = {
+  byok: {
+    name: "BYOK",
+    priceEur: 14,
+    creditsCents: 0, // BYOK users don't use credits - they pay Anthropic directly
+    productIdEnv: "CREEM_PRODUCT_BYOK",
+  },
   basic: {
     name: "Basic",
     priceEur: 20,

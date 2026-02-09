@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 
+/**
+ * Button to manage subscription
+ * Redirects to Creem dashboard where users can manage their subscription
+ */
 export function ManageSubscriptionButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,7 @@ export function ManageSubscriptionButton() {
         throw new Error(data.error || "Failed to open portal");
       }
 
-      // Redirect to Paddle customer portal
+      // Redirect to Creem dashboard
       window.location.href = data.portalUrl;
     } catch (err) {
       setError((err as Error).message);

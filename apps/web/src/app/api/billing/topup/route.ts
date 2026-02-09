@@ -1,31 +1,19 @@
 /**
- * Top-up endpoint - creates a Paddle one-time charge against subscription
+ * Top-up endpoint
+ * 
+ * BYOK users don't need top-ups - they pay Anthropic directly for usage.
+ * This endpoint is disabled for BYOK mode.
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
-import { createOneTimeCharge } from "@/lib/paddle";
 
-const PADDLE_TOPUP_20_PRICE_ID = process.env.PADDLE_TOPUP_20_PRICE_ID;
-const PADDLE_TOPUP_50_PRICE_ID = process.env.PADDLE_TOPUP_50_PRICE_ID;
-const PADDLE_TOPUP_100_PRICE_ID = process.env.PADDLE_TOPUP_100_PRICE_ID;
-
-export async function POST(request: Request) {
+export async function POST() {
   const { userId: clerkId } = await auth();
 
   if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { amount_cents: amountCents } = await request.json();
-  const amount = Number(amountCents || 2500);
-
-  if (amount < 2000) {
-    return NextResponse.json(
-      { error: "Minimum topup amount is €20 (2000 cents)" },
-      { status: 400 }
-    );
   }
 
   const user = await prisma.user.findUnique({
@@ -36,57 +24,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (!user.paddleSubscriptionId) {
+  // BYOK users don't use balance/top-ups - they pay Anthropic directly
+  if (user.billingMode === "byok") {
     return NextResponse.json(
-      { error: "No active subscription found" },
+      { 
+        error: "Top-ups are not available for BYOK plans. You pay Anthropic directly for API usage.",
+        billingMode: "byok"
+      },
       { status: 400 }
     );
   }
 
-  const priceId =
-    amount >= 10000
-      ? PADDLE_TOPUP_100_PRICE_ID
-      : amount >= 5000
-        ? PADDLE_TOPUP_50_PRICE_ID
-        : PADDLE_TOPUP_20_PRICE_ID;
-
-  if (!priceId) {
-    return NextResponse.json(
-      { error: "Top-up price not configured" },
-      { status: 500 }
-    );
-  }
-
-  try {
-    const transaction = await createOneTimeCharge({
-      subscriptionId: user.paddleSubscriptionId,
-      priceId,
-      customData: {
-        user_id: user.id,
-        amount_cents: String(amount),
-        type: "manual_topup",
-      },
-    });
-
-    const checkoutUrl =
-      transaction?.data?.checkout?.url ||
-      transaction?.data?.checkout_url ||
-      transaction?.data?.url ||
-      transaction?.checkout?.url ||
-      transaction?.checkout_url ||
-      transaction?.url ||
-      null;
-
-    return NextResponse.json({
-      success: true,
-      checkoutUrl,
-      transaction,
-    });
-  } catch (error) {
-    console.error("Paddle top-up error:", error);
-    return NextResponse.json(
-      { error: "Failed to create top-up" },
-      { status: 500 }
-    );
-  }
+  // Future: Implement managed billing top-ups here
+  return NextResponse.json(
+    { error: "Managed billing coming soon. BYOK is currently the only available plan." },
+    { status: 501 }
+  );
 }

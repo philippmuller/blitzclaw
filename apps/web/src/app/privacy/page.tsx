@@ -33,8 +33,8 @@ export default function PrivacyPage() {
           
           <h3 className="text-lg font-medium text-white mt-6">Payment Information</h3>
           <p>
-            Payment processing is handled by Paddle, our Merchant of Record. We do not store 
-            your credit card details. Paddle may collect billing information as described in 
+            Payment processing is handled by Creem, our payment processor. We do not store 
+            your credit card details. Creem may collect billing information as described in 
             their privacy policy.
           </p>
           
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           <p>We share data with:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Anthropic</strong> — AI model provider (processes conversation content)</li>
-            <li><strong>Paddle</strong> — Payment processor (handles billing)</li>
+            <li><strong>Creem</strong> — Payment processor (handles billing)</li>
             <li><strong>Clerk</strong> — Authentication provider (handles login)</li>
             <li><strong>Hetzner</strong> — Infrastructure provider (hosts your instance)</li>
           </ul>

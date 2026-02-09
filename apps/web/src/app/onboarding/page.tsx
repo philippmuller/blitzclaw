@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink } from "lucide-react";
+import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink, Key } from "lucide-react";
 
 type Step = "billing" | "telegram" | "persona" | "launching";
 
@@ -13,6 +13,7 @@ type BillingMode = "byok" | "managed";
 interface OnboardingState {
   step: Step;
   hasSubscription: boolean;
+  hasOwnKey: boolean;
   billingMode: BillingMode;
   tier: Tier;
   autoTopup: boolean;
@@ -32,6 +33,7 @@ function OnboardingContent() {
   const [state, setState] = useState<OnboardingState>({
     step: "billing",
     hasSubscription: false,
+    hasOwnKey: true, // Default to BYOK
     billingMode: "byok",
     tier: "basic",
     autoTopup: true,
@@ -82,14 +84,17 @@ function OnboardingContent() {
     setLoading(true);
     setError(null);
     
+    const effectiveBillingMode = state.hasOwnKey ? "byok" : "managed";
+    const effectiveTier = state.hasOwnKey ? "byok" : state.tier;
+    
     try {
       const res = await fetch("/api/billing/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          tier: state.billingMode === "byok" ? "byok" : state.tier, 
+          tier: effectiveTier, 
           autoTopup: state.autoTopup,
-          anthropicKey: state.billingMode === "byok" ? state.anthropicKey : undefined,
+          anthropicKey: state.hasOwnKey ? state.anthropicKey : undefined,
         }),
       });
       
@@ -102,7 +107,8 @@ function OnboardingContent() {
       
       // Save auto-topup preference and anthropic key for instance creation
       localStorage.setItem("blitzclaw_auto_topup", state.autoTopup ? "true" : "false");
-      if (state.billingMode === "byok" && state.anthropicKey) {
+      localStorage.setItem("blitzclaw_billing_mode", effectiveBillingMode);
+      if (state.hasOwnKey && state.anthropicKey) {
         localStorage.setItem("blitzclaw_anthropic_key", state.anthropicKey);
       }
       
@@ -220,7 +226,7 @@ function OnboardingContent() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-2">Welcome to BlitzClaw</h1>
-          <p className="text-gray-400">Let's get your AI assistant running in minutes</p>
+          <p className="text-gray-400">Let&apos;s get your AI assistant running in minutes</p>
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
             className="mt-4 text-sm text-gray-500 hover:text-gray-300 underline"
@@ -281,55 +287,46 @@ function OnboardingContent() {
               </div>
               
               <div className="space-y-6">
-                {/* Billing Mode Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* BYOK Option */}
-                  <button
-                    onClick={() => setState(s => ({ ...s, billingMode: "byok" }))}
-                    className={`p-5 rounded-xl border text-left transition-all ${
-                      state.billingMode === "byok"
-                        ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-lg font-semibold">Bring Your Own Key</span>
-                      <span className="text-2xl font-bold">€14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                {/* Toggle: Do you have your own API key? */}
+                <div className="p-4 bg-gray-800/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Key className="w-5 h-5 text-gray-400" />
+                      <span className="font-medium">I have my own Anthropic API key</span>
                     </div>
-                    <ul className="text-gray-400 text-sm space-y-1">
-                      <li>✓ Use your Anthropic API key</li>
-                      <li>✓ Pay Anthropic directly</li>
-                      <li>✓ Full control over costs</li>
-                      <li>✓ Dedicated server included</li>
-                    </ul>
-                  </button>
-
-                  {/* Managed Option */}
-                  <button
-                    onClick={() => setState(s => ({ ...s, billingMode: "managed" }))}
-                    className={`p-5 rounded-xl border text-left transition-all relative ${
-                      state.billingMode === "managed"
-                        ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                        : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                    }`}
-                  >
-                    <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Coming Soon</span>
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-lg font-semibold">Managed Billing</span>
-                      <span className="text-2xl font-bold">€20<span className="text-sm text-gray-400 font-normal">/mo+</span></span>
-                    </div>
-                    <ul className="text-gray-400 text-sm space-y-1">
-                      <li>✓ No API key needed</li>
-                      <li>✓ Pay-as-you-go credits</li>
-                      <li>✓ Auto top-up available</li>
-                      <li>✓ Simplest setup</li>
-                    </ul>
-                  </button>
+                    <button
+                      onClick={() => setState(s => ({ ...s, hasOwnKey: !s.hasOwnKey }))}
+                      className={`relative w-14 h-7 rounded-full transition-colors ${
+                        state.hasOwnKey ? "bg-blue-600" : "bg-gray-600"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                          state.hasOwnKey ? "translate-x-8" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
-                {/* BYOK: Anthropic Key Input */}
-                {state.billingMode === "byok" && (
+                {/* BYOK Mode */}
+                {state.hasOwnKey && (
                   <div className="space-y-4">
+                    <div className="p-5 rounded-xl border border-blue-500 bg-blue-900/20">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <span className="text-lg font-semibold">Bring Your Own Key</span>
+                          <p className="text-sm text-gray-400 mt-1">You pay Anthropic directly for AI usage</p>
+                        </div>
+                        <span className="text-2xl font-bold">€14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                      </div>
+                      <ul className="text-gray-400 text-sm space-y-1">
+                        <li>✓ Dedicated server included</li>
+                        <li>✓ Full control over your AI costs</li>
+                        <li>✓ Use Claude Opus, Sonnet, or Haiku</li>
+                      </ul>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium mb-2">Anthropic API Key</label>
                       <input
@@ -346,37 +343,92 @@ function OnboardingContent() {
                   </div>
                 )}
 
-                {/* Managed: Coming Soon Notice */}
-                {state.billingMode === "managed" && (
-                  <div className="text-sm text-yellow-200/80 bg-yellow-900/20 rounded-lg p-4 border border-yellow-800/50">
-                    <p>
-                      Managed billing is coming soon! For now, please use BYOK mode with your own Anthropic API key.
-                    </p>
+                {/* Managed Mode */}
+                {!state.hasOwnKey && (
+                  <div className="space-y-4">
+                    <div className="text-sm text-gray-400 mb-4">
+                      No API key? No problem. We handle everything — just top up credits when you need them.
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Basic Tier */}
+                      <button
+                        onClick={() => setState(s => ({ ...s, tier: "basic" }))}
+                        className={`p-5 rounded-xl border text-left transition-all ${
+                          state.tier === "basic"
+                            ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                            : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-lg font-semibold">Basic</span>
+                          <span className="text-2xl font-bold">€19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                        </div>
+                        <ul className="text-gray-400 text-sm space-y-1">
+                          <li>✓ Dedicated server</li>
+                          <li>✓ €10 credits included</li>
+                          <li>✓ Top up anytime</li>
+                        </ul>
+                      </button>
+
+                      {/* Pro Tier */}
+                      <button
+                        onClick={() => setState(s => ({ ...s, tier: "pro" }))}
+                        className={`p-5 rounded-xl border text-left transition-all relative ${
+                          state.tier === "pro"
+                            ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                            : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                        }`}
+                      >
+                        <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-lg font-semibold">Pro</span>
+                          <span className="text-2xl font-bold">€119<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                        </div>
+                        <ul className="text-gray-400 text-sm space-y-1">
+                          <li>✓ Dedicated server</li>
+                          <li>✓ €100 credits included</li>
+                          <li>✓ Priority support</li>
+                        </ul>
+                      </button>
+                    </div>
+
+                    <div className="text-sm text-yellow-200/80 bg-yellow-900/20 rounded-lg p-4 border border-yellow-800/50">
+                      <p>
+                        <strong>Coming Soon:</strong> Managed billing is not available yet. 
+                        For now, toggle &quot;I have my own API key&quot; above and use BYOK mode.
+                      </p>
+                    </div>
                   </div>
                 )}
 
                 {/* Info Box */}
                 <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4">
-                  <p className="mb-2">
-                    Every plan runs on its own <strong className="text-gray-300">secure, isolated server</strong> with encrypted access.
-                  </p>
                   <p>
-                    <strong className="text-gray-300">BYOK:</strong> You control costs directly with Anthropic • <strong className="text-gray-300">Typical usage:</strong> $2-40/day
+                    Every plan runs on its own <strong className="text-gray-300">secure, isolated server</strong>. 
+                    {state.hasOwnKey 
+                      ? " With BYOK, typical AI usage costs $2-40/day depending on how much you chat."
+                      : " Credits are used for AI responses. Top up via our dashboard when you run low."
+                    }
                   </p>
                 </div>
 
                 <button
                   onClick={handleSubscribe}
-                  disabled={loading || state.billingMode === "managed" || (state.billingMode === "byok" && !state.anthropicKey.startsWith("sk-ant-"))}
+                  disabled={
+                    loading || 
+                    (!state.hasOwnKey) || // Managed not available yet
+                    (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
+                  }
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : state.billingMode === "managed" ? (
+                  ) : !state.hasOwnKey ? (
                     "Coming Soon"
                   ) : (
                     <>
-                      Continue with BYOK (€14/mo)
+                      Continue — €14/mo
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}
@@ -399,8 +451,8 @@ function OnboardingContent() {
                   <ol className="text-gray-300 text-sm space-y-2 list-decimal list-inside">
                     <li>Open Telegram and search for <code className="bg-gray-700 px-1 rounded">@BotFather</code></li>
                     <li>Send <code className="bg-gray-700 px-1 rounded">/newbot</code></li>
-                    <li>Choose a name for your bot (e.g., "My AI Assistant")</li>
-                    <li>Choose a username ending in "bot" (e.g., "my_ai_assistant_bot")</li>
+                    <li>Choose a name for your bot (e.g., &quot;My AI Assistant&quot;)</li>
+                    <li>Choose a username ending in &quot;bot&quot; (e.g., &quot;my_ai_assistant_bot&quot;)</li>
                     <li>Copy the API token BotFather gives you</li>
                   </ol>
                 </div>

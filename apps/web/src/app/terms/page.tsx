@@ -39,8 +39,8 @@ export default function TermsPage() {
           <h2 className="text-xl font-semibold text-white mt-8">4. Billing and Payment</h2>
           <p>
             The Service operates on a subscription model with usage-based pricing. You agree to pay 
-            all fees associated with your use of the Service. Payments are processed by Paddle, our 
-            Merchant of Record. All fees are non-refundable except as described in our Refund Policy.
+            all fees associated with your use of the Service. Payments are processed by Creem, our 
+            payment processor. All fees are non-refundable except as described in our Refund Policy.
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">5. Acceptable Use</h2>

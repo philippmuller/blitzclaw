@@ -1,23 +1,23 @@
 /**
  * Auto Top-Up Logic for BlitzClaw
  *
- * Triggers a Paddle charge when user's balance falls below threshold.
+ * Only applicable for managed billing users (future feature).
+ * BYOK users pay Anthropic directly and don't use credits/balance.
  */
 
 import { prisma } from "@blitzclaw/db";
-import { createOneTimeCharge } from "@/lib/paddle";
-
-const PADDLE_TOPUP_20_PRICE_ID = process.env.PADDLE_TOPUP_20_PRICE_ID;
-const PADDLE_TOPUP_50_PRICE_ID = process.env.PADDLE_TOPUP_50_PRICE_ID;
-const PADDLE_TOPUP_100_PRICE_ID = process.env.PADDLE_TOPUP_100_PRICE_ID;
 
 interface TopupResult {
   success: boolean;
+  skipped?: boolean;
   error?: string;
 }
 
 /**
  * Check if user needs auto top-up and trigger it if so.
+ * 
+ * BYOK users: Skipped (they pay Anthropic directly)
+ * Managed users: Not yet implemented
  */
 export async function checkAndTriggerTopup(userId: string): Promise<TopupResult> {
   const user = await prisma.user.findUnique({
@@ -25,61 +25,60 @@ export async function checkAndTriggerTopup(userId: string): Promise<TopupResult>
     include: { balance: true },
   });
 
-  if (!user || !user.balance) {
-    return { success: false, error: "User or balance not found" };
+  if (!user) {
+    return { success: false, error: "User not found" };
+  }
+
+  // BYOK users don't use balance/top-ups - skip entirely
+  if (user.billingMode === "byok") {
+    return { success: true, skipped: true };
+  }
+
+  // For non-BYOK users, check balance
+  if (!user.balance) {
+    return { success: false, error: "Balance not found" };
   }
 
   const { balance } = user;
 
+  // Balance is above threshold - no action needed
   if (balance.creditsCents >= balance.topupThresholdCents) {
     return { success: true };
   }
 
+  // Auto top-up is disabled
   if (!balance.autoTopupEnabled) {
     return { success: false, error: "Auto top-up disabled" };
   }
 
-  if (!user.paddleSubscriptionId) {
-    return { success: false, error: "No subscription on file" };
-  }
-
-  try {
-    const priceId =
-      balance.topupAmountCents >= 10000
-        ? PADDLE_TOPUP_100_PRICE_ID
-        : balance.topupAmountCents >= 5000
-          ? PADDLE_TOPUP_50_PRICE_ID
-          : PADDLE_TOPUP_20_PRICE_ID;
-
-    if (!priceId) {
-      return { success: false, error: "Top-up price not configured" };
-    }
-
-    await createOneTimeCharge({
-      subscriptionId: user.paddleSubscriptionId,
-      priceId,
-      customData: {
-        user_id: user.id,
-        amount_cents: String(balance.topupAmountCents),
-        type: "auto_topup",
-      },
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error("Auto top-up failed:", error);
-    return { success: false, error: String(error) };
-  }
+  // TODO: Implement managed billing top-ups when that feature launches
+  // For now, just return an error since only BYOK is available
+  return { 
+    success: false, 
+    error: "Managed billing top-ups not yet implemented" 
+  };
 }
 
 /**
  * Trigger immediate balance check and potential pause for an instance.
  * Call this after a failed API request due to low balance.
+ * 
+ * Note: For BYOK users, this should never be called since they don't use balance.
  */
 export async function handleLowBalance(userId: string, instanceId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  // BYOK users don't use balance - this shouldn't be called for them
+  if (user?.billingMode === "byok") {
+    console.warn(`handleLowBalance called for BYOK user ${userId} - this should not happen`);
+    return;
+  }
+
   const result = await checkAndTriggerTopup(userId);
 
-  if (!result.success) {
+  if (!result.success && !result.skipped) {
     await prisma.instance.update({
       where: { id: instanceId },
       data: { status: "PAUSED" },

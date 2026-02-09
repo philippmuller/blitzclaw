@@ -19,15 +19,14 @@ export default function RefundPage() {
           
           <h2 className="text-xl font-semibold text-white mt-8">Overview</h2>
           <p>
-            BlitzClaw operates on a usage-based billing model. We want you to be satisfied with 
-            our service, but due to the nature of AI compute costs, refunds are limited.
+            BlitzClaw operates on a subscription model. We want you to be satisfied with 
+            our service, but due to the nature of server and AI compute costs, refunds are limited.
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Subscription Refunds</h2>
           <p>
-            <strong>Monthly subscription fee (€20/month):</strong> If you cancel within the first 
-            7 days of your initial subscription and have not created an instance, you may request 
-            a full refund of the subscription fee.
+            If you cancel within the first 7 days of your initial subscription and have not 
+            created an instance, you may request a full refund of the subscription fee.
           </p>
           <p>
             After the 7-day period, subscription fees are non-refundable, but you can cancel anytime 
@@ -35,6 +34,9 @@ export default function RefundPage() {
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Credit/Top-up Refunds</h2>
+          <p>
+            For plans that include credits or top-ups:
+          </p>
           <p>
             <strong>Unused credits:</strong> If you have unused credits and wish to close your account, 
             we may issue a partial refund for unused credits at our discretion, minus a 20% processing fee.
@@ -71,7 +73,7 @@ export default function RefundPage() {
           
           <h2 className="text-xl font-semibold text-white mt-8">Payment Processor</h2>
           <p>
-            Refunds are processed through Paddle, our Merchant of Record. Refunds typically appear 
+            Refunds are processed through Creem, our payment processor. Refunds typically appear 
             on your statement within 5-10 business days, depending on your bank or card issuer.
           </p>
           
