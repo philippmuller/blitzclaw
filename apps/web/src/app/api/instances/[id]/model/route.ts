@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
 
 const VALID_MODELS = [
-  "claude-opus-4-20250514",
-  "claude-sonnet-4-20250514", 
-  "claude-3-5-haiku-20241022",
+  "claude-opus-4-6",           // Opus 4.6 - most intelligent
+  "claude-sonnet-4-5",         // Sonnet 4.5 - speed + intelligence  
+  "claude-haiku-4-5",          // Haiku 4.5 - fastest
 ];
 
 /**

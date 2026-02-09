@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       channelType: channelType as "TELEGRAM" | "WHATSAPP",
       personaTemplate: selectedPersona,
-      model: model || "claude-opus-4-20250514",
+      model: model || "claude-opus-4-6",
       soulMd: soul_md,
       channelConfig: telegramToken 
         ? JSON.stringify({ bot_token: telegramToken, botUsername: telegramBotUsername }) 

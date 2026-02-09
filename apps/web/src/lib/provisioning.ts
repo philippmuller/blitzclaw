@@ -334,7 +334,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       userId,
       channelType,
       personaTemplate,
-      model: model || "claude-opus-4-20250514",
+      model: model || "claude-opus-4-6",
       soulMd: generateSoulMd(personaTemplate, soulMd),
       channelConfig,
       status: InstanceStatus.PENDING,
@@ -354,7 +354,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     const poolServer = await provisionPoolServer({
       telegramBotToken,
       instanceId: instance.id,
-      model: model || "claude-opus-4-20250514",
+      model: model || "claude-opus-4-6",
       byokMode,
       anthropicKey,
     });

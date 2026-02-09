@@ -28,7 +28,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
     anthropicApiKey,
     telegramBotToken,
     braveApiKey,
-    model = "claude-opus-4-20250514",
+    model = "claude-opus-4-6",
     // Always use production URL for callbacks (preview URLs require Vercel auth)
     blitzclawApiUrl = "https://www.blitzclaw.com",
     byokMode = false,
@@ -41,22 +41,22 @@ export function generateCloudInit(options: CloudInitOptions): string {
       "anthropic": {
         models: [
           {
-            id: "claude-sonnet-4-20250514",
-            name: "Claude Sonnet 4",
+            id: "claude-opus-4-6",
+            name: "Claude Opus 4.6",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192
           },
           {
-            id: "claude-opus-4-20250514",
-            name: "Claude Opus 4",
+            id: "claude-sonnet-4-5",
+            name: "Claude Sonnet 4.5",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192
           },
           {
-            id: "claude-3-5-haiku-20241022",
-            name: "Claude 3.5 Haiku",
+            id: "claude-haiku-4-5",
+            name: "Claude Haiku 4.5",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192
@@ -72,22 +72,22 @@ export function generateCloudInit(options: CloudInitOptions): string {
         api: "anthropic-messages",
         models: [
           {
-            id: "claude-sonnet-4-20250514",
-            name: "Claude Sonnet 4",
+            id: "claude-opus-4-6",
+            name: "Claude Opus 4.6",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192
           },
           {
-            id: "claude-opus-4-20250514",
-            name: "Claude Opus 4",
+            id: "claude-sonnet-4-5",
+            name: "Claude Sonnet 4.5",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192
           },
           {
-            id: "claude-3-5-haiku-20241022",
-            name: "Claude 3.5 Haiku",
+            id: "claude-haiku-4-5",
+            name: "Claude Haiku 4.5",
             input: ["text", "image"],
             contextWindow: 200000,
             maxTokens: 8192

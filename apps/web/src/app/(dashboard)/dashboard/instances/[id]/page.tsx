@@ -253,7 +253,7 @@ export default function InstanceDetailPage() {
       <div className="bg-card border border-border rounded-xl p-5">
         <ModelSelector
           instanceId={instanceId}
-          currentModel={instance.model || "claude-opus-4-20250514"}
+          currentModel={instance.model || "claude-opus-4-6"}
         />
       </div>
 

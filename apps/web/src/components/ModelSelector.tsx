@@ -11,22 +11,22 @@ interface Model {
 
 const MODELS: Model[] = [
   {
-    id: "claude-opus-4-20250514",
-    name: "Claude Opus 4",
+    id: "claude-opus-4-6",
+    name: "Claude Opus 4.6",
     description: "Most intelligent",
     price: "$10/$50",
   },
   {
-    id: "claude-sonnet-4-20250514",
-    name: "Claude Sonnet 4",
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
     description: "Balanced",
     price: "$6/$30",
   },
   {
-    id: "claude-3-5-haiku-20241022",
-    name: "Claude 3.5 Haiku",
+    id: "claude-haiku-4-5",
+    name: "Claude Haiku 4.5",
     description: "Fastest",
-    price: "$1.60/$8",
+    price: "$2/$10",
   },
 ];
 

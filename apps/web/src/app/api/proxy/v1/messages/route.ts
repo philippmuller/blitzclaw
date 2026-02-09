@@ -149,11 +149,11 @@ export async function POST(req: NextRequest) {
 
   // Use model from instance settings (allows dashboard override)
   // Auto-downgrade to Haiku when balance < $1 to stretch remaining credits
-  let model = instance.model || requestBody.model || "claude-opus-4-20250514";
+  let model = instance.model || requestBody.model || "claude-opus-4-6";
   let modelDowngraded = false;
   
-  if (isLowBalance && model !== "claude-3-5-haiku-20241022") {
-    model = "claude-3-5-haiku-20241022";
+  if (isLowBalance && model !== "claude-haiku-4-5") {
+    model = "claude-haiku-4-5";
     modelDowngraded = true;
     console.log(`Auto-downgraded to Haiku for instance ${instance.id} (balance: ${balance}¢)`);
   }

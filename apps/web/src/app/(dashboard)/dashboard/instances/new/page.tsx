@@ -8,23 +8,23 @@ import { PersonaPicker, SoulEditor, getPersonaTemplate } from "@/components";
 type Step = "channel" | "persona" | "model" | "soul" | "confirm";
 type Channel = "telegram" | "whatsapp";
 type Persona = "assistant" | "developer" | "creative" | "custom";
-type Model = "claude-opus-4-20250514" | "claude-sonnet-4-20250514" | "claude-3-5-haiku-20241022";
+type Model = "claude-opus-4-6" | "claude-sonnet-4-5" | "claude-haiku-4-5";
 
 const MODELS: { id: Model; name: string; description: string; price: string }[] = [
   {
-    id: "claude-opus-4-20250514",
+    id: "claude-opus-4-6",
     name: "Claude Opus 4",
     description: "Most intelligent. Best for complex tasks, coding, and deep analysis.",
     price: "$10/$50 per MTok",
   },
   {
-    id: "claude-sonnet-4-20250514",
+    id: "claude-sonnet-4-5",
     name: "Claude Sonnet 4",
     description: "Balanced. Great for most tasks with good speed and quality.",
     price: "$6/$30 per MTok",
   },
   {
-    id: "claude-3-5-haiku-20241022",
+    id: "claude-haiku-4-5",
     name: "Claude 3.5 Haiku",
     description: "Fastest and cheapest. Good for simple tasks and high volume.",
     price: "$1.60/$8 per MTok",
@@ -37,7 +37,7 @@ export default function NewInstancePage() {
   const [channel, setChannel] = useState<Channel>("telegram");
   const [telegramToken, setTelegramToken] = useState("");
   const [persona, setPersona] = useState<Persona>("assistant");
-  const [model, setModel] = useState<Model>("claude-opus-4-20250514");
+  const [model, setModel] = useState<Model>("claude-opus-4-6");
   const [soulMd, setSoulMd] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);

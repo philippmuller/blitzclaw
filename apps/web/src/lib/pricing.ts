@@ -12,19 +12,15 @@ export interface ModelPricing {
 
 // Base API costs (what we pay) - updated Feb 2026
 const BASE_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = {
-  // Anthropic - current models (Opus 4.6 pricing)
-  "claude-opus-4-20250514": { inputPer1M: 500, outputPer1M: 2500 },      // $5/$25
-  "claude-sonnet-4-20250514": { inputPer1M: 300, outputPer1M: 1500 },    // $3/$15
-  "claude-3-5-sonnet-20241022": { inputPer1M: 300, outputPer1M: 1500 },  // $3/$15
-  "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },     // $0.80/$4
-  "claude-3-haiku-20240307": { inputPer1M: 25, outputPer1M: 125 },       // $0.25/$1.25
+  // Latest Anthropic models (Feb 2026)
+  "claude-opus-4-6": { inputPer1M: 500, outputPer1M: 2500 },       // $5/$25
+  "claude-sonnet-4-5": { inputPer1M: 300, outputPer1M: 1500 },     // $3/$15
+  "claude-haiku-4-5": { inputPer1M: 100, outputPer1M: 500 },       // $1/$5
   
-  // Aliases (normalized)
-  "claude-opus-4": { inputPer1M: 500, outputPer1M: 2500 },
-  "claude-sonnet-4": { inputPer1M: 300, outputPer1M: 1500 },
-  "claude-3-5-sonnet": { inputPer1M: 300, outputPer1M: 1500 },
-  "claude-3-5-haiku": { inputPer1M: 80, outputPer1M: 400 },
-  "claude-3-haiku": { inputPer1M: 25, outputPer1M: 125 },
+  // Legacy model IDs (keep for backwards compat)
+  "claude-opus-4-20250514": { inputPer1M: 500, outputPer1M: 2500 },
+  "claude-sonnet-4-20250514": { inputPer1M: 300, outputPer1M: 1500 },
+  "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },
 };
 
 // Our markup (100%)
@@ -119,4 +115,4 @@ export const DAILY_LIMIT_CENTS = 20000; // $200/day
 /**
  * Default model for new instances
  */
-export const DEFAULT_MODEL = "claude-opus-4-20250514";
+export const DEFAULT_MODEL = "claude-opus-4-6";
