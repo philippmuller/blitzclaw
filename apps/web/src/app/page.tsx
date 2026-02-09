@@ -68,7 +68,7 @@ export default async function Home() {
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Chat on Telegram. It learns your workflows, manages tasks, and gets things done.
             <br />
-            <span className="text-primary font-medium">€14/mo</span> — bring your own Anthropic key.
+            From <span className="text-primary font-medium">€19/mo</span> all-in. As low as <span className="text-primary font-medium">€14/mo</span> with your own API key.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>

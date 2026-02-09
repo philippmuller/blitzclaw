@@ -393,12 +393,6 @@ function OnboardingContent() {
                       </button>
                     </div>
 
-                    <div className="text-sm text-yellow-200/80 bg-yellow-900/20 rounded-lg p-4 border border-yellow-800/50">
-                      <p>
-                        <strong>Coming Soon:</strong> Managed billing is not available yet. 
-                        For now, toggle &quot;I have my own API key&quot; above and use BYOK mode.
-                      </p>
-                    </div>
                   </div>
                 )}
 
@@ -417,18 +411,20 @@ function OnboardingContent() {
                   onClick={handleSubscribe}
                   disabled={
                     loading || 
-                    (!state.hasOwnKey) || // Managed not available yet
                     (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
                   }
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : !state.hasOwnKey ? (
-                    "Coming Soon"
-                  ) : (
+                  ) : state.hasOwnKey ? (
                     <>
                       Continue — €14/mo
+                      <ExternalLink className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      Continue — €{state.tier === "pro" ? "119" : "19"}/mo
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}
