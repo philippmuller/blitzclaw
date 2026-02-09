@@ -7,9 +7,9 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
 import { createOneTimeCharge } from "@/lib/paddle";
 
-const PADDLE_TOPUP_10_PRICE_ID = process.env.PADDLE_TOPUP_10_PRICE_ID;
-const PADDLE_TOPUP_25_PRICE_ID = process.env.PADDLE_TOPUP_25_PRICE_ID;
+const PADDLE_TOPUP_20_PRICE_ID = process.env.PADDLE_TOPUP_20_PRICE_ID;
 const PADDLE_TOPUP_50_PRICE_ID = process.env.PADDLE_TOPUP_50_PRICE_ID;
+const PADDLE_TOPUP_100_PRICE_ID = process.env.PADDLE_TOPUP_100_PRICE_ID;
 
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
@@ -21,9 +21,9 @@ export async function POST(request: Request) {
   const { amount_cents: amountCents } = await request.json();
   const amount = Number(amountCents || 2500);
 
-  if (amount < 1000) {
+  if (amount < 2000) {
     return NextResponse.json(
-      { error: "Minimum topup amount is €10 (1000 cents)" },
+      { error: "Minimum topup amount is €20 (2000 cents)" },
       { status: 400 }
     );
   }
@@ -44,11 +44,11 @@ export async function POST(request: Request) {
   }
 
   const priceId =
-    amount >= 5000
-      ? PADDLE_TOPUP_50_PRICE_ID
-      : amount >= 2500
-        ? PADDLE_TOPUP_25_PRICE_ID
-        : PADDLE_TOPUP_10_PRICE_ID;
+    amount >= 10000
+      ? PADDLE_TOPUP_100_PRICE_ID
+      : amount >= 5000
+        ? PADDLE_TOPUP_50_PRICE_ID
+        : PADDLE_TOPUP_20_PRICE_ID;
 
   if (!priceId) {
     return NextResponse.json(

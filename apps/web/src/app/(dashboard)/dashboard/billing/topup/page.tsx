@@ -4,13 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 
 const amounts = [
-  { cents: 1000, label: "€10", productEnvKey: "PADDLE_TOPUP_10_PRICE_ID" },
-  { cents: 2500, label: "€25", productEnvKey: "PADDLE_TOPUP_25_PRICE_ID" },
+  { cents: 2000, label: "€20", productEnvKey: "PADDLE_TOPUP_20_PRICE_ID" },
   { cents: 5000, label: "€50", productEnvKey: "PADDLE_TOPUP_50_PRICE_ID" },
+  { cents: 10000, label: "€100", productEnvKey: "PADDLE_TOPUP_100_PRICE_ID" },
 ];
 
 export default function TopupPage() {
-  const [selectedAmount, setSelectedAmount] = useState(2500);
+  const [selectedAmount, setSelectedAmount] = useState(5000);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

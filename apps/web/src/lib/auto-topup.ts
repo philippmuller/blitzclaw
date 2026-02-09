@@ -7,9 +7,9 @@
 import { prisma } from "@blitzclaw/db";
 import { createOneTimeCharge } from "@/lib/paddle";
 
-const PADDLE_TOPUP_10_PRICE_ID = process.env.PADDLE_TOPUP_10_PRICE_ID;
-const PADDLE_TOPUP_25_PRICE_ID = process.env.PADDLE_TOPUP_25_PRICE_ID;
+const PADDLE_TOPUP_20_PRICE_ID = process.env.PADDLE_TOPUP_20_PRICE_ID;
 const PADDLE_TOPUP_50_PRICE_ID = process.env.PADDLE_TOPUP_50_PRICE_ID;
+const PADDLE_TOPUP_100_PRICE_ID = process.env.PADDLE_TOPUP_100_PRICE_ID;
 
 interface TopupResult {
   success: boolean;
@@ -45,11 +45,11 @@ export async function checkAndTriggerTopup(userId: string): Promise<TopupResult>
 
   try {
     const priceId =
-      balance.topupAmountCents >= 5000
-        ? PADDLE_TOPUP_50_PRICE_ID
-        : balance.topupAmountCents >= 2500
-          ? PADDLE_TOPUP_25_PRICE_ID
-          : PADDLE_TOPUP_10_PRICE_ID;
+      balance.topupAmountCents >= 10000
+        ? PADDLE_TOPUP_100_PRICE_ID
+        : balance.topupAmountCents >= 5000
+          ? PADDLE_TOPUP_50_PRICE_ID
+          : PADDLE_TOPUP_20_PRICE_ID;
 
     if (!priceId) {
       return { success: false, error: "Top-up price not configured" };
