@@ -45,7 +45,7 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if returning from Paddle checkout
+  // Check if returning from checkout
   useEffect(() => {
     const subscription = searchParams.get("subscription");
     if (subscription === "success") {
@@ -106,7 +106,7 @@ function OnboardingContent() {
         localStorage.setItem("blitzclaw_anthropic_key", state.anthropicKey);
       }
       
-      // Redirect to Paddle
+      // Redirect to Creem checkout
       window.location.href = checkoutUrl;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
