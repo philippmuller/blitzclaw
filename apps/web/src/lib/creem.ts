@@ -61,9 +61,8 @@ export async function createCreemCheckout(options: CreemCheckoutOptions): Promis
     payload.metadata = options.customData;
   }
 
-  if (options.customerEmail) {
-    payload.customer_email = options.customerEmail;
-  }
+  // Note: Creem doesn't accept customer_email in checkout request
+  // Customer email is collected during checkout instead
 
   const response = await creemFetch<CreemCheckoutResponse>("/checkouts", {
     method: "POST",
