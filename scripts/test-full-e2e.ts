@@ -345,28 +345,59 @@ async function testVerifyOpenClaw() {
     return false;
   }
 
-  // Verify gateway is running
-  try {
-    const status = execSync(
-      `ssh -o StrictHostKeyChecking=no -i ~/.ssh/blitzclaw_test root@${testServerIp} "systemctl is-active openclaw-gateway || pgrep -f 'openclaw gateway'" 2>/dev/null`,
-      { encoding: "utf-8", timeout: 10000 }
-    );
-    pass("OpenClaw gateway running", status.trim());
-  } catch (e) {
-    // Try to check the process directly
+  // Verify gateway is running (with retries - systemd needs time to start it)
+  log("  ⏳ Waiting for gateway to start...");
+  const gatewayMaxWait = 60 * 1000; // 60 seconds
+  const gatewayStart = Date.now();
+  let gatewayRunning = false;
+
+  while (Date.now() - gatewayStart < gatewayMaxWait) {
+    try {
+      // Check systemd service OR process
+      const status = execSync(
+        `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/blitzclaw_test root@${testServerIp} "systemctl is-active openclaw 2>/dev/null || systemctl is-active openclaw-gateway 2>/dev/null || pgrep -f 'openclaw gateway' || pgrep -f 'node.*openclaw'" 2>/dev/null`,
+        { encoding: "utf-8", timeout: 15000 }
+      );
+      if (status.trim() === "active" || status.trim().match(/^\d+$/)) {
+        pass("OpenClaw gateway running", status.trim() === "active" ? "Service active" : `PID: ${status.trim()}`);
+        gatewayRunning = true;
+        break;
+      }
+    } catch (e) {
+      // Try alternative check - look at port 18789
+      try {
+        const portCheck = execSync(
+          `ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -i ~/.ssh/blitzclaw_test root@${testServerIp} "ss -tlnp | grep 18789 || netstat -tlnp | grep 18789" 2>/dev/null`,
+          { encoding: "utf-8", timeout: 10000 }
+        );
+        if (portCheck.includes("18789")) {
+          pass("OpenClaw gateway running", "Listening on port 18789");
+          gatewayRunning = true;
+          break;
+        }
+      } catch {
+        // Keep waiting
+      }
+    }
+    await sleep(5000);
+  }
+
+  if (!gatewayRunning) {
+    // Final check - look at process list
     try {
       const ps = execSync(
-        `ssh -o StrictHostKeyChecking=no -i ~/.ssh/blitzclaw_test root@${testServerIp} "ps aux | grep openclaw" 2>/dev/null`,
+        `ssh -o StrictHostKeyChecking=no -i ~/.ssh/blitzclaw_test root@${testServerIp} "ps aux | grep -E 'openclaw|node.*gateway'" 2>/dev/null`,
         { encoding: "utf-8", timeout: 10000 }
       );
-      if (ps.includes("gateway")) {
-        pass("OpenClaw gateway running", "Process found");
+      if (ps.includes("openclaw") && !ps.includes("grep")) {
+        pass("OpenClaw gateway running", "Process found in ps");
+        gatewayRunning = true;
       } else {
-        fail("OpenClaw gateway running", "Process not found");
+        fail("OpenClaw gateway running", "Process not found after 60s");
         return false;
       }
     } catch {
-      fail("OpenClaw gateway running", "Could not verify");
+      fail("OpenClaw gateway running", "Could not verify after 60s");
       return false;
     }
   }
