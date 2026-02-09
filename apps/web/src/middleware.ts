@@ -8,7 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/privacy",
   "/refund",
   "/api/webhooks/(.*)",
-  "/api/proxy/(.*)", // Proxy endpoints use their own auth (X-BlitzClaw-Instance header)
+  "/api/proxy/(.*)",    // Proxy endpoints use their own auth (X-BlitzClaw-Instance header)
+  "/api/internal/(.*)", // Internal callbacks from instances (auth via X-Instance-Secret)
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
