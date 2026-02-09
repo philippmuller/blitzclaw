@@ -58,26 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Check if BYOK user (no balance check required)
-  const isByokUser = user.billingMode === "byok" && !!user.anthropicKey;
-  
-  // Check balance (skip for BYOK users)
-  if (!isByokUser) {
-    const balance = user.balance?.creditsCents ?? 0;
-    if (balance < MINIMUM_BALANCE_CENTS) {
-      return NextResponse.json(
-        { 
-          error: "Insufficient balance",
-          message: `Minimum balance of $${MINIMUM_BALANCE_CENTS / 100} required to create an instance`,
-          currentBalance: balance,
-          requiredBalance: MINIMUM_BALANCE_CENTS,
-        },
-        { status: 402 }
-      );
-    }
-  }
-
-  // Parse request body
+  // Parse request body first (need anthropicKey for BYOK check)
   const body = await req.json();
   const { 
     channel_type, 
@@ -93,6 +74,26 @@ export async function POST(req: NextRequest) {
   
   // Use anthropicKey from request or from user profile
   const effectiveAnthropicKey = anthropicKey || user.anthropicKey;
+
+  // Check if BYOK user (no balance check required)
+  // BYOK = has billing mode set to byok AND has a valid anthropic key (from DB or request)
+  const isByokUser = user.billingMode === "byok" && !!effectiveAnthropicKey;
+  
+  // Check balance (skip for BYOK users - they pay Anthropic directly)
+  if (!isByokUser) {
+    const balance = user.balance?.creditsCents ?? 0;
+    if (balance < MINIMUM_BALANCE_CENTS) {
+      return NextResponse.json(
+        { 
+          error: "Insufficient balance",
+          message: `Minimum balance of $${MINIMUM_BALANCE_CENTS / 100} required to create an instance`,
+          currentBalance: balance,
+          requiredBalance: MINIMUM_BALANCE_CENTS,
+        },
+        { status: 402 }
+      );
+    }
+  }
 
   // Determine channel type - default to TELEGRAM if telegramToken provided
   let channelType = channel_type?.toUpperCase();
