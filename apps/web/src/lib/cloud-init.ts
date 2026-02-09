@@ -113,7 +113,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
         token: gatewayToken
       },
       port: 18789,
-      bind: "0.0.0.0"  // Expose for web UI access (token auth protects it)
+      bind: "lan"  // Expose for web UI access (token auth protects it) - "lan" means 0.0.0.0
     },
     models: modelsConfig,
     agents: {
