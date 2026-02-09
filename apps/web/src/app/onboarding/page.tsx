@@ -47,11 +47,47 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if returning from checkout
+  // Check if returning from checkout - wait for webhook to credit balance
   useEffect(() => {
     const subscription = searchParams.get("subscription");
+    const tier = searchParams.get("tier");
+    
     if (subscription === "success") {
       setState(s => ({ ...s, step: "telegram", hasSubscription: true }));
+      
+      // For managed tiers, poll until balance is credited (webhook may be delayed)
+      if (tier !== "byok") {
+        const pollBalance = async () => {
+          let attempts = 0;
+          const maxAttempts = 30; // 30 seconds max
+          
+          const check = async (): Promise<boolean> => {
+            try {
+              const res = await fetch("/api/auth/me");
+              if (res.ok) {
+                const data = await res.json();
+                if (data.balance && data.balance > 0) {
+                  console.log("✅ Balance credited:", data.balance);
+                  return true;
+                }
+              }
+            } catch (e) {
+              console.error("Balance check failed:", e);
+            }
+            return false;
+          };
+          
+          while (attempts < maxAttempts) {
+            if (await check()) return;
+            await new Promise(r => setTimeout(r, 1000));
+            attempts++;
+          }
+          
+          console.warn("⚠️ Balance not credited after 30s - webhook may have failed");
+        };
+        
+        pollBalance();
+      }
     }
   }, [searchParams]);
 
