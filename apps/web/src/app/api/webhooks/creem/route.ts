@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   // Log full payload for debugging
   console.log("📨 Creem webhook raw payload:", JSON.stringify(event, null, 2));
 
-  const eventType = event.type || event.event || event.event_type;
+  const eventType = event.eventType || event.type || event.event || event.event_type;
   const data = event.data || event.object || event;
   
   // Creem might nest metadata differently - check multiple locations
@@ -47,7 +47,8 @@ export async function POST(request: Request) {
     case "checkout.completed":
     case "payment.completed":
     case "subscription.created":
-    case "subscription.active": {
+    case "subscription.active":
+    case "subscription.paid": {
       const userId = metadata.user_id;
       const tier = (metadata.tier || "basic") as TierKey;
       const subscriptionType = metadata.type;
