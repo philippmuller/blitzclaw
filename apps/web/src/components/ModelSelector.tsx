@@ -61,7 +61,13 @@ export function ModelSelector({ instanceId, currentModel, onUpdate }: ModelSelec
       }
 
       setSelected(modelId);
-      setMessage({ type: "success", text: "Model updated! Changes take effect immediately." });
+      
+      // Show appropriate message based on remote update status
+      const isSuccess = data.remoteUpdate === "success" || data.remoteUpdate === "skipped";
+      setMessage({ 
+        type: isSuccess ? "success" : "error", 
+        text: data.message || (isSuccess ? "Model updated!" : "Model saved but server update failed."),
+      });
       onUpdate?.(modelId);
     } catch (err) {
       setMessage({ type: "error", text: err instanceof Error ? err.message : "Failed to update" });

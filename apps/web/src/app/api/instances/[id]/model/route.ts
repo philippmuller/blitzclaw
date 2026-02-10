@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
+import { updateRemoteModel } from "@/lib/ssh";
 
 const VALID_MODELS = [
   "claude-opus-4-6",           // Opus 4.6 - most intelligent
@@ -9,53 +10,10 @@ const VALID_MODELS = [
 ];
 
 /**
- * Update the OpenClaw config on the remote server via gateway API
- */
-async function updateRemoteConfig(
-  ipAddress: string,
-  gatewayToken: string,
-  model: string,
-  useOwnApiKey: boolean
-): Promise<{ ok: boolean; error?: string }> {
-  const modelPrefix = useOwnApiKey ? "anthropic" : "blitzclaw";
-  const fullModel = `${modelPrefix}/${model}`;
-  
-  try {
-    // Use the gateway's config.patch API to update the model
-    const res = await fetch(`http://${ipAddress}:18789/api/config/patch`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${gatewayToken}`,
-      },
-      body: JSON.stringify({
-        patch: {
-          agents: {
-            defaults: {
-              model: {
-                primary: fullModel,
-              },
-            },
-          },
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`Failed to update remote config: ${res.status} ${text}`);
-      return { ok: false, error: `Gateway returned ${res.status}` };
-    }
-
-    return { ok: true };
-  } catch (error) {
-    console.error("Error updating remote config:", error);
-    return { ok: false, error: (error as Error).message };
-  }
-}
-
-/**
  * PATCH /api/instances/[id]/model - Update instance model
+ * 
+ * This updates both the database AND the remote server config via SSH,
+ * then restarts the OpenClaw service for changes to take effect.
  */
 export async function PATCH(
   req: NextRequest,
@@ -102,30 +60,55 @@ export async function PATCH(
     );
   }
 
-  // Update instance in database
+  // Check if model is already the same
+  if (instance.model === model) {
+    return NextResponse.json({
+      id: instance.id,
+      model: instance.model,
+      remoteUpdate: "skipped",
+      message: "Model is already set to this value.",
+    });
+  }
+
+  // Update instance in database first
   const updated = await prisma.instance.update({
     where: { id },
     data: { model },
   });
 
-  // Try to update the remote server config
+  // Try to update the remote server config via SSH
   let remoteUpdateStatus = "not_attempted";
-  if (instance.ipAddress && instance.gatewayToken && instance.status === "ACTIVE") {
-    const result = await updateRemoteConfig(
+  let remoteUpdateMessage = "";
+  
+  if (instance.ipAddress && instance.status === "ACTIVE") {
+    console.log(`Updating model on ${instance.ipAddress} to ${model}...`);
+    
+    const result = await updateRemoteModel(
       instance.ipAddress,
-      instance.gatewayToken,
       model,
       instance.useOwnApiKey
     );
-    remoteUpdateStatus = result.ok ? "success" : `failed: ${result.error}`;
+    
+    if (result.ok) {
+      remoteUpdateStatus = "success";
+      remoteUpdateMessage = "Model updated and service restarted. Changes are active now.";
+    } else {
+      remoteUpdateStatus = "failed";
+      remoteUpdateMessage = `Remote update failed: ${result.error}. Database updated but server may need manual restart.`;
+      console.error(`Remote model update failed for instance ${id}:`, result.error);
+    }
+  } else if (!instance.ipAddress) {
+    remoteUpdateStatus = "no_server";
+    remoteUpdateMessage = "No server assigned. Model will be applied when server is provisioned.";
+  } else {
+    remoteUpdateStatus = "not_active";
+    remoteUpdateMessage = `Instance is ${instance.status}. Model saved and will apply when instance becomes active.`;
   }
 
   return NextResponse.json({
     id: updated.id,
     model: updated.model,
     remoteUpdate: remoteUpdateStatus,
-    message: remoteUpdateStatus === "success" 
-      ? "Model updated on server. Changes take effect on next message."
-      : "Model saved. Server update may require restart.",
+    message: remoteUpdateMessage,
   });
 }
