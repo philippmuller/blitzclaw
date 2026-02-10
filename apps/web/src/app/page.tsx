@@ -38,10 +38,16 @@ export default async function Home() {
             <span>⚡</span> BlitzClaw
           </div>
           <div className="flex items-center gap-4">
+            <Link
+              href="/agents"
+              className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition"
+            >
+              Learn About Agents
+            </Link>
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition">
-                  Sign In
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition">
+                  Get Started
                 </button>
               </SignInButton>
             </SignedOut>
@@ -100,7 +106,7 @@ export default async function Home() {
             </Link>
             {" · "}
             <Link href="/agents" className="text-primary hover:underline">
-              Learn about sub-agents
+              Learn about agents
             </Link>
           </p>
         </div>
