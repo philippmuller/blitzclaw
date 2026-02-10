@@ -1,0 +1,18 @@
+{
+  "name": "@blitzclaw/linkedin-skill",
+  "version": "1.0.0",
+  "description": "LinkedIn automation skill for BlitzClaw/OpenClaw",
+  "scripts": {
+    "login": "ts-node scripts/login.ts",
+    "post": "ts-node scripts/post.ts",
+    "messages": "ts-node scripts/messages.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
