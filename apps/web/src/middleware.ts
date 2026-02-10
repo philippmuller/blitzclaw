@@ -4,9 +4,11 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/pricing",           // Pricing page
   "/terms",
   "/privacy",
   "/refund",
+  "/impressum",         // Legal requirement (Germany)
   "/guide",             // Getting started guide
   "/agents",            // Sub-agents explainer
   "/api/webhooks/(.*)",
