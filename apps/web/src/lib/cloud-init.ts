@@ -134,6 +134,14 @@ export function generateCloudInit(options: CloudInitOptions): string {
         }
       ]
     },
+    // Browser config for headless operation
+    browser: {
+      enabled: true,
+      headless: true,
+      noSandbox: true,  // Required for running as root
+      defaultProfile: "openclaw",
+      executablePath: "/usr/bin/chromium-browser",
+    },
     // Web tools config (Brave Search)
     ...(braveApiKey ? {
       tools: {
