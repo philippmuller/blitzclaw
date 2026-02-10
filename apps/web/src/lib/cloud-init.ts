@@ -35,36 +35,9 @@ export function generateCloudInit(options: CloudInitOptions): string {
   } = options;
 
   // Generate model provider config based on mode
-  const modelsConfig = byokMode ? {
-    // BYOK mode: use Anthropic directly with user's key
-    providers: {
-      "anthropic": {
-        models: [
-          {
-            id: "claude-opus-4-6",
-            name: "Claude Opus 4.6",
-            input: ["text", "image"],
-            contextWindow: 200000,
-            maxTokens: 8192
-          },
-          {
-            id: "claude-sonnet-4-5",
-            name: "Claude Sonnet 4.5",
-            input: ["text", "image"],
-            contextWindow: 200000,
-            maxTokens: 8192
-          },
-          {
-            id: "claude-haiku-4-5",
-            name: "Claude Haiku 4.5",
-            input: ["text", "image"],
-            contextWindow: 200000,
-            maxTokens: 8192
-          }
-        ]
-      }
-    }
-  } : {
+  // BYOK mode: Don't define models - OpenClaw uses built-in Anthropic support with API key from auth-profiles.json
+  // Managed mode: Define custom "blitzclaw" provider that proxies to our billing endpoint
+  const modelsConfig = byokMode ? {} : {
     // Managed mode: route through BlitzClaw billing proxy
     providers: {
       "blitzclaw": {
