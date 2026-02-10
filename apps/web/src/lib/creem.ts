@@ -93,6 +93,32 @@ export async function cancelCreemSubscription(subscriptionId: string): Promise<v
   });
 }
 
+/**
+ * Get Creem customer billing portal URL
+ */
+export async function getCreemBillingPortal(customerId: string): Promise<string> {
+  const response = await creemFetch<{ url: string }>(
+    `/customers/${customerId}/billing-portal`,
+    { method: "POST" }
+  );
+  return response.url;
+}
+
+/**
+ * Upgrade/downgrade a Creem subscription to a new product
+ */
+export async function updateCreemSubscription(
+  subscriptionId: string, 
+  newProductId: string
+): Promise<void> {
+  await creemFetch(`/subscriptions/${subscriptionId}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      product_id: newProductId,
+    }),
+  });
+}
+
 export function verifyCreemWebhook(payload: string, signatureHeader: string | null): boolean {
   const secret = process.env.CREEM_WEBHOOK_SECRET;
   

@@ -1,11 +1,12 @@
 /**
  * Billing portal redirect
- * BYOK users manage subscriptions via Creem dashboard directly
+ * Opens Creem's customer billing portal for subscription management
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
+import { getCreemBillingPortal } from "@/lib/creem";
 
 const CREEM_DASHBOARD_URL = "https://www.creem.io/dashboard";
 
@@ -25,8 +26,18 @@ export async function POST() {
     );
   }
 
-  // BYOK users manage their subscription directly via Creem
-  // Creem doesn't have a customer portal API, so redirect to dashboard
+  // Try to get Creem billing portal URL
+  if (user.creemCustomerId) {
+    try {
+      const portalUrl = await getCreemBillingPortal(user.creemCustomerId);
+      return NextResponse.json({ portalUrl });
+    } catch (error) {
+      console.error("Failed to get Creem billing portal:", error);
+      // Fall back to dashboard URL
+    }
+  }
+
+  // Fallback to Creem dashboard
   return NextResponse.json({ 
     portalUrl: CREEM_DASHBOARD_URL,
     message: "Manage your subscription at creem.io" 

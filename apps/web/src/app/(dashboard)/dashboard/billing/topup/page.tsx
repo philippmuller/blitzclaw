@@ -137,10 +137,8 @@ export default async function TopupPage() {
         
         <div className="grid gap-4">
           {[
-            { amount: 10, popular: false },
             { amount: 25, popular: true },
             { amount: 50, popular: false },
-            { amount: 100, popular: false },
           ].map(({ amount, popular }) => (
             <button
               key={amount}
@@ -159,6 +157,10 @@ export default async function TopupPage() {
             </button>
           ))}
         </div>
+        
+        <p className="text-sm text-muted-foreground text-center pt-4">
+          Top-up purchases will be available soon. For now, upgrade your plan for more included credits.
+        </p>
       </div>
 
       {/* Info */}

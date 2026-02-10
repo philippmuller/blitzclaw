@@ -110,17 +110,21 @@ export default async function BillingPage() {
           </div>
         </div>
 
-        {/* Auto Top-up (placeholder) */}
+        {/* Subscription Info */}
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Auto Top-up</p>
-              <p className="text-xl font-semibold text-muted-foreground">Coming Soon</p>
+              <p className="text-sm text-muted-foreground mb-1">Your Plan</p>
+              <p className="text-xl font-semibold text-foreground">
+                {user.billingMode === "byok" ? "BYOK" : "Managed"}
+              </p>
             </div>
-            <div className="text-3xl">🔄</div>
+            <div className="text-3xl">📋</div>
           </div>
           <p className="text-sm text-muted-foreground">
-            Automatically top up when balance is low.
+            {user.billingMode === "byok" 
+              ? "€14/mo — You pay Anthropic directly" 
+              : "Credits included in subscription"}
           </p>
         </div>
       </div>
