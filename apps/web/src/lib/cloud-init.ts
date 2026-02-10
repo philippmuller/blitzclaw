@@ -115,9 +115,10 @@ export function generateCloudInit(options: CloudInitOptions): string {
       defaultProfile: "openclaw",
       executablePath: "/usr/bin/chromium-browser",
     },
-    // Web tools config (Brave Search)
-    ...(braveApiKey ? {
-      tools: {
+    // Tools config
+    tools: {
+      // Web tools (Brave Search)
+      ...(braveApiKey ? {
         web: {
           search: {
             enabled: true,
@@ -128,8 +129,33 @@ export function generateCloudInit(options: CloudInitOptions): string {
             enabled: true,
           },
         },
+      } : {}),
+      // Exec with liberal allowlist
+      exec: {
+        enabled: true,
+        security: "allowlist",
+        allowlist: [
+          // Text/data processing
+          "cat", "head", "tail", "less", "more", "grep", "awk", "sed", "sort", "uniq", "wc", "jq", "yq", "tr", "cut", "paste",
+          // File inspection
+          "ls", "find", "stat", "file", "tree", "du", "df", "pwd", "realpath", "basename", "dirname",
+          // System info
+          "date", "whoami", "hostname", "uname", "env", "printenv", "id", "uptime",
+          // Network (read-only)
+          "curl", "wget", "ping", "dig", "host", "nslookup",
+          // Dev tools
+          "git", "gh", "node", "npm", "npx", "pnpm", "yarn", "bun", "python", "python3", "pip", "pip3",
+          // File operations
+          "mkdir", "touch", "cp", "mv", "ln",
+          // Archives
+          "tar", "zip", "unzip", "gzip", "gunzip",
+          // Other utilities
+          "echo", "printf", "true", "false", "test", "expr", "bc", "base64", "md5sum", "sha256sum",
+          // OpenClaw CLI
+          "openclaw",
+        ],
       },
-    } : {}),
+    },
     ...(telegramBotToken ? {
       channels: {
         telegram: {
