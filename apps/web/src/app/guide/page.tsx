@@ -137,7 +137,7 @@ export default function GuidePage() {
               </div>
               <div className="flex gap-3">
                 <span className="text-green-400">You:</span>
-                <span className="text-foreground">"What went wrong with the calendar lookup?"</span>
+                <span className="text-foreground">"What went wrong with that web search?"</span>
               </div>
               <div className="flex gap-3">
                 <span className="text-green-400">You:</span>
@@ -200,7 +200,7 @@ export default function GuidePage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">→</span>
-                <span>"What's on my calendar today?"</span>
+                <span>"Summarize the latest news about [topic]"</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary">→</span>
