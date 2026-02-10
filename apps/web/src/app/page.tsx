@@ -360,6 +360,7 @@ export default async function Home() {
                 <Link href="/terms" className="hover:text-foreground transition">Terms</Link>
                 <Link href="/privacy" className="hover:text-foreground transition">Privacy</Link>
                 <Link href="/refund" className="hover:text-foreground transition">Refunds</Link>
+                <Link href="/impressum" className="hover:text-foreground transition">Impressum</Link>
                 <a href="mailto:support@blitzclaw.com" className="hover:text-foreground transition">Support</a>
               </div>
             </div>

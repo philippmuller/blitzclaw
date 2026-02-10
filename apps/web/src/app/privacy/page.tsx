@@ -117,7 +117,15 @@ export default function PrivacyPage() {
           
           <h2 className="text-xl font-semibold text-white mt-8">11. Contact</h2>
           <p>
-            For privacy-related questions, contact us at privacy@blitzclaw.com
+            For privacy-related questions, contact us at support@blitzclaw.com
+          </p>
+          
+          <h2 className="text-xl font-semibold text-white mt-8">12. Data Controller</h2>
+          <p>
+            2M Ventures UG (haftungsbeschränkt)<br />
+            Geschäftsführer: Philipp Müller<br />
+            Hohenstaufenstr. 22<br />
+            10779 Berlin, Germany
           </p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 import { BalanceCard } from "@/components";
 import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
+import { UpgradeButtons } from "./UpgradeButtons";
 
 async function getUserWithUsage(clerkId: string) {
   const user = await prisma.user.findUnique({
@@ -128,6 +129,9 @@ export default async function BillingPage() {
           </p>
         </div>
       </div>
+
+      {/* Upgrade/Downgrade Options */}
+      <UpgradeButtons currentBillingMode={user.billingMode} />
 
       {/* Usage by Model */}
       {Object.keys(usageByModel).length > 0 && (
