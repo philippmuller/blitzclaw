@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   "/terms",
   "/privacy",
   "/refund",
+  "/guide",             // Getting started guide
+  "/agents",            // Sub-agents explainer
   "/api/webhooks/(.*)",
   "/api/proxy/(.*)",    // Proxy endpoints use their own auth (X-BlitzClaw-Instance header)
   "/api/internal/(.*)", // Internal callbacks from instances (auth via X-Instance-Secret)
