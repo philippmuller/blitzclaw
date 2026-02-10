@@ -115,10 +115,9 @@ export function generateCloudInit(options: CloudInitOptions): string {
       defaultProfile: "openclaw",
       executablePath: "/usr/bin/chromium-browser",
     },
-    // Tools config
-    tools: {
-      // Web tools (Brave Search)
-      ...(braveApiKey ? {
+    // Web tools config (Brave Search)
+    ...(braveApiKey ? {
+      tools: {
         web: {
           search: {
             enabled: true,
@@ -129,33 +128,8 @@ export function generateCloudInit(options: CloudInitOptions): string {
             enabled: true,
           },
         },
-      } : {}),
-      // Exec with liberal allowlist
-      exec: {
-        enabled: true,
-        security: "allowlist",
-        allowlist: [
-          // Text/data processing
-          "cat", "head", "tail", "less", "more", "grep", "awk", "sed", "sort", "uniq", "wc", "jq", "yq", "tr", "cut", "paste",
-          // File inspection
-          "ls", "find", "stat", "file", "tree", "du", "df", "pwd", "realpath", "basename", "dirname",
-          // System info
-          "date", "whoami", "hostname", "uname", "env", "printenv", "id", "uptime",
-          // Network (read-only)
-          "curl", "wget", "ping", "dig", "host", "nslookup",
-          // Dev tools
-          "git", "gh", "node", "npm", "npx", "pnpm", "yarn", "bun", "python", "python3", "pip", "pip3",
-          // File operations
-          "mkdir", "touch", "cp", "mv", "ln",
-          // Archives
-          "tar", "zip", "unzip", "gzip", "gunzip",
-          // Other utilities
-          "echo", "printf", "true", "false", "test", "expr", "bc", "base64", "md5sum", "sha256sum",
-          // OpenClaw CLI
-          "openclaw",
-        ],
       },
-    },
+    } : {}),
     ...(telegramBotToken ? {
       channels: {
         telegram: {
@@ -236,6 +210,43 @@ ${JSON.stringify(openclawConfig, null, 2).split('\n').map(line => '      ' + lin
     permissions: '0600'
     content: |-
 ${JSON.stringify(authProfilesJson, null, 2).split('\n').map(line => '      ' + line).join('\n')}
+
+  - path: /root/.openclaw/exec-approvals.json
+    permissions: '0600'
+    content: |-
+${JSON.stringify({
+  version: 1,
+  defaults: {
+    security: "allowlist",
+    ask: "off",
+    askFallback: "allow",
+    autoAllowSkills: true
+  },
+  agents: {
+    main: {
+      security: "allowlist",
+      ask: "off",
+      askFallback: "allow",
+      autoAllowSkills: true,
+      allowlist: [
+        {pattern: "cat"}, {pattern: "head"}, {pattern: "tail"}, {pattern: "less"},
+        {pattern: "grep"}, {pattern: "awk"}, {pattern: "sed"}, {pattern: "sort"},
+        {pattern: "uniq"}, {pattern: "wc"}, {pattern: "jq"}, {pattern: "tr"},
+        {pattern: "ls"}, {pattern: "find"}, {pattern: "stat"}, {pattern: "file"},
+        {pattern: "tree"}, {pattern: "du"}, {pattern: "df"}, {pattern: "pwd"},
+        {pattern: "date"}, {pattern: "whoami"}, {pattern: "hostname"}, {pattern: "uname"},
+        {pattern: "env"}, {pattern: "printenv"}, {pattern: "id"}, {pattern: "uptime"},
+        {pattern: "curl"}, {pattern: "wget"}, {pattern: "ping"}, {pattern: "dig"},
+        {pattern: "git"}, {pattern: "gh"}, {pattern: "node"}, {pattern: "npm"},
+        {pattern: "npx"}, {pattern: "python"}, {pattern: "python3"}, {pattern: "pip"},
+        {pattern: "pip3"}, {pattern: "mkdir"}, {pattern: "touch"}, {pattern: "cp"},
+        {pattern: "mv"}, {pattern: "ln"}, {pattern: "tar"}, {pattern: "zip"},
+        {pattern: "unzip"}, {pattern: "gzip"}, {pattern: "echo"}, {pattern: "printf"},
+        {pattern: "base64"}, {pattern: "md5sum"}, {pattern: "sha256sum"}, {pattern: "openclaw"}
+      ]
+    }
+  }
+}, null, 2).split('\n').map(line => '      ' + line).join('\n')}
 
   - path: /etc/systemd/system/openclaw.service
     permissions: '0644'
