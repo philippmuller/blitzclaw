@@ -11,23 +11,28 @@ export default function AgentsPage() {
           <a href="/" className="text-xl font-bold text-foreground">
             ⚡ BlitzClaw
           </a>
-          <a
-            href="/sign-up"
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
-          >
-            Get Started
-          </a>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/guide"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
+            >
+              Startup Guide
+            </Link>
+            <span className="px-4 py-2 text-foreground bg-secondary rounded-lg">
+              What Are Agents?
+            </span>
+            <a
+              href="/sign-up"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
+            >
+              Create Your Agent →
+            </a>
+          </div>
         </div>
       </header>
 
       {/* Content */}
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <div className="mb-4">
-          <Link href="/guide" className="text-sm text-primary hover:underline">
-            ← Back to Getting Started
-          </Link>
-        </div>
-        
         <h1 className="text-4xl font-bold text-foreground mb-4">
           One Assistant. Many Specialists.
         </h1>

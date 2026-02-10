@@ -39,22 +39,28 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/agents"
-              className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition"
+              href="/guide"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Learn About Agents
+              Startup Guide
+            </Link>
+            <Link
+              href="/agents"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
+            >
+              What Are Agents?
             </Link>
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition">
-                  Get Started
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium">
+                  Create Your Agent →
                 </button>
               </SignInButton>
             </SignedOut>
             <SignedIn>
               <Link
                 href="/dashboard"
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
               >
                 Dashboard
               </Link>
