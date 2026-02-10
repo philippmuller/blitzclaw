@@ -358,6 +358,13 @@ export default async function Home() {
                 This is an open-source project — use at your own risk.
               </p>
             </div>
+            {/* Independence Disclaimer */}
+            <div className="mb-6 text-center">
+              <p className="text-muted-foreground/60 text-xs">
+                This platform is an independent product and is not affiliated with Anthropic, OpenAI, or Google. 
+                We leverage various LLMs through our custom interface as part of our product offering.
+              </p>
+            </div>
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-muted-foreground text-sm">
                 © 2026 BlitzClaw. Powered by <a href="https://openclaw.ai" className="text-primary hover:underline">OpenClaw</a>.

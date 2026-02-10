@@ -266,14 +266,23 @@ export default function PricingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-muted-foreground text-sm">
-            © 2026 BlitzClaw. Powered by <a href="https://openclaw.ai" className="text-primary hover:underline">OpenClaw</a>.
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Independence Disclaimer */}
+          <div className="mb-6 text-center">
+            <p className="text-muted-foreground/60 text-xs">
+              This platform is an independent product and is not affiliated with Anthropic, OpenAI, or Google. 
+              We leverage various LLMs through our custom interface as part of our product offering.
+            </p>
           </div>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <Link href="/terms" className="hover:text-foreground transition">Terms</Link>
-            <Link href="/privacy" className="hover:text-foreground transition">Privacy</Link>
-            <Link href="/impressum" className="hover:text-foreground transition">Impressum</Link>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-muted-foreground text-sm">
+              © 2026 BlitzClaw. Powered by <a href="https://openclaw.ai" className="text-primary hover:underline">OpenClaw</a>.
+            </div>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <Link href="/terms" className="hover:text-foreground transition">Terms</Link>
+              <Link href="/privacy" className="hover:text-foreground transition">Privacy</Link>
+              <Link href="/impressum" className="hover:text-foreground transition">Impressum</Link>
+            </div>
           </div>
         </div>
       </footer>
