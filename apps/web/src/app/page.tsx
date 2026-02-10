@@ -148,10 +148,10 @@ export default async function Home() {
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
-            <div className="text-3xl mb-4">🔒</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Secure & Private</h3>
+            <div className="text-3xl mb-4">🔑</div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Secure Secret Sharing</h3>
             <p className="text-muted-foreground">
-              Runs in a sandboxed environment. Your data stays yours.
+              Share API keys and tokens via dashboard — no need to send secrets through chat.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
