@@ -38,15 +38,14 @@ export default function ImpressumPage() {
           <h2 className="text-xl font-semibold text-white mt-8">Registereintrag</h2>
           <p>
             Eintragung im Handelsregister.<br />
-            Registergericht: Amtsgericht Charlottenburg<br />
-            {/* Add HRB number when available */}
+            Registergericht: Amtsgericht Charlottenburg (Berlin)<br />
+            Registernummer: HRB 275962 B
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Umsatzsteuer-ID</h2>
           <p>
             Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br />
-            {/* Add USt-IdNr when available */}
-            <em className="text-muted-foreground">In Beantragung</em>
+            USt.-ID: In Beantragung
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
