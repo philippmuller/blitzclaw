@@ -13,6 +13,7 @@
     "typecheck": "turbo run build --filter=@blitzclaw/db && tsc --noEmit --project apps/web/tsconfig.json && tsc --noEmit --project apps/cli/tsconfig.json",
     "test": "npm run test:unit && npm run test:e2e:sim",
     "test:unit": "npx tsx scripts/test-pricing.ts && npx tsx scripts/test-proxy-logic.ts",
+    "test:db-schema": "npx tsx scripts/test-db-schema.ts",
     "test:auth": "npx tsx scripts/test-auth-redirect.ts",
     "test:auth:helper": "npx tsx scripts/test-helpers.ts",
     "test:auth:flows": "npx tsx scripts/test-authenticated-flows.ts",

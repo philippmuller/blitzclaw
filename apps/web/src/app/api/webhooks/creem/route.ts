@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       const userId = metadata.user_id;
       const tier = (metadata.tier || "basic") as TierKey;
       const subscriptionType = metadata.type;
+      const subscriptionId = data.subscription_id || data.id;
 
       if (!userId) {
         console.error("No user_id in webhook payload. Full metadata:", JSON.stringify(metadata));
@@ -64,11 +65,24 @@ export async function POST(request: Request) {
         }, { status: 400 });
       }
 
+      // IDEMPOTENCY CHECK: Skip if we've already processed this subscription
+      // (Creem may send multiple events for the same subscription)
+      if (subscriptionId) {
+        const existingUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { creemSubscriptionId: true, balance: true }
+        });
+        
+        if (existingUser?.creemSubscriptionId === subscriptionId && existingUser?.balance?.creditsCents && existingUser.balance.creditsCents > 0) {
+          console.log(`⏭️ Skipping duplicate webhook for subscription ${subscriptionId} - already processed`);
+          return NextResponse.json({ received: true, skipped: "duplicate" });
+        }
+      }
+
       // Get credits based on tier
       const creditsCents = getTierCredits(tier);
 
       // Update user subscription info if available
-      const subscriptionId = data.subscription_id || data.id;
       const customerId = data.customer_id || data.customer?.id;
       
       if (subscriptionId || customerId || tier) {
