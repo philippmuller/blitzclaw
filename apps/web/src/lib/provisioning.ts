@@ -59,6 +59,14 @@ export async function provisionPoolServer(options?: {
   gatewayToken: string;
   proxySecret: string;
 }> {
+  console.log("provisionPoolServer called with:", {
+    hasInstanceId: !!options?.instanceId,
+    hasToken: !!options?.telegramBotToken,
+    model: options?.model,
+    byokMode: options?.byokMode,
+    hasAnthropicKey: !!options?.anthropicKey,
+  });
+
   // Generate unique instance ID and secrets
   const poolEntryId = options?.instanceId || `pool-${Date.now()}-${randomBytes(4).toString("hex")}`;
   const proxySecret = generateSecret();
@@ -69,6 +77,13 @@ export async function provisionPoolServer(options?: {
   const anthropicApiKey = byokMode && options?.anthropicKey 
     ? options.anthropicKey 
     : process.env.ANTHROPIC_API_KEY;
+
+  console.log("API key check:", {
+    byokMode,
+    hasAnthropicKey: !!anthropicApiKey,
+    keyLength: anthropicApiKey?.length,
+    envKeySet: !!process.env.ANTHROPIC_API_KEY,
+  });
     
   if (!anthropicApiKey) {
     throw new Error(byokMode 
@@ -94,10 +109,15 @@ export async function provisionPoolServer(options?: {
   
   // Get SSH key ID from env (must be configured in Hetzner)
   const sshKeyId = process.env.HETZNER_SSH_KEY_ID;
+  console.log("Hetzner config:", {
+    sshKeyId,
+    hasHetznerToken: !!process.env.HETZNER_API_TOKEN,
+  });
   if (!sshKeyId) {
     console.warn("HETZNER_SSH_KEY_ID not set - server will not have SSH access");
   }
   
+  console.log("Creating Hetzner server:", serverName);
   const { serverId, ipAddress } = await createServer({
     name: serverName,
     userData: cloudInit,

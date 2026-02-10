@@ -138,6 +138,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log("Creating instance with params:", {
+      userId: user.id,
+      channelType,
+      personaTemplate: selectedPersona,
+      model: model || "claude-opus-4-6",
+      hasTelegramToken: !!telegramToken,
+      isByokUser,
+      hasAnthropicKey: !!effectiveAnthropicKey,
+      userBillingMode: user.billingMode,
+      userBalance: user.balance?.creditsCents ?? 0,
+    });
+
     const result = await createInstance({
       userId: user.id,
       channelType: channelType as "TELEGRAM" | "WHATSAPP",
@@ -151,6 +163,8 @@ export async function POST(req: NextRequest) {
       anthropicKey: isByokUser ? effectiveAnthropicKey : undefined,
     });
 
+    console.log("Instance created successfully:", result);
+
     return NextResponse.json({
       id: result.instanceId,
       status: result.status,
@@ -161,6 +175,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to create instance:", error);
+    console.error("Error stack:", (error as Error).stack);
     return NextResponse.json(
       { error: "Failed to create instance", details: (error as Error).message },
       { status: 500 }
