@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useUser, useClerk, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink, Key } from "lucide-react";
 
@@ -27,6 +27,7 @@ interface OnboardingState {
 function OnboardingContent() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -124,9 +125,15 @@ function OnboardingContent() {
     const effectiveTier = state.hasOwnKey ? "byok" : state.tier;
     
     try {
+      // Force token refresh before API call
+      const token = await getToken();
+      
       const res = await fetch("/api/billing/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` }),
+        },
         body: JSON.stringify({ 
           tier: effectiveTier, 
           autoTopup: state.autoTopup,
@@ -161,9 +168,15 @@ function OnboardingContent() {
     setError(null);
     
     try {
+      // Force token refresh before API call
+      const token = await getToken();
+      
       const res = await fetch("/api/telegram/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` }),
+        },
         body: JSON.stringify({ bot_token: state.telegramToken }),
       });
       
@@ -190,9 +203,18 @@ function OnboardingContent() {
     const anthropicKey = localStorage.getItem("blitzclaw_anthropic_key");
     
     try {
+      // Force token refresh before API call (Clerk tokens expire quickly)
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Session expired. Please refresh the page and try again.");
+      }
+      
       const res = await fetch("/api/instances", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({
           telegramToken: state.telegramToken,
           telegramBotUsername: state.telegramBotName,
