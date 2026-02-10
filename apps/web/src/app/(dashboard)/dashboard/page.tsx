@@ -72,6 +72,9 @@ export default async function DashboardPage() {
     redirect("/onboarding");
   }
 
+  // Check if user is in BYOK mode (any instance using their own API key)
+  const isByokUser = user.instances.some(i => i.useOwnApiKey);
+
   const belowMinimum = creditsCents < 1000;
   const monthlyUsageCents = await getMonthlyUsage(user.id);
   
@@ -88,9 +91,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Balance */}
-        <BalanceCard creditsCents={creditsCents} belowMinimum={belowMinimum} />
+      <div className={`grid grid-cols-1 ${isByokUser ? 'md:grid-cols-1 max-w-md' : 'md:grid-cols-3'} gap-6`}>
+        {/* Balance - only for managed billing users */}
+        {!isByokUser && (
+          <BalanceCard creditsCents={creditsCents} belowMinimum={belowMinimum} />
+        )}
 
         {/* Instances */}
         <div className="bg-card border border-border rounded-xl p-6">
@@ -112,24 +117,26 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        {/* Monthly Usage */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">This Month&apos;s Usage</p>
-              <p className="text-3xl font-bold text-foreground">
-                ${(monthlyUsageCents / 100).toFixed(2)}
-              </p>
+        {/* Monthly Usage - only for managed billing users */}
+        {!isByokUser && (
+          <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">This Month&apos;s Usage</p>
+                <p className="text-3xl font-bold text-foreground">
+                  ${(monthlyUsageCents / 100).toFixed(2)}
+                </p>
+              </div>
+              <div className="text-3xl">📊</div>
             </div>
-            <div className="text-3xl">📊</div>
+            <Link
+              href="/dashboard/billing"
+              className="inline-flex items-center justify-center w-full px-4 py-2.5 border border-border text-foreground font-medium rounded-lg hover:bg-secondary transition"
+            >
+              View Details
+            </Link>
           </div>
-          <Link
-            href="/dashboard/billing"
-            className="inline-flex items-center justify-center w-full px-4 py-2.5 border border-border text-foreground font-medium rounded-lg hover:bg-secondary transition"
-          >
-            View Details
-          </Link>
-        </div>
+        )}
       </div>
 
       {/* Recent Instances */}
@@ -182,14 +189,14 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Quick Tips */}
-      {totalInstances === 0 && (
+      {/* Quick Tips - only show for new users without instances */}
+      {totalInstances === 0 && !isByokUser && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="text-2xl mb-3">1️⃣</div>
-            <h3 className="font-medium text-foreground mb-1">Top Up Balance</h3>
+            <h3 className="font-medium text-foreground mb-1">Subscribe</h3>
             <p className="text-sm text-muted-foreground">
-              Add at least $10 to your account to create instances.
+              Choose a plan to get started with your AI assistant.
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-5">

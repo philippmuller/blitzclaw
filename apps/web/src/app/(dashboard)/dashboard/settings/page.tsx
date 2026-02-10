@@ -60,17 +60,6 @@ export default async function SettingsPage() {
         <div className="space-y-4">
           <div className="p-4 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className="text-2xl">🔑</div>
-              <div>
-                <h3 className="font-medium text-foreground">Bring Your Own API Key</h3>
-                <p className="text-sm text-muted-foreground">
-                  Use your own Anthropic or OpenAI API key to bypass our proxy billing.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="p-4 bg-secondary/50 rounded-lg">
-            <div className="flex items-center gap-3">
               <div className="text-2xl">📧</div>
               <div>
                 <h3 className="font-medium text-foreground">Google Integration</h3>
@@ -82,11 +71,11 @@ export default async function SettingsPage() {
           </div>
           <div className="p-4 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-3">
-              <div className="text-2xl">🔄</div>
+              <div className="text-2xl">💬</div>
               <div>
-                <h3 className="font-medium text-foreground">Auto Top-up</h3>
+                <h3 className="font-medium text-foreground">WhatsApp &amp; Discord</h3>
                 <p className="text-sm text-muted-foreground">
-                  Automatically add credits when your balance drops below a threshold.
+                  Connect additional messaging platforms to chat with your AI anywhere.
                 </p>
               </div>
             </div>
