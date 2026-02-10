@@ -31,7 +31,8 @@
     "db:generate": "turbo run db:generate --filter=@blitzclaw/db",
     "db:push": "turbo run db:push --filter=@blitzclaw/db",
     "db:studio": "turbo run db:studio --filter=@blitzclaw/db",
-    "db:seed": "npx tsx scripts/seed.ts"
+    "db:seed": "npx tsx scripts/seed.ts",
+    "seed-pool": "npx tsx scripts/seed-pool.ts"
   },
   "devDependencies": {
     "@clerk/backend": "^2.30.0",

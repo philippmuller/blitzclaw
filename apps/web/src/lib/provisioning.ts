@@ -7,8 +7,8 @@ import { createServer, deleteServer, getServer, rebootServer } from "./hetzner";
 import { generateCloudInit, generateSoulMd } from "./cloud-init";
 import { randomBytes } from "crypto";
 
-const MIN_POOL_SIZE = 5;
-const MAX_POOL_SIZE = 20;
+const MIN_POOL_SIZE = 3;
+const MAX_POOL_SIZE = 10;
 const PROVISIONING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
@@ -362,57 +362,117 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     },
   });
 
-  // For on-demand provisioning with specific config (Telegram token),
-  // we always provision a new server with the config baked in
-  console.log("Provisioning on-demand server for instance:", instance.id);
+  // Generate secrets for this instance (used when assigning from pool)
+  let finalGatewayToken = generateSecret();
+  let finalProxySecret = generateSecret();
   
-  let gatewayToken: string | undefined;
-  let proxySecret: string | undefined;
+  // Get API key - use user's key for BYOK, otherwise platform key
+  const anthropicApiKey = byokMode && anthropicKey 
+    ? anthropicKey 
+    : process.env.ANTHROPIC_API_KEY;
+    
+  if (!anthropicApiKey) {
+    throw new Error(byokMode 
+      ? "Anthropic API key required for BYOK mode" 
+      : "ANTHROPIC_API_KEY not configured");
+  }
+  
   let server: { serverId: string; ipAddress: string } | null = null;
   
-  try {
-    const poolServer = await provisionPoolServer({
-      telegramBotToken,
-      instanceId: instance.id,
-      model: model || "claude-opus-4-6",
-      byokMode,
-      anthropicKey,
-    });
+  // Try to assign from pool first (faster - server already running)
+  const poolServer = await assignServerToInstance(instance.id);
+  
+  if (poolServer && telegramBotToken) {
+    console.log("🚀 Found pool server, configuring via SSH:", poolServer.ipAddress);
     
-    gatewayToken = poolServer.gatewayToken;
-    proxySecret = poolServer.proxySecret;
+    try {
+      // Import SSH function dynamically to avoid build issues
+      const { configurePoolServer } = await import("./ssh");
+      
+      const configResult = await configurePoolServer(poolServer.ipAddress, {
+        telegramBotToken,
+        proxySecret: finalProxySecret,
+        gatewayToken: finalGatewayToken,
+        anthropicApiKey,
+        model: model || "claude-opus-4-6",
+        byokMode: byokMode || false,
+        braveApiKey: process.env.BRAVE_API_KEY,
+      });
+      
+      if (configResult.ok) {
+        console.log("✅ Pool server configured successfully");
+        server = {
+          serverId: poolServer.serverId,
+          ipAddress: poolServer.ipAddress,
+        };
+      } else {
+        console.error("❌ Pool server configuration failed:", configResult.error);
+        // Return server to pool and fall back to on-demand
+        await prisma.serverPool.update({
+          where: { hetznerServerId: poolServer.serverId },
+          data: { status: ServerPoolStatus.AVAILABLE, assignedTo: null },
+        });
+      }
+    } catch (sshError) {
+      console.error("❌ SSH error during pool server configuration:", sshError);
+      // Return server to pool and fall back to on-demand
+      await prisma.serverPool.update({
+        where: { hetznerServerId: poolServer.serverId },
+        data: { status: ServerPoolStatus.AVAILABLE, assignedTo: null },
+      });
+    }
+  }
+  
+  // Fall back to on-demand provisioning if pool assignment failed
+  if (!server) {
+    console.log("📦 Provisioning on-demand server for instance:", instance.id);
     
-    // Immediately assign it to this instance
-    await prisma.serverPool.update({
-      where: { id: poolServer.id },
-      data: {
-        status: ServerPoolStatus.ASSIGNED,
-        assignedTo: instance.id,
-      },
-    });
-    
-    server = {
-      serverId: poolServer.hetznerServerId,
-      ipAddress: poolServer.ipAddress,
-    };
-  } catch (error) {
-    console.error("Failed to provision on-demand server:", error);
-    // Leave instance as PENDING, it can be manually fixed later
-    return {
-      instanceId: instance.id,
-      status: InstanceStatus.PENDING,
-      ipAddress: null,
-    };
+    try {
+      const newServer = await provisionPoolServer({
+        telegramBotToken,
+        instanceId: instance.id,
+        model: model || "claude-opus-4-6",
+        byokMode,
+        anthropicKey,
+      });
+      
+      // Immediately assign it to this instance
+      await prisma.serverPool.update({
+        where: { id: newServer.id },
+        data: {
+          status: ServerPoolStatus.ASSIGNED,
+          assignedTo: instance.id,
+        },
+      });
+      
+      server = {
+        serverId: newServer.hetznerServerId,
+        ipAddress: newServer.ipAddress,
+      };
+      
+      // For on-demand servers, use the secrets baked into cloud-init
+      finalProxySecret = newServer.proxySecret;
+      finalGatewayToken = newServer.gatewayToken;
+      
+    } catch (error) {
+      console.error("Failed to provision on-demand server:", error);
+      // Leave instance as PENDING, it can be manually fixed later
+      return {
+        instanceId: instance.id,
+        status: InstanceStatus.PENDING,
+        ipAddress: null,
+      };
+    }
   }
 
-  // Update instance with server info including proxySecret for billing proxy auth
+  // Update instance with server info
   await prisma.instance.update({
     where: { id: instance.id },
     data: {
-      hetznerServerId: server.serverId,
-      ipAddress: server.ipAddress,
-      proxySecret: proxySecret,
-      gatewayToken: gatewayToken,  // For web UI access
+      hetznerServerId: server!.serverId,
+      ipAddress: server!.ipAddress,
+      proxySecret: finalProxySecret,
+      gatewayToken: finalGatewayToken,
       status: InstanceStatus.PROVISIONING,
     },
   });
@@ -420,8 +480,8 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
   return {
     instanceId: instance.id,
     status: InstanceStatus.PROVISIONING,
-    ipAddress: server.ipAddress,
-    gatewayToken,
+    ipAddress: server!.ipAddress,
+    gatewayToken: finalGatewayToken,
   };
 }
 

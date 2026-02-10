@@ -135,6 +135,119 @@ chmod 600 /root/.openclaw/secrets.env`;
 }
 
 /**
+ * Configure a pool server with user's instance config
+ * Called when assigning a pre-provisioned server to a new instance
+ */
+export async function configurePoolServer(
+  ipAddress: string,
+  config: {
+    telegramBotToken: string;
+    proxySecret: string;
+    gatewayToken: string;
+    anthropicApiKey: string;
+    model: string;
+    byokMode: boolean;
+    braveApiKey?: string;
+  }
+): Promise<{ ok: boolean; error?: string }> {
+  const { telegramBotToken, proxySecret, gatewayToken, anthropicApiKey, model, byokMode, braveApiKey } = config;
+  
+  const modelPrefix = byokMode ? "anthropic" : "blitzclaw";
+  const blitzclawApiUrl = "https://www.blitzclaw.com";
+
+  try {
+    // Build the models config based on mode
+    const modelsConfig = byokMode ? "{}" : JSON.stringify({
+      providers: {
+        blitzclaw: {
+          baseUrl: `${blitzclawApiUrl}/api/proxy`,
+          api: "anthropic-messages",
+          models: [
+            { id: "claude-opus-4-6", name: "Claude Opus 4.6", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+            { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+            { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 }
+          ]
+        }
+      }
+    });
+
+    // Build auth profiles
+    const authProfiles = byokMode ? JSON.stringify({
+      version: 1,
+      profiles: { "anthropic:default": { type: "api_key", provider: "anthropic", key: anthropicApiKey } },
+      lastGood: { anthropic: "anthropic:default" }
+    }) : JSON.stringify({
+      version: 1,
+      profiles: { "blitzclaw:default": { type: "api_key", provider: "blitzclaw", key: proxySecret } },
+      lastGood: { blitzclaw: "blitzclaw:default" }
+    });
+
+    // Update openclaw.json with telegram + model config
+    const configUpdateCmd = `
+cat /root/.openclaw/openclaw.json | jq '
+  .channels.telegram = {
+    "enabled": true,
+    "botToken": "${telegramBotToken}",
+    "dmPolicy": "open",
+    "allowFrom": ["*"]
+  } |
+  .plugins.entries.telegram = { "enabled": true } |
+  .gateway.auth.token = "${gatewayToken}" |
+  .agents.defaults.model.primary = "${modelPrefix}/${model}" |
+  .models = ${modelsConfig.replace(/"/g, '\\"')}
+' > /tmp/oc.json && mv /tmp/oc.json /root/.openclaw/openclaw.json && chmod 600 /root/.openclaw/openclaw.json
+`;
+
+    const { code: configCode, stderr: configStderr } = await sshExec(ipAddress, configUpdateCmd);
+    if (configCode !== 0) {
+      console.error("Failed to update config:", configStderr);
+      return { ok: false, error: `Config update failed: ${configStderr}` };
+    }
+
+    // Update auth-profiles.json
+    const authCmd = `echo '${authProfiles.replace(/'/g, "'\\''")}' > /root/.openclaw/agents/main/agent/auth-profiles.json && chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json`;
+    
+    const { code: authCode, stderr: authStderr } = await sshExec(ipAddress, authCmd);
+    if (authCode !== 0) {
+      console.error("Failed to update auth profiles:", authStderr);
+      return { ok: false, error: `Auth profiles update failed: ${authStderr}` };
+    }
+
+    // Update proxy secret
+    const secretCmd = `echo "${proxySecret}" > /etc/blitzclaw/proxy_secret && chmod 600 /etc/blitzclaw/proxy_secret`;
+    
+    const { code: secretCode, stderr: secretStderr } = await sshExec(ipAddress, secretCmd);
+    if (secretCode !== 0) {
+      console.error("Failed to update proxy secret:", secretStderr);
+      return { ok: false, error: `Proxy secret update failed: ${secretStderr}` };
+    }
+
+    // Restart OpenClaw
+    const restartCmd = "systemctl restart openclaw";
+    const { code: restartCode, stderr: restartStderr } = await sshExec(ipAddress, restartCmd);
+    if (restartCode !== 0) {
+      console.error("Failed to restart service:", restartStderr);
+      return { ok: false, error: `Service restart failed: ${restartStderr}` };
+    }
+
+    // Wait and verify
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const checkCmd = "systemctl is-active openclaw";
+    const { stdout: checkStdout } = await sshExec(ipAddress, checkCmd);
+    
+    if (!checkStdout.trim().includes("active")) {
+      return { ok: false, error: "Service not active after configuration" };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("SSH configuration error:", error);
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+/**
  * Update the OpenClaw model on a remote server
  */
 export async function updateRemoteModel(
