@@ -232,38 +232,148 @@ export default function AgentsPage() {
           </div>
         </section>
 
+        {/* Presets & Specialists */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+            <span className="text-3xl">🎭</span> Presets & Specialist Personalities
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground">
+              Don't start from scratch. Use <strong className="text-foreground">presets</strong> — 
+              pre-configured personalities and skills for common use cases.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">📝 Content Writer</p>
+                <p className="text-xs text-muted-foreground">
+                  SEO-aware, adapts to brand voice, handles blogs to social posts
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">💻 Code Reviewer</p>
+                <p className="text-xs text-muted-foreground">
+                  Security-focused, knows common patterns, suggests improvements
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">📊 Data Analyst</p>
+                <p className="text-xs text-muted-foreground">
+                  Finds patterns, creates summaries, explains insights clearly
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">🎯 Sales Assistant</p>
+                <p className="text-xs text-muted-foreground">
+                  Drafts outreach, researches prospects, tracks follow-ups
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">📚 Research Specialist</p>
+                <p className="text-xs text-muted-foreground">
+                  Deep dives, synthesizes sources, cites everything
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-1">🤝 Meeting Assistant</p>
+                <p className="text-xs text-muted-foreground">
+                  Takes notes, extracts action items, sends summaries
+                </p>
+              </div>
+            </div>
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mt-4">
+              <p className="text-sm text-foreground">
+                <strong>Browse presets at{" "}
+                <a 
+                  href="https://www.agentpresets.ai" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  agentpresets.ai
+                </a>
+                </strong>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Community-curated agent configurations. Available now for self-hosted OpenClaw instances, 
+                coming soon to BlitzClaw with one-click install.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Teams of Specialists */}
+        <section className="mb-12">
+          <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
+            <span className="text-3xl">👥</span> Teams of Specialists
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground">
+              Combine specialists into <strong className="text-foreground">teams</strong> that work together on complex workflows.
+            </p>
+            <div className="space-y-4">
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-2">🚀 Product Launch Team</p>
+                <p className="text-xs text-muted-foreground">
+                  Research Agent → Content Writer → Social Media Manager
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 italic">
+                  "Research competitors, write launch copy, schedule social posts"
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-2">📈 Growth Team</p>
+                <p className="text-xs text-muted-foreground">
+                  Monitor Agent → Analyst → Sales Assistant
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 italic">
+                  "Track mentions, analyze sentiment, draft outreach to engaged users"
+                </p>
+              </div>
+              <div className="bg-secondary/50 rounded-lg p-4">
+                <p className="text-sm text-foreground font-medium mb-2">📝 Content Pipeline</p>
+                <p className="text-xs text-muted-foreground">
+                  Research Specialist → Content Writer → Editor Agent
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 italic">
+                  "Research topic, write draft, review and polish"
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Future: Inter-Agent Communication */}
         <section className="mb-12">
           <h2 className="text-2xl font-semibold text-foreground mb-4 flex items-center gap-2">
-            <span className="text-3xl">🔮</span> The Future: Agent Teams
+            <span className="text-3xl">🔮</span> The Future: Full Autonomy
           </h2>
           <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-xl p-6 space-y-4">
             <p className="text-muted-foreground">
-              Today, sub-agents report back to you. Tomorrow, they'll talk to each other.
+              Today, you orchestrate. Tomorrow, agents coordinate themselves.
             </p>
             <div className="space-y-3 text-sm">
               <div className="flex gap-3 items-start">
                 <span className="text-primary">→</span>
                 <span className="text-foreground">
-                  <strong>Research agent</strong> finds information, passes it to <strong>writing agent</strong>
+                  Agents hand off work to each other automatically
                 </span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="text-primary">→</span>
                 <span className="text-foreground">
-                  <strong>Monitor agent</strong> detects change, triggers <strong>analysis agent</strong>
+                  Teams self-organize based on task requirements
                 </span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="text-primary">→</span>
                 <span className="text-foreground">
-                  <strong>Main agent</strong> orchestrates a team for complex multi-step projects
+                  You set goals, they figure out the steps
                 </span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              Inter-agent communication turns your assistant into a <strong className="text-foreground">team of specialists</strong> that 
-              can handle increasingly complex workflows — with you as the manager who sets direction and reviews results.
+              Inter-agent communication is coming. Your role shifts from operator to <strong className="text-foreground">director</strong> — 
+              setting vision and reviewing outcomes while your AI team handles execution.
             </p>
           </div>
         </section>
