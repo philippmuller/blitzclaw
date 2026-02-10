@@ -23,8 +23,8 @@ const BASE_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = 
   "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },
 };
 
-// Our markup (100%)
-const MARKUP_MULTIPLIER = 2.0;
+// Our markup (50%)
+const MARKUP_MULTIPLIER = 1.5;
 
 /**
  * Get our pricing (with markup) for a model
