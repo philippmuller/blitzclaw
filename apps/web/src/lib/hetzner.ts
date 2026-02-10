@@ -120,7 +120,7 @@ export async function createServer(options: CreateServerOptions): Promise<{
       name: options.name,
       server_type: options.serverType || "cpx11",
       image: options.image || "ubuntu-24.04",
-      location: options.location || "ash", // US East (Ashburn, VA) - more availability for cpx11
+      location: options.location || "nbg1", // Nuremberg, Germany - GDPR compliant, low latency for EU
       ssh_keys: options.sshKeys || [],
       user_data: options.userData,
       labels: options.labels || {},
