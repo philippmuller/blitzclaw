@@ -96,7 +96,11 @@ export default async function Home() {
           <p className="mt-6 text-sm text-muted-foreground">
             New to AI assistants?{" "}
             <Link href="/guide" className="text-primary hover:underline">
-              Read the getting started guide →
+              Getting started guide
+            </Link>
+            {" · "}
+            <Link href="/agents" className="text-primary hover:underline">
+              Learn about sub-agents
             </Link>
           </p>
         </div>

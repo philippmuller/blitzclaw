@@ -203,6 +203,24 @@ export default function GuidePage() {
           </div>
         </section>
 
+        {/* Next: Sub-Agents */}
+        <section className="mb-12">
+          <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Ready for more? Learn about sub-agents →
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Your main agent can spawn specialized workers for research, writing, monitoring, and more.
+            </p>
+            <a
+              href="/agents"
+              className="inline-block px-6 py-3 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+            >
+              Explore Sub-Agents
+            </a>
+          </div>
+        </section>
+
         {/* Final CTA */}
         <section className="text-center py-12 border-t border-border">
           <h2 className="text-2xl font-semibold text-foreground mb-4">
