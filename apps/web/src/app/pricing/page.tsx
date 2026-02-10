@@ -1,0 +1,282 @@
+import Link from "next/link";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+
+export const metadata = {
+  title: "Pricing | BlitzClaw",
+  description: "Simple pricing for your AI assistant. BYOK or managed billing.",
+};
+
+const tiers = [
+  {
+    name: "BYOK",
+    price: 14,
+    description: "Bring Your Own Key",
+    forWho: "For developers and power users who want full control",
+    features: [
+      "Dedicated server with OpenClaw",
+      "Use your own Anthropic API key",
+      "Pay Anthropic directly (no markup)",
+      "Full control over API usage",
+      "All models available",
+      "Telegram integration",
+    ],
+    notIncluded: [
+      "No included credits",
+      "Requires Anthropic account",
+    ],
+    cta: "Get Started",
+    highlight: false,
+  },
+  {
+    name: "Basic",
+    price: 19,
+    description: "Simple and affordable",
+    forWho: "For individuals getting started with AI assistants",
+    features: [
+      "Dedicated server with OpenClaw",
+      "€10 API credits included",
+      "No Anthropic account needed",
+      "Simple pay-as-you-go top-ups",
+      "All models available",
+      "Telegram integration",
+    ],
+    notIncluded: [],
+    cta: "Get Started",
+    highlight: false,
+  },
+  {
+    name: "Pro",
+    price: 119,
+    description: "Best value for heavy users",
+    forWho: "For professionals and teams with high usage",
+    features: [
+      "Dedicated server with OpenClaw",
+      "€110 API credits included",
+      "No Anthropic account needed",
+      "Priority support",
+      "All models available",
+      "Telegram integration",
+    ],
+    notIncluded: [],
+    cta: "Get Started",
+    highlight: true,
+  },
+];
+
+export default function PricingPage() {
+  return (
+    <main className="min-h-screen bg-background">
+      {/* Nav */}
+      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
+        <Link href="/" className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <span>⚡</span> BlitzClaw
+        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/guide"
+            className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
+          >
+            Guide
+          </Link>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition">
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
+            >
+              Dashboard
+            </Link>
+          </SignedIn>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <div className="max-w-5xl mx-auto px-6 pt-12 pb-8 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+          Simple, Transparent Pricing
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          Choose the plan that fits your needs. Upgrade, downgrade, or cancel anytime.
+        </p>
+      </div>
+
+      {/* Pricing Cards */}
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid md:grid-cols-3 gap-8">
+          {tiers.map((tier) => (
+            <div
+              key={tier.name}
+              className={`relative bg-card border rounded-2xl p-8 ${
+                tier.highlight
+                  ? "border-primary shadow-lg shadow-primary/10"
+                  : "border-border"
+              }`}
+            >
+              {tier.highlight && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="bg-primary text-primary-foreground text-sm font-medium px-4 py-1 rounded-full">
+                    Best Value
+                  </span>
+                </div>
+              )}
+
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-foreground">{tier.name}</h2>
+                <p className="text-muted-foreground mt-1">{tier.description}</p>
+              </div>
+
+              <div className="mb-6">
+                <span className="text-5xl font-bold text-foreground">€{tier.price}</span>
+                <span className="text-muted-foreground">/month</span>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-6 pb-6 border-b border-border">
+                {tier.forWho}
+              </p>
+
+              <ul className="space-y-3 mb-8">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm">
+                    <span className="text-green-400 mt-0.5">✓</span>
+                    <span className="text-foreground">{feature}</span>
+                  </li>
+                ))}
+                {tier.notIncluded.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm">
+                    <span className="text-muted-foreground mt-0.5">–</span>
+                    <span className="text-muted-foreground">{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button
+                    className={`w-full py-3 px-4 rounded-xl font-medium transition ${
+                      tier.highlight
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-secondary text-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {tier.cta}
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <Link
+                  href="/onboarding"
+                  className={`block w-full py-3 px-4 rounded-xl font-medium text-center transition ${
+                    tier.highlight
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-secondary text-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {tier.cta}
+                </Link>
+              </SignedIn>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="max-w-3xl mx-auto px-6 py-16">
+        <h2 className="text-2xl font-bold text-foreground text-center mb-8">
+          Frequently Asked Questions
+        </h2>
+
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-semibold text-foreground mb-2">
+              What's the difference between BYOK and managed billing?
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              <strong>BYOK (Bring Your Own Key):</strong> You provide your own Anthropic API key and pay Anthropic directly.
+              You get full control and pay exactly what Anthropic charges — no markup from us.
+              <br /><br />
+              <strong>Managed billing (Basic/Pro):</strong> We handle the API billing for you. Your subscription
+              includes credits that are used for API calls. No Anthropic account needed — just sign up and chat.
+            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-semibold text-foreground mb-2">
+              What happens if I run out of credits?
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              On managed plans, you can top up your balance anytime. Your assistant will pause if credits run out
+              until you add more. On BYOK, your usage is billed directly to your Anthropic account.
+            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-semibold text-foreground mb-2">
+              Can I switch plans later?
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              Yes! You can upgrade, downgrade, or switch between BYOK and managed billing at any time
+              from your dashboard. Changes take effect on your next billing cycle.
+            </p>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h3 className="font-semibold text-foreground mb-2">
+              What AI models are available?
+            </h3>
+            <p className="text-muted-foreground text-sm">
+              All plans include access to Claude Opus, Sonnet, and Haiku. You can switch models
+              anytime based on your needs — Opus for complex tasks, Haiku for quick responses.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="max-w-4xl mx-auto px-6 py-12 text-center">
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            Ready to get started?
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            Deploy your AI assistant in under 3 minutes.
+          </p>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
+                Create Your Agent →
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/onboarding"
+              className="inline-block px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition"
+            >
+              Create Your Agent →
+            </Link>
+          </SignedIn>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-muted-foreground text-sm">
+            © 2026 BlitzClaw. Powered by <a href="https://openclaw.ai" className="text-primary hover:underline">OpenClaw</a>.
+          </div>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link href="/terms" className="hover:text-foreground transition">Terms</Link>
+            <Link href="/privacy" className="hover:text-foreground transition">Privacy</Link>
+            <Link href="/impressum" className="hover:text-foreground transition">Impressum</Link>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}

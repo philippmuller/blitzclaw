@@ -39,16 +39,22 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-4">
             <Link
+              href="/pricing"
+              className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
+            >
+              Pricing
+            </Link>
+            <Link
               href="/guide"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Startup Guide
+              Guide
             </Link>
             <Link
               href="/agents"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              What Are Agents?
+              Agents
             </Link>
             <SignedOut>
               <SignInButton mode="modal">
