@@ -78,6 +78,63 @@ export async function sshExec(
 }
 
 /**
+ * Sync secrets to a remote server
+ * Writes secrets to /root/.openclaw/secrets.env and restarts OpenClaw
+ */
+export async function syncSecretsToServer(
+  ipAddress: string,
+  secrets: Record<string, string>
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    // Convert secrets to KEY=VALUE format, properly escaping values
+    const envContent = Object.entries(secrets)
+      .map(([key, value]) => {
+        // Escape single quotes by ending the string, adding escaped quote, and continuing
+        const escapedValue = value.replace(/'/g, "'\\''");
+        return `${key}='${escapedValue}'`;
+      })
+      .join('\n');
+
+    // Write secrets to file using heredoc for safe multi-line content
+    const writeCmd = `cat > /root/.openclaw/secrets.env << 'BLITZCLAW_EOF'
+${envContent}
+BLITZCLAW_EOF
+chmod 600 /root/.openclaw/secrets.env`;
+
+    const { code: writeCode, stderr: writeStderr } = await sshExec(ipAddress, writeCmd);
+
+    if (writeCode !== 0) {
+      console.error("Failed to write secrets:", writeStderr);
+      return { ok: false, error: `Failed to write secrets: ${writeStderr}` };
+    }
+
+    // Restart the OpenClaw service
+    const restartCmd = "systemctl restart openclaw";
+    const { code: restartCode, stderr: restartStderr } = await sshExec(ipAddress, restartCmd);
+
+    if (restartCode !== 0) {
+      console.error("Failed to restart service:", restartStderr);
+      return { ok: false, error: `Service restart failed: ${restartStderr}` };
+    }
+
+    // Wait a moment and verify the service is running
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const checkCmd = "systemctl is-active openclaw";
+    const { stdout: checkStdout } = await sshExec(ipAddress, checkCmd);
+
+    if (!checkStdout.trim().includes("active")) {
+      return { ok: false, error: "Service not active after restart" };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("SSH error:", error);
+    return { ok: false, error: (error as Error).message };
+  }
+}
+
+/**
  * Update the OpenClaw model on a remote server
  */
 export async function updateRemoteModel(

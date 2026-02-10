@@ -31,6 +31,11 @@ const navItems: NavItem[] = [
     ),
   },
   {
+    name: "Secrets",
+    href: "/dashboard/secrets",
+    icon: <span className="text-lg">🔑</span>,
+  },
+  {
     name: "Billing",
     href: "/dashboard/billing",
     icon: (

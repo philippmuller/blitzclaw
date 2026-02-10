@@ -266,6 +266,12 @@ ${JSON.stringify({
       [Install]
       WantedBy=multi-user.target
 
+  - path: /root/.openclaw/secrets.env
+    permissions: '0600'
+    content: |
+      # User secrets - managed via BlitzClaw dashboard
+      # Source this file to access API keys and tokens
+
   - path: /root/.openclaw/workspace/AGENTS.md
     permissions: '0644'
     content: |
@@ -274,6 +280,12 @@ ${JSON.stringify({
       This is a managed OpenClaw instance provisioned by BlitzClaw.
       
       Instance ID: ${instanceId}
+      
+      ## Secrets
+      User secrets are available at /root/.openclaw/secrets.env
+      Source this file to access API keys and tokens the user has shared.
+      
+      Example: \`source /root/.openclaw/secrets.env && echo $GITHUB_TOKEN\`
 
   - path: /root/setup-openclaw.sh
     permissions: '0755'

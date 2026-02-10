@@ -54,6 +54,7 @@ model Instance {
   ownApiKeyEncrypted  String?
   proxySecret         String?        @unique  // Token used to authenticate with billing proxy
   gatewayToken        String?        // Token for web UI access
+  secrets             Json?          // User secrets as JSON: {"KEY": "value", ...}
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
   lastHealthCheck     DateTime?
