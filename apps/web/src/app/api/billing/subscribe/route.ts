@@ -1,23 +1,26 @@
 /**
- * Subscribe endpoint - creates a Creem subscription checkout
- * BYOK users pay €14/mo flat, managed billing users pay more (coming soon)
+ * Subscribe endpoint - redirects to Polar checkout
+ * 
+ * Plans:
+ * - Basic ($19/mo): cpx11 server + $5 credits
+ * - Pro ($39/mo): cpx21 server + $5 credits + advanced features
+ * 
+ * Users can also use BYOK (bring own API key) - same price, no usage tracking
  */
 
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
-import { createCreemCheckout } from "@/lib/creem";
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
 
-// Creem Product IDs (configure these in env)
-const CREEM_PRODUCT_IDS: Record<string, string | undefined> = {
-  byok: process.env.CREEM_PRODUCT_BYOK,                   // €14/mo - BYOK
-  basic: process.env.CREEM_SUBSCRIPTION_PRODUCT_ID,       // €19/mo - Basic managed
-  pro: process.env.CREEM_SUBSCRIPTION_PRO_PRODUCT_ID,     // €119/mo - Pro managed
+// Polar Product IDs
+const POLAR_PRODUCTS = {
+  basic: process.env.POLAR_PRODUCT_BASIC_ID,
+  pro: process.env.POLAR_PRODUCT_PRO_ID,
 };
 
-type TierKey = "byok" | "basic" | "pro";
+type PlanType = "basic" | "pro";
 
 export async function POST(request: Request) {
   const { userId: clerkId } = await auth();
@@ -26,26 +29,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Get Clerk user for email
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses?.[0]?.emailAddress;
+
   // Parse request body
-  let tier: TierKey = "byok";
-  let autoTopup = true;
+  let plan: PlanType = "basic";
+  let byokMode = false;
   let anthropicKey: string | undefined;
-  
+
   try {
     const body = await request.json();
-    if (body.tier === "pro" || body.tier === "basic" || body.tier === "byok") {
-      tier = body.tier;
+    if (body.plan === "pro" || body.plan === "basic") {
+      plan = body.plan;
     }
-    autoTopup = body.autoTopup !== false;
+    byokMode = body.byokMode === true;
     anthropicKey = body.anthropicKey;
   } catch {
     // Default values
   }
 
   // Validate BYOK has anthropic key
-  if (tier === "byok" && (!anthropicKey || !anthropicKey.startsWith("sk-ant-"))) {
+  if (byokMode && (!anthropicKey || !anthropicKey.startsWith("sk-ant-"))) {
     return NextResponse.json(
-      { error: "Valid Anthropic API key required for BYOK plan" },
+      { error: "Valid Anthropic API key required for BYOK mode" },
       { status: 400 }
     );
   }
@@ -59,71 +66,50 @@ export async function POST(request: Request) {
     user = await prisma.user.create({
       data: {
         clerkId,
-        email: `${clerkId}@pending.blitzclaw.com`,
+        email: email || `${clerkId}@pending.blitzclaw.com`,
+        billingMode: byokMode ? "byok" : "managed",
+        plan,
+      },
+    });
+  } else {
+    // Update billing mode and plan
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        billingMode: byokMode ? "byok" : "managed",
+        plan,
+        ...(byokMode && anthropicKey ? { anthropicKey } : {}),
       },
     });
   }
 
-  // Store anthropic key and billing mode (for BYOK users)
-  if (tier === "byok" && anthropicKey) {
+  // Store anthropic key for BYOK users
+  if (byokMode && anthropicKey) {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        // Store key for later use in instance creation
-        // In production, encrypt this!
-        anthropicKey: anthropicKey,
+        anthropicKey,
         billingMode: "byok",
       },
     });
   }
 
-  // Get product ID for selected tier
-  const productId = CREEM_PRODUCT_IDS[tier];
-  
+  // Get Polar product ID
+  const productId = POLAR_PRODUCTS[plan];
+
   if (!productId) {
-    console.error(`Creem product not configured for tier: ${tier}`);
+    console.error(`Polar product not configured for plan: ${plan}`);
     return NextResponse.json(
-      { error: `Billing not configured for ${tier} plan. Please try again later.` },
+      { error: `Billing not configured for ${plan} plan. Please try again later.` },
       { status: 500 }
     );
   }
 
-  const successUrl = `${APP_URL}/onboarding?subscription=success&tier=${tier}`;
+  // Build Polar checkout URL
+  // The checkout route at /api/polar/checkout handles this, but we can also redirect directly
+  const checkoutUrl = `${APP_URL}/api/polar/checkout?product=${productId}&metadata[user_id]=${user.id}&metadata[clerk_id]=${clerkId}&metadata[plan]=${plan}&metadata[byok]=${byokMode}`;
 
-  try {
-    console.log("Creating Creem checkout with:", {
-      productId,
-      customerEmail: user.email,
-      successUrl,
-      tier,
-      hasCreemApiKey: !!process.env.CREEM_API_KEY,
-      creemApiUrl: process.env.CREEM_API_URL,
-    });
-    
-    const { checkoutUrl } = await createCreemCheckout({
-      productId,
-      customerEmail: user.email,
-      successUrl,
-      customData: {
-        user_id: user.id,
-        clerk_id: clerkId,
-        tier: tier,
-        type: "subscription",
-        auto_topup: autoTopup ? "true" : "false",
-      },
-    });
+  console.log("Redirecting to Polar checkout:", { plan, byokMode, userId: user.id });
 
-    console.log("Creem checkout created successfully:", checkoutUrl);
-    return NextResponse.json({ checkoutUrl });
-  } catch (error) {
-    console.error("Creem checkout creation failed:", error);
-    console.error("Error details:", {
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-    });
-    return NextResponse.json(
-      { error: "Failed to create checkout. Please try again.", details: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ checkoutUrl });
 }

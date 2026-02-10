@@ -11,12 +11,21 @@ model User {
   id                    String    @id @default(cuid())
   clerkId               String    @unique
   email                 String
+  
+  // Polar.sh billing (primary)
+  polarCustomerId       String?   @unique
+  polarSubscriptionId   String?
+  subscriptionStatus    String?   // "active" | "canceled" | "past_due" | "incomplete"
+  plan                  String?   // "basic" | "pro"
+  
+  // Legacy billing (keeping for migration)
   creemCustomerId       String?
   creemSubscriptionId   String?
   paddleCustomerId      String?
   paddleSubscriptionId  String?
+  
   anthropicKey          String?   // BYOK users' Anthropic API key (encrypted in production)
-  billingMode           String    @default("byok")  // "byok" or "managed"
+  billingMode           String    @default("managed")  // "byok" or "managed"
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

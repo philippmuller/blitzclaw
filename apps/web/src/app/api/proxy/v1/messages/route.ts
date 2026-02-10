@@ -13,6 +13,7 @@ import { prisma, InstanceStatus } from "@blitzclaw/db";
 import { calculateCost, DAILY_LIMIT_CENTS } from "@/lib/pricing";
 import { checkAndTriggerTopup } from "@/lib/auto-topup";
 import { sendLowBalanceWarning, sendCriticalBalanceWarning } from "@/lib/email";
+import { trackUsage, calculateCredits } from "@/lib/polar";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
@@ -292,6 +293,17 @@ export async function POST(req: NextRequest) {
                 data: { creditsCents: { decrement: costCents } },
               }),
             ]);
+            
+            // Track usage with Polar for managed billing users (not BYOK)
+            if (instance.user.billingMode === "managed" && instance.user.polarCustomerId) {
+              const polarCredits = calculateCredits(effectiveInputTokens, outputTokens, model);
+              trackUsage(instance.user.id, polarCredits, {
+                model,
+                input_tokens: effectiveInputTokens,
+                output_tokens: outputTokens,
+                instance_id: instance.id,
+              }).catch(err => console.error("Polar tracking failed:", err));
+            }
           } catch (err) {
             console.error("Failed to log streaming usage:", err);
           }
@@ -377,6 +389,17 @@ export async function POST(req: NextRequest) {
     });
     
     newBalanceCents = result.creditsCents;
+    
+    // Track usage with Polar for managed billing users (not BYOK)
+    if (instance.user.billingMode === "managed" && instance.user.polarCustomerId) {
+      const polarCredits = calculateCredits(usage.input_tokens, usage.output_tokens, model);
+      trackUsage(instance.user.id, polarCredits, {
+        model,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        instance_id: instance.id,
+      }).catch(err => console.error("Polar tracking failed:", err));
+    }
   } catch (error) {
     // Log error but still return the response - we got the data, billing can be reconciled
     console.error(`Failed to log usage for instance ${instance.id}:`, error);

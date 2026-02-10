@@ -8,37 +8,19 @@ export const metadata = {
 
 const tiers = [
   {
-    name: "BYOK",
-    price: 14,
-    description: "Bring Your Own Key",
-    forWho: "For developers and power users who want full control",
-    features: [
-      "Dedicated server with OpenClaw",
-      "Use your own Anthropic API key",
-      "Pay Anthropic directly (no markup)",
-      "Full control over API usage",
-      "All models available",
-      "Telegram integration",
-    ],
-    notIncluded: [
-      "No included credits",
-      "Requires Anthropic account",
-    ],
-    cta: "Get Started",
-    highlight: false,
-  },
-  {
     name: "Basic",
     price: 19,
-    description: "Simple and affordable",
+    currency: "$",
+    description: "Everything you need",
     forWho: "For individuals getting started with AI assistants",
     features: [
-      "Dedicated server with OpenClaw",
-      "€10 API credits included",
+      "Dedicated server (2GB RAM)",
+      "$5 AI credits included",
       "No Anthropic account needed",
-      "Simple pay-as-you-go top-ups",
-      "All models available",
+      "Automatic usage billing",
+      "All Claude models available",
       "Telegram integration",
+      "BYOK option available",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -46,16 +28,20 @@ const tiers = [
   },
   {
     name: "Pro",
-    price: 119,
-    description: "Best value for heavy users",
-    forWho: "For professionals and teams with high usage",
+    price: 39,
+    currency: "$",
+    description: "More power for power users",
+    forWho: "For professionals who need advanced capabilities",
     features: [
-      "Dedicated server with OpenClaw",
-      "€110 API credits included",
+      "Dedicated server (4GB RAM)",
+      "$5 AI credits included",
       "No Anthropic account needed",
-      "Priority support",
-      "All models available",
+      "Automatic usage billing",
+      "All Claude models available",
       "Telegram integration",
+      "Advanced browser automation",
+      "LinkedIn & tool integrations",
+      "BYOK option available",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -132,7 +118,7 @@ export default function PricingPage() {
               </div>
 
               <div className="mb-6">
-                <span className="text-5xl font-bold text-foreground">€{tier.price}</span>
+                <span className="text-5xl font-bold text-foreground">${tier.price}</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
 
