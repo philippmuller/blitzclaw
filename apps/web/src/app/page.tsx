@@ -52,10 +52,16 @@ export default async function Home() {
             </Link>
             <SignedOut>
               <SignInButton mode="modal">
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium">
-                  Create Your Agent →
+                <button className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition">
+                  Sign In
                 </button>
               </SignInButton>
+              <Link
+                href="/onboarding"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
+              >
+                Create Your Agent →
+              </Link>
             </SignedOut>
             <SignedIn>
               <Link
@@ -78,7 +84,7 @@ export default async function Home() {
             Your Personal AI Assistant
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Chat on Telegram. It learns your workflows, manages tasks, and gets things done.
+            Chat on Telegram. It learns your workflows, manages tasks, shares secrets securely, and gets things done.
             <br />
             From <span className="text-primary font-medium">€19/mo</span> all-in. As low as <span className="text-primary font-medium">€14/mo</span> with your own API key.
           </p>
