@@ -94,7 +94,13 @@ export function generateCloudInit(options: CloudInitOptions): string {
         workspace: "/root/.openclaw/workspace",
         model: {
           primary: `${modelPrefix}/${model}`
-        }
+        },
+        sandbox: {
+          browser: {
+            enabled: false,        // Don't require Docker sandbox browser
+            allowHostControl: true, // Allow agent to use host browser directly
+          },
+        },
       },
       list: [
         {
