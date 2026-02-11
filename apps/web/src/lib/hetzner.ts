@@ -217,4 +217,27 @@ export async function shutdownServer(serverId: number): Promise<void> {
   });
 }
 
+/**
+ * Update server labels (for tracking user assignment)
+ */
+export async function updateServerLabels(
+  serverId: number,
+  labels: Record<string, string>
+): Promise<void> {
+  await hetznerRequest<HetznerServerResponse>(`/servers/${serverId}`, {
+    method: "PUT",
+    body: JSON.stringify({ labels }),
+  });
+}
+
+/**
+ * Update server name
+ */
+export async function renameServer(serverId: number, name: string): Promise<void> {
+  await hetznerRequest<HetznerServerResponse>(`/servers/${serverId}`, {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  });
+}
+
 export type { HetznerServer };
