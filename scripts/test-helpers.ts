@@ -125,6 +125,12 @@ export async function getTestUserToken(): Promise<string> {
 
 /**
  * Make an authenticated fetch request
+ * 
+ * Clerk middleware accepts tokens via:
+ * 1. Authorization: Bearer <token> header
+ * 2. __session cookie
+ * 
+ * We send both for maximum compatibility.
  */
 export async function authenticatedFetch(
   url: string,
@@ -132,11 +138,14 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   const token = await getTestUserToken();
 
+  // Send token both as Bearer header AND as __session cookie
+  // Some Clerk middleware configurations only check cookies
   return fetch(url, {
     ...options,
     headers: {
       ...options.headers,
       Authorization: `Bearer ${token}`,
+      Cookie: `__session=${token}`,
     },
   });
 }
