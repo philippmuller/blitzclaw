@@ -10,17 +10,15 @@ const tiers = [
   {
     name: "Basic",
     price: 19,
-    currency: "$",
+    currency: "€",
     description: "Everything you need",
     forWho: "For individuals getting started with AI assistants",
     features: [
-      "Dedicated server (2GB RAM)",
-      "$5 AI credits included",
-      "No Anthropic account needed",
-      "Automatic usage billing",
+      "Dedicated server — 2 vCPU, 2GB RAM",
       "All Claude models available",
       "Telegram integration",
-      "BYOK option available",
+      "Use your own API key (save on usage costs)",
+      "Browser automation",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -29,19 +27,16 @@ const tiers = [
   {
     name: "Pro",
     price: 39,
-    currency: "$",
+    currency: "€",
     description: "More power for power users",
     forWho: "For professionals who need advanced capabilities",
     features: [
-      "Dedicated server (4GB RAM)",
-      "$5 AI credits included",
-      "No Anthropic account needed",
-      "Automatic usage billing",
+      "Dedicated server — 2 vCPU, 4GB RAM",
       "All Claude models available",
       "Telegram integration",
+      "Use your own API key (save on usage costs)",
       "Advanced browser automation",
       "LinkedIn & tool integrations",
-      "BYOK option available",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -94,7 +89,7 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="max-w-6xl mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {tiers.map((tier) => (
             <div
               key={tier.name}
@@ -118,7 +113,7 @@ export default function PricingPage() {
               </div>
 
               <div className="mb-6">
-                <span className="text-5xl font-bold text-foreground">${tier.price}</span>
+                <span className="text-5xl font-bold text-foreground">{tier.currency}{tier.price}</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
 

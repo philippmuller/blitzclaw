@@ -92,7 +92,7 @@ export default async function Home() {
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Chat on Telegram. It learns your workflows, manages tasks, shares secrets securely, and gets things done.
             <br />
-            From <span className="text-primary font-medium">€19/mo</span> all-in. As low as <span className="text-primary font-medium">€14/mo</span> with your own API key.
+            From <span className="text-primary font-medium">€19/mo</span> all-in.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
@@ -170,7 +170,7 @@ export default async function Home() {
             <div className="text-3xl mb-4">💰</div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Simple Pricing</h3>
             <p className="text-muted-foreground">
-              €14/mo for your server. Bring your own Anthropic API key — you control costs.
+              From €19/mo for your dedicated server. Bring your own API key to save on usage costs.
             </p>
           </div>
         </div>
@@ -332,7 +332,7 @@ export default async function Home() {
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
-                  Get Started — €14/mo →
+                  Get Started — €19/mo →
                 </button>
               </SignInButton>
             </SignedOut>
