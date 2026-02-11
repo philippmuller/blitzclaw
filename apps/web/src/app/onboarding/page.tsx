@@ -122,7 +122,7 @@ function OnboardingContent() {
     setError(null);
     
     const effectiveBillingMode = state.hasOwnKey ? "byok" : "managed";
-    const effectiveTier = state.hasOwnKey ? "byok" : state.tier;
+    const effectiveTier = state.tier;
     
     try {
       // Force token refresh before API call
@@ -368,24 +368,55 @@ function OnboardingContent() {
                   </div>
                 </div>
 
-                {/* BYOK Mode */}
-                {state.hasOwnKey && (
-                  <div className="space-y-4">
-                    <div className="p-5 rounded-xl border border-blue-500 bg-blue-900/20">
+                {/* Plan Selection — always visible */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Basic Tier */}
+                    <button
+                      onClick={() => setState(s => ({ ...s, tier: "basic" }))}
+                      className={`p-5 rounded-xl border text-left transition-all ${
+                        state.tier === "basic"
+                          ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                          : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                      }`}
+                    >
                       <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <span className="text-lg font-semibold">Bring Your Own Key</span>
-                          <p className="text-sm text-gray-400 mt-1">You pay Anthropic directly for AI usage</p>
-                        </div>
-                        <span className="text-2xl font-bold">$14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                        <span className="text-lg font-semibold">Basic</span>
+                        <span className="text-2xl font-bold">$19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                       </div>
                       <ul className="text-gray-400 text-sm space-y-1">
-                        <li>✓ Dedicated server included</li>
-                        <li>✓ Full control over your AI costs</li>
-                        <li>✓ Use Claude Opus, Sonnet, or Haiku</li>
+                        <li>✓ Dedicated server</li>
+                        <li>✓ Credits included</li>
+                        <li>✓ Top up anytime</li>
                       </ul>
-                    </div>
+                    </button>
 
+                    {/* Pro Tier */}
+                    <button
+                      onClick={() => setState(s => ({ ...s, tier: "pro" }))}
+                      className={`p-5 rounded-xl border text-left transition-all relative ${
+                        state.tier === "pro"
+                          ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
+                          : "border-gray-700 bg-gray-800 hover:border-gray-600"
+                      }`}
+                    >
+                      <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
+                      <div className="flex justify-between items-start mb-3">
+                        <span className="text-lg font-semibold">Pro</span>
+                        <span className="text-2xl font-bold">$39<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                      </div>
+                      <ul className="text-gray-400 text-sm space-y-1">
+                        <li>✓ Dedicated server</li>
+                        <li>✓ Credits included</li>
+                        <li>✓ Priority support</li>
+                      </ul>
+                    </button>
+                  </div>
+                </div>
+
+                {/* BYOK API Key Input — shown when toggle is on */}
+                {state.hasOwnKey && (
+                  <div className="p-4 bg-gray-800/50 rounded-lg space-y-3">
                     <div>
                       <label className="block text-sm font-medium mb-2">Anthropic API Key</label>
                       <input
@@ -396,62 +427,9 @@ function OnboardingContent() {
                         className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                       />
                       <p className="text-xs text-gray-500 mt-2">
-                        Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">console.anthropic.com</a>
+                        Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">console.anthropic.com</a>. You pay Anthropic directly for AI usage.
                       </p>
                     </div>
-                  </div>
-                )}
-
-                {/* Managed Mode */}
-                {!state.hasOwnKey && (
-                  <div className="space-y-4">
-                    <div className="text-sm text-gray-400 mb-4">
-                      No API key? No problem. We handle everything — just top up credits when you need them.
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Basic Tier */}
-                      <button
-                        onClick={() => setState(s => ({ ...s, tier: "basic" }))}
-                        className={`p-5 rounded-xl border text-left transition-all ${
-                          state.tier === "basic"
-                            ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                            : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <span className="text-lg font-semibold">Basic</span>
-                          <span className="text-2xl font-bold">$19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
-                        </div>
-                        <ul className="text-gray-400 text-sm space-y-1">
-                          <li>✓ Dedicated server</li>
-                          <li>✓ Credits included</li>
-                          <li>✓ Top up anytime</li>
-                        </ul>
-                      </button>
-
-                      {/* Pro Tier */}
-                      <button
-                        onClick={() => setState(s => ({ ...s, tier: "pro" }))}
-                        className={`p-5 rounded-xl border text-left transition-all relative ${
-                          state.tier === "pro"
-                            ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                            : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                        }`}
-                      >
-                        <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
-                        <div className="flex justify-between items-start mb-3">
-                          <span className="text-lg font-semibold">Pro</span>
-                          <span className="text-2xl font-bold">$39<span className="text-sm text-gray-400 font-normal">/mo</span></span>
-                        </div>
-                        <ul className="text-gray-400 text-sm space-y-1">
-                          <li>✓ Dedicated server</li>
-                          <li>✓ Credits included</li>
-                          <li>✓ Priority support</li>
-                        </ul>
-                      </button>
-                    </div>
-
                   </div>
                 )}
 
@@ -469,18 +447,13 @@ function OnboardingContent() {
                 <button
                   onClick={handleSubscribe}
                   disabled={
-                    loading || 
+                    loading ||
                     (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
                   }
                   className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : state.hasOwnKey ? (
-                    <>
-                      Continue — $14/mo
-                      <ExternalLink className="w-4 h-4" />
-                    </>
                   ) : (
                     <>
                       Continue — ${state.tier === "pro" ? "39" : "19"}/mo
