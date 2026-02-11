@@ -156,21 +156,6 @@ export async function configurePoolServer(
   const blitzclawApiUrl = "https://www.blitzclaw.com";
 
   try {
-    // Build the models config based on mode
-    const modelsConfig = byokMode ? "{}" : JSON.stringify({
-      providers: {
-        blitzclaw: {
-          baseUrl: `${blitzclawApiUrl}/api/proxy`,
-          api: "anthropic-messages",
-          models: [
-            { id: "claude-opus-4-6", name: "Claude Opus 4.6", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
-            { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
-            { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 }
-          ]
-        }
-      }
-    });
-
     // Build auth profiles
     const authProfiles = byokMode ? JSON.stringify({
       version: 1,
@@ -183,26 +168,68 @@ export async function configurePoolServer(
     });
 
     // Update openclaw.json with telegram + model config
+    // Using Node.js instead of jq for more reliable JSON handling
+    const telegramConfig = JSON.stringify({
+      enabled: true,
+      botToken: telegramBotToken,
+      dmPolicy: "open",
+      allowFrom: ["*"],
+    });
+    
+    const modelsConfigObj = byokMode ? {} : {
+      providers: {
+        blitzclaw: {
+          baseUrl: `${blitzclawApiUrl}/api/proxy`,
+          api: "anthropic-messages",
+          models: [
+            { id: "claude-opus-4-6", name: "Claude Opus 4.6", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+            { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 },
+            { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", input: ["text", "image"], contextWindow: 200000, maxTokens: 8192 }
+          ]
+        }
+      }
+    };
+
     const configUpdateCmd = `
-cat /root/.openclaw/openclaw.json | jq '
-  .channels.telegram = {
-    "enabled": true,
-    "botToken": "${telegramBotToken}",
-    "dmPolicy": "open",
-    "allowFrom": ["*"]
-  } |
-  .plugins.entries.telegram = { "enabled": true } |
-  .gateway.auth.token = "${gatewayToken}" |
-  .agents.defaults.model.primary = "${modelPrefix}/${model}" |
-  .models = ${modelsConfig.replace(/"/g, '\\"')}
-' > /tmp/oc.json && mv /tmp/oc.json /root/.openclaw/openclaw.json && chmod 600 /root/.openclaw/openclaw.json
+cd /root/.openclaw && \\
+node -e '
+const fs = require("fs");
+const config = JSON.parse(fs.readFileSync("openclaw.json", "utf8"));
+
+// Update telegram config
+config.channels = config.channels || {};
+config.channels.telegram = ${telegramConfig};
+
+// Update plugins
+config.plugins = config.plugins || { entries: {} };
+config.plugins.entries.telegram = { enabled: true };
+
+// Update gateway token
+config.gateway = config.gateway || {};
+config.gateway.auth = config.gateway.auth || {};
+config.gateway.auth.token = "${gatewayToken}";
+
+// Update model
+config.agents = config.agents || { defaults: {} };
+config.agents.defaults = config.agents.defaults || {};
+config.agents.defaults.model = config.agents.defaults.model || {};
+config.agents.defaults.model.primary = "${modelPrefix}/${model}";
+
+// Update models config
+config.models = ${JSON.stringify(modelsConfigObj)};
+
+fs.writeFileSync("openclaw.json", JSON.stringify(config, null, 2));
+console.log("Config updated successfully");
+' && \\
+chmod 600 /root/.openclaw/openclaw.json
 `;
 
-    const { code: configCode, stderr: configStderr } = await sshExec(ipAddress, configUpdateCmd);
+    const { code: configCode, stderr: configStderr, stdout: configStdout } = await sshExec(ipAddress, configUpdateCmd);
     if (configCode !== 0) {
-      console.error("Failed to update config:", configStderr);
-      return { ok: false, error: `Config update failed: ${configStderr}` };
+      console.error("Failed to update config:", configStderr, configStdout);
+      return { ok: false, error: `Config update failed: ${configStderr || configStdout}` };
     }
+    console.log("Config update output:", configStdout);
 
     // Update auth-profiles.json
     const authCmd = `echo '${authProfiles.replace(/'/g, "'\\''")}' > /root/.openclaw/agents/main/agent/auth-profiles.json && chmod 600 /root/.openclaw/agents/main/agent/auth-profiles.json`;
