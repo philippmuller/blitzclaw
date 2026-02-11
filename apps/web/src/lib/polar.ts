@@ -223,10 +223,12 @@ export function verifyWebhookSignature(
     // Standard Webhooks format: sign "webhook_id.timestamp.payload"
     const signedPayload = `${webhookId}.${webhookTimestamp}.${payload}`;
     
-    // Secret might be base64 encoded with "whsec_" prefix
+    // Secret might be base64 encoded with "whsec_" or "polar_whs_" prefix
     let secretBytes: Buffer;
     if (secret.startsWith("whsec_")) {
       secretBytes = Buffer.from(secret.substring(6), "base64");
+    } else if (secret.startsWith("polar_whs_")) {
+      secretBytes = Buffer.from(secret.substring(10), "base64");
     } else {
       secretBytes = Buffer.from(secret, "base64");
     }

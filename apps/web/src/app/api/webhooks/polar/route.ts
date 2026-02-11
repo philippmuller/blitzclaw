@@ -144,21 +144,29 @@ export async function POST(request: Request) {
         },
       });
 
-      // Ensure balance record exists (Polar handles credits via meter benefits)
-      // We still track balance locally for usage limits
-      await prisma.balance.upsert({
-        where: { userId },
-        update: {
-          // Don't override existing balance - Polar handles credit grants
-        },
-        create: {
-          userId,
-          creditsCents: 500, // $5 initial credit (matches Polar benefit)
-          autoTopupEnabled: true, // Polar handles overage automatically
-          topupThresholdCents: 0,
-          topupAmountCents: 0,
-        },
-      });
+      // Credit balance for subscription
+      const existingBalance = await prisma.balance.findUnique({ where: { userId } });
+
+      if (existingBalance) {
+        // Add $5 credit bonus for subscription
+        await prisma.balance.update({
+          where: { userId },
+          data: { 
+            creditsCents: { increment: 500 },
+            autoTopupEnabled: true,
+          },
+        });
+      } else {
+        await prisma.balance.create({
+          data: {
+            userId,
+            creditsCents: 500,
+            autoTopupEnabled: true,
+            topupThresholdCents: 0,
+            topupAmountCents: 0,
+          },
+        });
+      }
 
       // Reactivate any paused instances
       await prisma.instance.updateMany({
