@@ -113,7 +113,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
       headless: true,
       noSandbox: true,  // Required for running as root
       defaultProfile: "openclaw",
-      executablePath: "/usr/bin/chromium-browser",
+      executablePath: "/usr/bin/chromium",
     },
     // Web tools config (Brave Search)
     ...(braveApiKey ? {
@@ -186,7 +186,7 @@ packages:
   - fail2ban
   - ufw
   - jq
-  - chromium-browser
+  - chromium
   - fonts-liberation
   - libnss3
   - libatk-bridge2.0-0

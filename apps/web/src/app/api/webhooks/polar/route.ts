@@ -87,6 +87,9 @@ export async function POST(request: Request) {
     externalId: event.data?.customer_external_id || event.data?.customer?.external_id,
     metadata: event.data?.metadata,
   });
+  
+  // Log full payload for debugging (temporary)
+  console.log(`📨 Polar webhook FULL PAYLOAD:`, JSON.stringify(event, null, 2).slice(0, 2000));
 
   const data = event.data;
   
