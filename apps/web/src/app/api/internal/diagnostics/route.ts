@@ -19,11 +19,56 @@ export async function GET(req: NextRequest) {
   const debugKey = req.nextUrl.searchParams.get("key");
   const expectedDebugKey = process.env.DIAGNOSTICS_KEY || "blitz-debug-2026";
   
+  // Allow searching for specific user
+  const searchEmail = req.nextUrl.searchParams.get("email");
+  const searchClerkId = req.nextUrl.searchParams.get("clerkId");
+  
   if (providedSecret !== INTERNAL_SECRET && debugKey !== expectedDebugKey) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    // If searching for specific user
+    if (searchEmail || searchClerkId) {
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            searchEmail ? { email: { contains: searchEmail } } : {},
+            searchClerkId ? { clerkId: searchClerkId } : {},
+          ].filter(o => Object.keys(o).length > 0),
+        },
+        include: {
+          balance: true,
+          instances: true,
+        },
+      });
+      
+      if (!user) {
+        return NextResponse.json({ found: false, searchEmail, searchClerkId });
+      }
+      
+      return NextResponse.json({
+        found: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          clerkId: user.clerkId,
+          plan: user.plan,
+          billingMode: user.billingMode,
+          polarCustomerId: user.polarCustomerId,
+          balance: user.balance?.creditsCents,
+          instances: user.instances.map(i => ({
+            id: i.id,
+            status: i.status,
+            ip: i.ipAddress,
+            channel: i.channelType,
+            created: i.createdAt,
+          })),
+          created: user.createdAt,
+        },
+      });
+    }
+    
     // Get pool status
     const poolServers = await prisma.serverPool.findMany({
       orderBy: { createdAt: "desc" },
@@ -66,7 +111,7 @@ export async function GET(req: NextRequest) {
       useOwnKey: i.useOwnApiKey,
       created: i.createdAt,
       lastHealth: i.lastHealthCheck,
-      userEmail: i.user?.email?.slice(0, 10) + "...", // Partial for privacy
+      userEmail: i.user?.email?.slice(0, 10) + "...",
     }));
     
     // Get recent users
@@ -81,6 +126,7 @@ export async function GET(req: NextRequest) {
     
     const usersSummary = recentUsers.map(u => ({
       id: u.id.slice(0, 8),
+      email: u.email?.slice(0, 15) + "...",
       plan: u.plan,
       billing: u.billingMode,
       balance: u.balance?.creditsCents,
