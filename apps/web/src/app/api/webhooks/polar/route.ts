@@ -265,21 +265,31 @@ export async function POST(request: Request) {
 
         // Ensure balance exists with initial credits
         // Polar handles the actual credit tracking via meters
-        await prisma.balance.upsert({
-          where: { userId: benefitUserId },
-          update: {
-            // Don't override - just ensure it exists
-          },
-          create: {
-            userId: benefitUserId,
-            creditsCents: 500, // $5 initial credit
-            autoTopupEnabled: true,
-            topupThresholdCents: 0,
-            topupAmountCents: 0,
-          },
+        const existingBenefitBalance = await prisma.balance.findUnique({ 
+          where: { userId: benefitUserId } 
         });
         
-        console.log(`✅ Ensured balance exists for user ${benefitUserId}`);
+        if (!existingBenefitBalance) {
+          await prisma.balance.create({
+            data: {
+              userId: benefitUserId,
+              creditsCents: 500, // $5 initial credit
+              autoTopupEnabled: true,
+              topupThresholdCents: 0,
+              topupAmountCents: 0,
+            },
+          });
+          console.log(`✅ Created balance for user ${benefitUserId}`);
+        } else if (existingBenefitBalance.creditsCents === 0) {
+          // Balance exists but is 0 - this shouldn't happen but fix it
+          await prisma.balance.update({
+            where: { userId: benefitUserId },
+            data: { creditsCents: 500 },
+          });
+          console.log(`✅ Fixed 0 balance for user ${benefitUserId}`);
+        } else {
+          console.log(`✅ Balance already exists for user ${benefitUserId}: ${existingBenefitBalance.creditsCents} cents`);
+        }
       }
       break;
     }
