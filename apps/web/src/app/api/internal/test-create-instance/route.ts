@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { userId, telegramToken, telegramBotUsername } = body;
+  const { userId, telegramToken, telegramBotUsername, byokMode, anthropicKey } = body;
 
   if (!userId) {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
@@ -56,6 +56,25 @@ export async function POST(req: NextRequest) {
   try {
     const startTime = Date.now();
     
+    // Update user's billing mode if BYOK
+    if (byokMode && anthropicKey) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          billingMode: "byok",
+          anthropicKey,
+        },
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          billingMode: "managed",
+          anthropicKey: null,
+        },
+      });
+    }
+    
     const result = await createInstance({
       userId: user.id,
       channelType: "TELEGRAM",
@@ -65,7 +84,8 @@ export async function POST(req: NextRequest) {
         bot_token: telegramToken,
         botUsername: telegramBotUsername || "test_bot",
       }),
-      byokMode: false,
+      byokMode: byokMode || false,
+      anthropicKey: byokMode ? anthropicKey : undefined,
     });
 
     const duration = Date.now() - startTime;
