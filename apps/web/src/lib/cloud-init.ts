@@ -337,7 +337,7 @@ ${JSON.stringify({
       curl -X POST "${blitzclawApiUrl}/api/internal/instance-ready" \
         -H "Content-Type: application/json" \
         -H "X-Instance-Secret: ${proxySecret}" \
-        -d "{\"instance_id\": \"$HETZNER_ID\"}" \
+        -d '{"instance_id": "'"$HETZNER_ID"'"}' \
         || echo "Callback failed (non-fatal)"
       
       touch /etc/blitzclaw/ready
