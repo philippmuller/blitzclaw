@@ -118,7 +118,7 @@ export async function createServer(options: CreateServerOptions): Promise<{
     method: "POST",
     body: JSON.stringify({
       name: options.name,
-      server_type: options.serverType || "cpx11",
+      server_type: options.serverType || "cx23", // ARM-based, cost-effective
       image: options.image || "ubuntu-24.04",
       location: options.location || "nbg1", // Nuremberg, Germany - GDPR compliant, low latency for EU
       ssh_keys: options.sshKeys || [],
