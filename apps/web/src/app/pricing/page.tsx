@@ -10,7 +10,7 @@ const tiers = [
   {
     name: "Basic",
     price: 19,
-    currency: "€",
+    currency: "$",
     description: "Everything you need",
     forWho: "For individuals getting started with AI assistants",
     features: [
@@ -27,7 +27,7 @@ const tiers = [
   {
     name: "Pro",
     price: 39,
-    currency: "€",
+    currency: "$",
     description: "More power for power users",
     forWho: "For professionals who need advanced capabilities",
     features: [

@@ -377,7 +377,7 @@ function OnboardingContent() {
                           <span className="text-lg font-semibold">Bring Your Own Key</span>
                           <p className="text-sm text-gray-400 mt-1">You pay Anthropic directly for AI usage</p>
                         </div>
-                        <span className="text-2xl font-bold">€14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                        <span className="text-2xl font-bold">$14<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                       </div>
                       <ul className="text-gray-400 text-sm space-y-1">
                         <li>✓ Dedicated server included</li>
@@ -421,11 +421,11 @@ function OnboardingContent() {
                       >
                         <div className="flex justify-between items-start mb-3">
                           <span className="text-lg font-semibold">Basic</span>
-                          <span className="text-2xl font-bold">€19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                          <span className="text-2xl font-bold">$19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                         </div>
                         <ul className="text-gray-400 text-sm space-y-1">
                           <li>✓ Dedicated server</li>
-                          <li>✓ €10 credits included</li>
+                          <li>✓ Credits included</li>
                           <li>✓ Top up anytime</li>
                         </ul>
                       </button>
@@ -442,11 +442,11 @@ function OnboardingContent() {
                         <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
                         <div className="flex justify-between items-start mb-3">
                           <span className="text-lg font-semibold">Pro</span>
-                          <span className="text-2xl font-bold">€119<span className="text-sm text-gray-400 font-normal">/mo</span></span>
+                          <span className="text-2xl font-bold">$39<span className="text-sm text-gray-400 font-normal">/mo</span></span>
                         </div>
                         <ul className="text-gray-400 text-sm space-y-1">
                           <li>✓ Dedicated server</li>
-                          <li>✓ €100 credits included</li>
+                          <li>✓ Credits included</li>
                           <li>✓ Priority support</li>
                         </ul>
                       </button>
@@ -478,12 +478,12 @@ function OnboardingContent() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : state.hasOwnKey ? (
                     <>
-                      Continue — €14/mo
+                      Continue — $14/mo
                       <ExternalLink className="w-4 h-4" />
                     </>
                   ) : (
                     <>
-                      Continue — €{state.tier === "pro" ? "119" : "19"}/mo
+                      Continue — ${state.tier === "pro" ? "39" : "19"}/mo
                       <ExternalLink className="w-4 h-4" />
                     </>
                   )}
