@@ -2,142 +2,211 @@
  * Polar Webhook Handler
  * 
  * Handles subscription lifecycle events from Polar:
+ * - checkout.created/updated - Checkout started
  * - subscription.created - New subscription
- * - subscription.updated - Plan changes, renewals
- * - subscription.canceled - Cancellation
- * - order.created - One-time purchases (top-ups)
+ * - subscription.active - Subscription became active
+ * - subscription.updated - Plan change, renewal, etc.
+ * - subscription.canceled - User canceled
+ * - subscription.revoked - Payment failed / access revoked
+ * 
+ * Polar automatically handles metered usage billing at period end.
  */
 
-import { Webhooks } from "@polar-sh/nextjs";
-import { prisma } from "@blitzclaw/db";
+import { NextResponse } from "next/server";
+import { prisma, InstanceStatus } from "@blitzclaw/db";
+import { verifyWebhookSignature, polarConfig } from "@/lib/polar";
 
-export const POST = Webhooks({
-  webhookSecret: process.env.POLAR_WEBHOOK_SECRET!,
+// Webhook event types we care about
+type PolarEventType =
+  | "checkout.created"
+  | "checkout.updated"
+  | "subscription.created"
+  | "subscription.active"
+  | "subscription.updated"
+  | "subscription.canceled"
+  | "subscription.revoked"
+  | "order.created";
 
-  onPayload: async (payload) => {
-    console.log("📨 Polar webhook received:", payload.type);
-  },
+interface PolarWebhookEvent {
+  type: PolarEventType;
+  data: {
+    id: string;
+    customer_id?: string;
+    customer?: {
+      id: string;
+      email: string;
+      external_id?: string;
+    };
+    product_id?: string;
+    product?: {
+      id: string;
+      name: string;
+    };
+    subscription_id?: string;
+    metadata?: Record<string, string>;
+    status?: string;
+    customer_external_id?: string;
+  };
+}
 
-  onSubscriptionCreated: async (data) => {
-    console.log("🎉 New subscription:", data.id);
+export async function POST(request: Request) {
+  const payload = await request.text();
+  const signature = request.headers.get("polar-signature") ||
+                    request.headers.get("x-polar-signature");
 
-    const subscription = data;
-    const customer = subscription.customer;
-    const product = subscription.product;
+  // Verify webhook signature
+  if (!verifyWebhookSignature(payload, signature)) {
+    console.warn("⚠️ Polar webhook signature verification failed");
+    // In sandbox/dev, continue anyway but log it
+    if (process.env.NODE_ENV === "production" && polarConfig.server === "production") {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  }
 
-    // Determine plan from product name
-    const isPro = product.name.toLowerCase().includes("pro");
-    const plan = isPro ? "pro" : "basic";
+  let event: PolarWebhookEvent;
+  try {
+    event = JSON.parse(payload);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
 
-    // Get or create user
-    // We use Polar's customer ID to link accounts
-    // The external_customer_id (if set during checkout) would be in metadata
-    const externalId = customer.externalId || customer.id;
+  console.log(`📨 Polar webhook [${polarConfig.server}]:`, {
+    type: event.type,
+    dataId: event.data?.id,
+    customerId: event.data?.customer_id || event.data?.customer?.id,
+    externalId: event.data?.customer_external_id || event.data?.customer?.external_id,
+    metadata: event.data?.metadata,
+  });
 
-    try {
-      await prisma.user.upsert({
-        where: { polarCustomerId: customer.id },
+  const data = event.data;
+  
+  // Get our user ID from external_id or metadata
+  const userId = data.customer_external_id || 
+                 data.customer?.external_id || 
+                 data.metadata?.user_id;
+  
+  const polarCustomerId = data.customer_id || data.customer?.id;
+  const subscriptionId = data.subscription_id || data.id;
+  const plan = data.metadata?.plan || 
+               (data.product?.name?.toLowerCase().includes("pro") ? "pro" : "basic");
+
+  switch (event.type) {
+    case "checkout.created":
+    case "checkout.updated":
+      // Checkout in progress - no action needed
+      console.log(`Checkout ${data.id} ${event.type.split(".")[1]}`);
+      break;
+
+    case "subscription.created":
+    case "subscription.active":
+    case "order.created": {
+      if (!userId) {
+        console.error("No user_id in webhook - cannot process subscription", {
+          event: event.type,
+          metadata: data.metadata,
+          externalId: data.customer_external_id,
+        });
+        return NextResponse.json({ 
+          error: "Missing user_id", 
+          received: data.metadata 
+        }, { status: 400 });
+      }
+
+      // IDEMPOTENCY: Check if already processed
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { polarSubscriptionId: true, polarCustomerId: true },
+      });
+
+      if (existingUser?.polarSubscriptionId === subscriptionId) {
+        console.log(`⏭️ Skipping duplicate webhook for subscription ${subscriptionId}`);
+        return NextResponse.json({ received: true, skipped: "duplicate" });
+      }
+
+      // Update user with Polar IDs
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          polarCustomerId,
+          polarSubscriptionId: subscriptionId,
+          plan: plan as "basic" | "pro",
+          billingMode: data.metadata?.byok === "true" ? "byok" : "managed",
+        },
+      });
+
+      // Ensure balance record exists (Polar handles credits via meter benefits)
+      // We still track balance locally for usage limits
+      await prisma.balance.upsert({
+        where: { userId },
         update: {
-          polarSubscriptionId: subscription.id,
-          subscriptionStatus: "active",
-          plan,
-          email: customer.email,
-          billingMode: "managed", // Using Polar for billing
+          // Don't override existing balance - Polar handles credit grants
         },
         create: {
-          polarCustomerId: customer.id,
-          polarSubscriptionId: subscription.id,
-          clerkId: externalId, // May need to link to Clerk later
-          email: customer.email,
-          subscriptionStatus: "active",
-          plan,
-          billingMode: "managed",
+          userId,
+          creditsCents: 500, // $5 initial credit (matches Polar benefit)
+          autoTopupEnabled: true, // Polar handles overage automatically
+          topupThresholdCents: 0,
+          topupAmountCents: 0,
         },
       });
 
-      console.log(`✅ User created/updated for subscription ${subscription.id}`);
-    } catch (error) {
-      console.error("Failed to create/update user:", error);
+      // Reactivate any paused instances
+      await prisma.instance.updateMany({
+        where: { userId, status: InstanceStatus.PAUSED },
+        data: { status: InstanceStatus.ACTIVE },
+      });
+
+      console.log(`✅ Subscription active for user ${userId} (${plan})`);
+      break;
     }
-  },
 
-  onSubscriptionUpdated: async (data) => {
-    console.log("🔄 Subscription updated:", data.id);
+    case "subscription.updated": {
+      if (!userId) break;
 
-    const subscription = data;
-
-    try {
-      await prisma.user.updateMany({
-        where: { polarSubscriptionId: subscription.id },
+      // Plan change or renewal
+      await prisma.user.update({
+        where: { id: userId },
         data: {
-          subscriptionStatus: subscription.status,
+          plan: plan as "basic" | "pro",
+          polarSubscriptionId: subscriptionId,
         },
-      });
-    } catch (error) {
-      console.error("Failed to update subscription:", error);
+      }).catch(e => console.warn("Could not update user plan:", e));
+
+      console.log(`📝 Subscription updated for user ${userId}: ${plan}`);
+      break;
     }
-  },
 
-  onSubscriptionCanceled: async (data) => {
-    console.log("❌ Subscription canceled:", data.id);
+    case "subscription.canceled": {
+      if (!userId) break;
 
-    const subscription = data;
-
-    try {
-      // Mark subscription as canceled but don't delete user
-      await prisma.user.updateMany({
-        where: { polarSubscriptionId: subscription.id },
-        data: {
-          subscriptionStatus: "canceled",
-        },
-      });
-
-      // Pause instances for this user
-      const user = await prisma.user.findFirst({
-        where: { polarSubscriptionId: subscription.id },
-      });
-
-      if (user) {
-        await prisma.instance.updateMany({
-          where: { userId: user.id },
-          data: { status: "PAUSED" },
-        });
-        console.log(`⏸️ Paused instances for user ${user.id}`);
-      }
-    } catch (error) {
-      console.error("Failed to handle cancellation:", error);
+      // User canceled - access continues until period end
+      // We don't pause immediately; Polar will send revoked when access ends
+      console.log(`⚠️ Subscription canceled for user ${userId} - access continues until period end`);
+      break;
     }
-  },
 
-  onOrderCreated: async (data) => {
-    console.log("📦 Order created:", data.id);
-    // Handle one-time purchases (top-ups) if we add them later
-  },
+    case "subscription.revoked": {
+      if (!userId) break;
 
-  onSubscriptionActive: async (data) => {
-    console.log("✅ Subscription active:", data.id);
-
-    try {
-      await prisma.user.updateMany({
-        where: { polarSubscriptionId: data.id },
-        data: {
-          subscriptionStatus: "active",
-        },
+      // Access revoked - pause instances
+      await prisma.instance.updateMany({
+        where: { userId },
+        data: { status: InstanceStatus.PAUSED },
       });
 
-      // Reactivate paused instances
-      const user = await prisma.user.findFirst({
-        where: { polarSubscriptionId: data.id },
-      });
+      // Clear subscription ID
+      await prisma.user.update({
+        where: { id: userId },
+        data: { polarSubscriptionId: null },
+      }).catch(() => {});
 
-      if (user) {
-        await prisma.instance.updateMany({
-          where: { userId: user.id, status: "PAUSED" },
-          data: { status: "ACTIVE" },
-        });
-      }
-    } catch (error) {
-      console.error("Failed to activate subscription:", error);
+      console.log(`🚫 Subscription revoked for user ${userId}, instances paused`);
+      break;
     }
-  },
-});
+
+    default:
+      console.log(`Unhandled Polar event: ${event.type}`);
+  }
+
+  return NextResponse.json({ received: true });
+}

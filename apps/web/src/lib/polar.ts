@@ -8,14 +8,19 @@
  */
 
 import { Polar } from "@polar-sh/sdk";
+import crypto from "crypto";
+
+// Determine environment - use sandbox unless explicitly production
+const IS_SANDBOX = process.env.POLAR_SANDBOX !== "false";
+const POLAR_SERVER = IS_SANDBOX ? "sandbox" : "production";
 
 // Initialize Polar client
 export const polar = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN!,
-  server: "production",
+  server: POLAR_SERVER,
 });
 
-// Product IDs from Polar dashboard
+// Product IDs from Polar dashboard (sandbox vs production)
 export const POLAR_PRODUCTS = {
   basic: process.env.POLAR_PRODUCT_BASIC_ID,
   pro: process.env.POLAR_PRODUCT_PRO_ID,
@@ -24,11 +29,43 @@ export const POLAR_PRODUCTS = {
 export type PlanType = "basic" | "pro";
 
 /**
+ * Create a Polar checkout session
+ */
+export async function createCheckout(options: {
+  productId: string;
+  successUrl: string;
+  customerEmail?: string;
+  externalCustomerId: string;
+  metadata?: Record<string, string>;
+}) {
+  // Only include email if it's a real email (Polar validates strictly)
+  // Skip placeholder/pending emails
+  const shouldIncludeEmail = options.customerEmail && 
+    !options.customerEmail.includes("@pending.") &&
+    !options.customerEmail.includes("@example.");
+
+  const checkout = await polar.checkouts.create({
+    products: [options.productId], // SDK uses products array
+    successUrl: options.successUrl,
+    ...(shouldIncludeEmail && { customerEmail: options.customerEmail }),
+    metadata: options.metadata,
+    // Link to our user ID for webhook correlation
+    externalCustomerId: options.externalCustomerId,
+  });
+  
+  return checkout;
+}
+
+/**
  * Track AI usage for a customer
  * Only call this for managed billing users (not BYOK)
  * 
+ * IMPORTANT: The event name and property must match the meter configuration:
+ * - Meter filter: event name = "ai_usage"  
+ * - Aggregation: sum of property "credits_used"
+ * 
  * @param externalCustomerId - Our internal user ID (used as external_customer_id in Polar)
- * @param credits - Usage in cents (1 credit = $0.01)
+ * @param credits - Usage in credits (1 credit = $0.01)
  * @param metadata - Additional info (model, tokens, etc.)
  */
 export async function trackUsage(
@@ -40,10 +77,11 @@ export async function trackUsage(
     await polar.events.ingest({
       events: [
         {
-          name: "ai_usage",
+          name: "ai_usage", // Must match meter filter
           externalCustomerId,
+          // Properties must include the aggregation property
           metadata: {
-            credits,
+            credits_used: credits, // This is what the meter sums
             timestamp: Date.now(),
             ...metadata,
           },
@@ -74,10 +112,12 @@ export function calculateCredits(
   // Anthropic pricing per 1M tokens (in dollars)
   const pricing: Record<string, { input: number; output: number }> = {
     "claude-sonnet-4": { input: 3, output: 15 },
+    "claude-sonnet-4-5": { input: 3, output: 15 },
     "claude-3-5-sonnet-20241022": { input: 3, output: 15 },
-    "claude-haiku": { input: 0.25, output: 1.25 },
-    "claude-3-5-haiku-20241022": { input: 0.25, output: 1.25 },
+    "claude-haiku-4-5": { input: 1, output: 5 },
+    "claude-3-5-haiku-20241022": { input: 1, output: 5 },
     "claude-opus-4": { input: 15, output: 75 },
+    "claude-opus-4-5": { input: 15, output: 75 },
     "claude-3-opus-20240229": { input: 15, output: 75 },
   };
 
@@ -97,15 +137,98 @@ export function calculateCredits(
 }
 
 /**
- * Get customer's current subscription and usage from Polar
+ * Get customer by external ID (our user ID)
  */
-export async function getCustomerState(externalCustomerId: string) {
+export async function getCustomerByExternalId(externalId: string) {
   try {
-    // This would use Polar's customer state API
-    // For now, we'll rely on webhooks to keep our DB in sync
-    return null;
+    const customer = await polar.customers.getExternal({ externalId });
+    return customer;
   } catch (error) {
-    console.error("Failed to get customer state:", error);
+    // 404 means customer doesn't exist yet
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      return null;
+    }
+    console.error("Failed to get customer:", error);
     return null;
   }
 }
+
+/**
+ * Get customer's subscriptions
+ */
+export async function getCustomerSubscriptions(customerId: string) {
+  try {
+    const subscriptions = await polar.subscriptions.list({
+      customerId,
+      active: true,
+    });
+    // The list returns a page iterator, get the items
+    const items: Awaited<ReturnType<typeof polar.subscriptions.list>> extends { 
+      result: { items: infer T } 
+    } ? T : never[] = [];
+    for await (const page of subscriptions) {
+      return page.result.items;
+    }
+    return items;
+  } catch (error) {
+    console.error("Failed to get subscriptions:", error);
+    return [];
+  }
+}
+
+/**
+ * Revoke (immediately cancel) a subscription
+ */
+export async function revokeSubscription(subscriptionId: string) {
+  return polar.subscriptions.revoke({ id: subscriptionId });
+}
+
+/**
+ * Get Polar customer portal URL for self-service billing management
+ */
+export async function getCustomerPortalUrl(customerId: string) {
+  const session = await polar.customerSessions.create({
+    customerId,
+  });
+  return session.customerPortalUrl;
+}
+
+/**
+ * Verify Polar webhook signature
+ */
+export function verifyWebhookSignature(
+  payload: string,
+  signature: string | null
+): boolean {
+  const secret = process.env.POLAR_WEBHOOK_SECRET;
+  
+  if (!secret) {
+    console.warn("POLAR_WEBHOOK_SECRET not set, skipping verification");
+    return true; // Allow in dev
+  }
+
+  if (!signature) {
+    return false;
+  }
+
+  // Polar uses standard HMAC-SHA256
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Export server info for debugging
+export const polarConfig = {
+  server: POLAR_SERVER,
+  isSandbox: IS_SANDBOX,
+};
