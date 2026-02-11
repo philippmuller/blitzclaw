@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     // Create Polar checkout
     const checkout = await createCheckout({
       productId,
-      successUrl: `${APP_URL}/dashboard/onboarding?checkout=success&plan=${metadataPlan}`,
+      successUrl: `${APP_URL}/onboarding?subscription=success&tier=${metadataPlan}`,
       customerEmail: email,
       externalCustomerId: user.id, // Our user ID as external reference
       metadata: {
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
   try {
     const checkout = await createCheckout({
       productId,
-      successUrl: `${APP_URL}/dashboard/onboarding?checkout=success&plan=${plan}`,
+      successUrl: `${APP_URL}/onboarding?subscription=success&tier=${plan}`,
       customerEmail: email,
       externalCustomerId: user.id,
       metadata: {
