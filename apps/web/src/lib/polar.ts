@@ -77,6 +77,7 @@ export async function trackUsage(
     name: "ai_usage", // Must match meter filter
     externalCustomerId,
     metadata: {
+      event: "ai_usage", // Meter filter looks for metadata.event
       credits_used: credits, // This is what the meter sums
       timestamp: Date.now(),
       ...metadata,
