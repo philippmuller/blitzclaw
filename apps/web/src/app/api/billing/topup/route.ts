@@ -1,38 +1,21 @@
 /**
- * Top-up endpoint - creates a Creem checkout for one-time credit purchases
+ * Top-up endpoint
  * 
- * BYOK users don't need top-ups - they pay Anthropic directly for usage.
+ * With Polar's metered billing, usage overages are billed automatically.
+ * Manual top-ups are not needed - users pay per credit used.
+ * 
+ * This endpoint is kept for future use but currently disabled.
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
-import { createCreemCheckout } from "@/lib/creem";
 
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://www.blitzclaw.com").trim();
-
-// Creem Product IDs for top-ups
-const TOPUP_PRODUCTS: Record<number, { productIdEnv: string; amountCents: number }> = {
-  25: { productIdEnv: "CREEM_TOPUP_25_PRODUCT_ID", amountCents: 2500 },
-  50: { productIdEnv: "CREEM_TOPUP_50_PRODUCT_ID", amountCents: 5000 },
-};
-
-export async function POST(request: Request) {
+export async function POST() {
   const { userId: clerkId } = await auth();
 
   if (!clerkId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Parse request body
-  let amount: number = 25;
-  try {
-    const body = await request.json();
-    if (body.amount === 50 || body.amount === 25) {
-      amount = body.amount;
-    }
-  } catch {
-    // Default to 25
   }
 
   const user = await prisma.user.findUnique({
@@ -43,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // BYOK users don't use balance/top-ups - they pay Anthropic directly
+  // BYOK users don't use balance/top-ups
   if (user.billingMode === "byok") {
     return NextResponse.json(
       { 
@@ -54,49 +37,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Get product config
-  const topupConfig = TOPUP_PRODUCTS[amount];
-  if (!topupConfig) {
-    return NextResponse.json({ error: "Invalid top-up amount" }, { status: 400 });
-  }
-
-  const productId = process.env[topupConfig.productIdEnv];
-  if (!productId) {
-    console.error(`Creem top-up product not configured: ${topupConfig.productIdEnv}`);
-    return NextResponse.json(
-      { error: "Top-up not configured. Please try again later." },
-      { status: 500 }
-    );
-  }
-
-  const successUrl = `${APP_URL}/dashboard/billing?topup=success`;
-
-  try {
-    console.log("Creating Creem top-up checkout:", {
-      productId,
-      amount,
-      userId: user.id,
-    });
-
-    const { checkoutUrl } = await createCreemCheckout({
-      productId,
-      customerEmail: user.email,
-      successUrl,
-      customData: {
-        user_id: user.id,
-        clerk_id: clerkId,
-        type: "topup",
-        amount_cents: String(topupConfig.amountCents),
-      },
-    });
-
-    console.log("Creem top-up checkout created:", checkoutUrl);
-    return NextResponse.json({ checkoutUrl });
-  } catch (error) {
-    console.error("Creem top-up checkout failed:", error);
-    return NextResponse.json(
-      { error: "Failed to create checkout. Please try again.", details: (error as Error).message },
-      { status: 500 }
-    );
-  }
+  // With Polar metered billing, usage is billed automatically
+  return NextResponse.json(
+    { 
+      error: "Manual top-ups are not needed. Your usage is billed automatically at $0.01 per credit.",
+      message: "Visit the billing portal to view your usage and payment methods.",
+    },
+    { status: 400 }
+  );
 }
