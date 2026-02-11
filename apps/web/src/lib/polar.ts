@@ -73,24 +73,27 @@ export async function trackUsage(
   credits: number,
   metadata?: Record<string, string | number>
 ) {
+  const eventData = {
+    name: "ai_usage", // Must match meter filter
+    externalCustomerId,
+    metadata: {
+      credits_used: credits, // This is what the meter sums
+      timestamp: Date.now(),
+      ...metadata,
+    },
+  };
+  
+  console.log(`📊 Sending to Polar [${polarConfig.server}]:`, JSON.stringify(eventData));
+  
   try {
-    await polar.events.ingest({
-      events: [
-        {
-          name: "ai_usage", // Must match meter filter
-          externalCustomerId,
-          // Properties must include the aggregation property
-          metadata: {
-            credits_used: credits, // This is what the meter sums
-            timestamp: Date.now(),
-            ...metadata,
-          },
-        },
-      ],
+    const response = await polar.events.ingest({
+      events: [eventData],
     });
+    console.log(`📊 Polar response:`, JSON.stringify(response));
     console.log(`📊 Tracked ${credits} credits for user ${externalCustomerId}`);
   } catch (error) {
-    console.error("Failed to track usage with Polar:", error);
+    console.error("❌ Failed to track usage with Polar:", error);
+    console.error("❌ Event data was:", JSON.stringify(eventData));
     // Don't throw - usage tracking failure shouldn't break the API call
   }
 }
