@@ -502,6 +502,12 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
     }
   }
 
+  // Determine final status:
+  // - Pool servers configured via SSH are immediately ACTIVE
+  // - On-demand servers start as PROVISIONING (wait for callback)
+  const wasPoolServer = poolServer !== null && server !== null;
+  const finalStatus = wasPoolServer ? InstanceStatus.ACTIVE : InstanceStatus.PROVISIONING;
+
   // Update instance with server info
   await prisma.instance.update({
     where: { id: instance.id },
@@ -510,13 +516,13 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
       ipAddress: server!.ipAddress,
       proxySecret: finalProxySecret,
       gatewayToken: finalGatewayToken,
-      status: InstanceStatus.PROVISIONING,
+      status: finalStatus,
     },
   });
 
   return {
     instanceId: instance.id,
-    status: InstanceStatus.PROVISIONING,
+    status: finalStatus,
     ipAddress: server!.ipAddress,
     gatewayToken: finalGatewayToken,
   };
