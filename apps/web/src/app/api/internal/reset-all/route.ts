@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, ServerPoolStatus } from "@blitzclaw/db";
 import { deleteServer } from "@/lib/hetzner";
+import { revokeSubscription } from "@/lib/polar";
 
 const DEBUG_KEY = process.env.DIAGNOSTICS_KEY || "blitz-debug-2026";
 
@@ -60,11 +61,30 @@ export async function POST(req: NextRequest) {
     const deletedBalances = await prisma.balance.deleteMany({});
     results.balances = deletedBalances.count;
 
-    // 6. Delete all users
+    // 6. Cancel all Polar subscriptions
+    const usersWithSubscriptions = await prisma.user.findMany({
+      where: { polarSubscriptionId: { not: null } },
+      select: { id: true, polarSubscriptionId: true },
+    });
+    
+    const cancelledSubscriptions: string[] = [];
+    for (const user of usersWithSubscriptions) {
+      if (user.polarSubscriptionId) {
+        try {
+          await revokeSubscription(user.polarSubscriptionId);
+          cancelledSubscriptions.push(user.polarSubscriptionId);
+        } catch (err) {
+          console.error(`Failed to cancel subscription ${user.polarSubscriptionId}:`, err);
+        }
+      }
+    }
+    results.polarSubscriptionsCancelled = cancelledSubscriptions;
+
+    // 7. Delete all users
     const deletedUsers = await prisma.user.deleteMany({});
     results.users = deletedUsers.count;
 
-    // 7. Handle pool
+    // 8. Handle pool
     if (keepPool) {
       // Reset pool servers to AVAILABLE
       const resetPool = await prisma.serverPool.updateMany({
