@@ -1,205 +1,277 @@
 # BlitzClaw ⚡
 
-> One-click OpenClaw deployment. Telegram & WhatsApp. Usage-based billing.
+**Managed OpenClaw instances. One click. Zero setup.**
 
-## What is BlitzClaw?
-
-BlitzClaw provisions dedicated AI assistant instances powered by [OpenClaw](https://github.com/openclaw/openclaw).
-
-- **No API keys required** — we handle Anthropic/OpenAI billing
-- **Telegram & WhatsApp** — chat with your AI wherever you are
-- **Usage-based pricing** — pay for what you use, 50% markup on token costs
-- **Your own instance** — dedicated Hetzner server, full isolation
-- **Customizable** — bring your own SOUL.md personality
-
-## Quick Start
-
-### Using the CLI
-
-```bash
-# Install CLI
-npm install -g blitzclaw
-
-# Login to your account
-blitzclaw auth login
-
-# Top up your balance ($20 recommended)
-blitzclaw billing topup --amount 20
-
-# Create your first instance
-blitzclaw instances create --channel telegram --persona assistant
-
-# Get your Telegram bot token from @BotFather, then:
-blitzclaw telegram connect <instance_id> --token <your_bot_token>
-
-# Start chatting! 🎉
-```
-
-### Using the Dashboard
-
-1. Sign up at [blitzclaw.com](https://blitzclaw.com)
-2. Top up your balance
-3. Create an instance
-4. Follow the Telegram setup wizard
-5. Start chatting with your AI assistant
+BlitzClaw is a SaaS platform that provisions dedicated AI assistant instances powered by [OpenClaw](https://github.com/openclaw/openclaw). Sign up, subscribe, and get your own AI assistant with Telegram integration—no API keys or server management required.
 
 ## Features
 
-| Feature | Status |
-|---------|--------|
-| Google OAuth signup | ✅ |
-| Paddle billing (MoR) | ✅ |
-| Telegram integration | ✅ |
-| Custom SOUL.md | ✅ |
-| Persona templates | ✅ |
-| Token usage tracking | ✅ |
-| WhatsApp integration | 🚧 Phase 2 |
-| Bring your own API key | 🚧 Phase 2 |
-| Google integrations | 🚧 Phase 2 |
+- **🚀 Instant Deployment** — Pool-based provisioning means your instance is ready in seconds, not minutes
+- **💬 Telegram Integration** — Connect your bot and start chatting immediately
+- **🌐 Browser Automation** — Chromium enabled for web scraping, screenshots, and automation
+- **💳 Simple Billing** — Subscription + usage-based credits, all handled for you
+- **🔒 Full Isolation** — Each user gets a dedicated Hetzner VPS in Germany
+- **🎭 Customizable** — Bring your own SOUL.md personality and skills
 
-## CLI Commands
+## Pricing
 
-```bash
-blitzclaw auth login          # Authenticate
-blitzclaw auth whoami         # Check current user
+| Plan | Monthly | Included Credits | Extra Credits |
+|------|---------|------------------|---------------|
+| **Basic** | $19/mo | $5 | Pay-as-you-go |
+| **Pro** | $39/mo | $15 | Pay-as-you-go |
 
-blitzclaw billing balance     # Check balance
-blitzclaw billing topup       # Add funds
-blitzclaw billing usage       # View usage history
+Credits cover AI model usage (Claude, GPT-4, etc.) with transparent per-token pricing.
 
-blitzclaw instances list      # List your instances
-blitzclaw instances create    # Create new instance
-blitzclaw instances get <id>  # Get instance details
-blitzclaw instances restart   # Restart instance
-blitzclaw instances delete    # Delete instance
+## Tech Stack
 
-blitzclaw telegram connect    # Connect Telegram bot
-blitzclaw telegram info       # Get bot info
+| Layer | Technology |
+|-------|------------|
+| **Framework** | Next.js 14 (App Router) + TypeScript |
+| **Database** | PostgreSQL (Neon) + Prisma ORM |
+| **Auth** | Clerk |
+| **Payments** | Polar.sh (subscriptions + usage metering) |
+| **Infrastructure** | Hetzner Cloud (cx23 ARM servers, Germany) |
+| **Monorepo** | Turborepo |
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   BlitzClaw Platform                    │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│   ┌──────────┐    ┌─────────┐    ┌─────────────────┐   │
+│   │  Web UI  │───▶│   API   │───▶│   Provisioner   │   │
+│   │ (Next.js)│    │ Routes  │    │  (Server Pool)  │   │
+│   └──────────┘    └────┬────┘    └────────┬────────┘   │
+│                        │                   │            │
+│         ┌──────────────┼───────────────────┤            │
+│         ▼              ▼                   ▼            │
+│    ┌─────────┐   ┌──────────┐       ┌──────────┐       │
+│    │  Clerk  │   │ Polar.sh │       │ Hetzner  │       │
+│    │  (Auth) │   │(Billing) │       │  Cloud   │       │
+│    └─────────┘   └──────────┘       └──────────┘       │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+                            │
+          ┌─────────────────┼─────────────────┐
+          ▼                 ▼                 ▼
+    ┌───────────┐    ┌───────────┐    ┌───────────┐
+    │  Instance │    │  Instance │    │  Instance │
+    │  (User A) │    │  (User B) │    │  (User C) │
+    │           │    │           │    │           │
+    │ OpenClaw  │    │ OpenClaw  │    │ OpenClaw  │
+    │ Telegram  │    │ Telegram  │    │ Telegram  │
+    │ Chromium  │    │ Chromium  │    │ Chromium  │
+    └─────┬─────┘    └───────────┘    └───────────┘
+          │
+          ▼
+    ┌───────────┐
+    │  Token    │
+    │  Proxy    │◀── Usage metering
+    └─────┬─────┘
+          ▼
+    ┌───────────┐
+    │ Anthropic │
+    │  OpenAI   │
+    └───────────┘
 ```
 
-See [CLI README](apps/cli/README.md) for full documentation.
+## Project Structure
 
-## Development
+```
+blitzclaw/
+├── apps/
+│   ├── web/              # Next.js web application (dashboard, API routes)
+│   └── cli/              # CLI tool for power users
+├── packages/
+│   └── db/               # Prisma schema + generated client
+├── skills/
+│   └── linkedin/         # LinkedIn automation skill
+├── scripts/              # Utility scripts (testing, seeding, deployment)
+├── docs/                 # Documentation
+│   ├── DEPLOYMENT.md     # Production deployment guide
+│   ├── DEVELOPMENT.md    # Local development setup
+│   └── PROXY.md          # Token proxy architecture
+└── turbo.json            # Turborepo configuration
+```
+
+## Getting Started
 
 ### Prerequisites
 
 - Node.js 22+
 - npm 10+
-- PostgreSQL 14+
+- PostgreSQL 14+ (or Neon account)
 
-### Setup
+### Local Development
 
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/blitzclaw/blitzclaw.git
 cd blitzclaw
 
 # Install dependencies
 npm install
 
-# Setup environment
+# Copy environment template
 cp .env.example .env.local
-# Edit .env.local with your values (see docs/DEVELOPMENT.md)
 
-# Setup database
+# Generate Prisma client
 npm run db:generate
+
+# Push schema to database
 npm run db:push
 
-# Start dev server
+# Start development server
 npm run dev
 ```
 
-### Project Structure
+The app will be available at `http://localhost:3000`.
 
-```
-blitzclaw/
-├── apps/
-│   ├── web/          # Next.js web application
-│   └── cli/          # CLI tool
-├── packages/
-│   └── db/           # Prisma schema & client
-├── scripts/          # Utility scripts
-└── docs/             # Documentation
-```
-
-### Commands
+### Available Scripts
 
 ```bash
-npm run dev           # Start development server
-npm run build         # Build all packages
-npm run lint          # Run ESLint
-npm run db:generate   # Generate Prisma client
-npm run db:push       # Push schema to database
-npm run db:studio     # Open Prisma Studio
+# Development
+npm run dev               # Start all apps in development mode
+npm run build             # Build all packages
+npm run lint              # Run ESLint
+npm run typecheck         # TypeScript type checking
+
+# Database
+npm run db:generate       # Generate Prisma client
+npm run db:push           # Push schema to database
+npm run db:studio         # Open Prisma Studio
+npm run db:seed           # Seed database with test data
+
+# Testing
+npm run test              # Run all tests
+npm run test:unit         # Unit tests only
+npm run test:e2e:sim      # Simulated E2E tests
+npm run test:e2e:real     # Real E2E tests (requires credentials)
+
+# Infrastructure
+npm run seed-pool         # Pre-provision server pool
 ```
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and configure:
+
+### Required
+
+```bash
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Database
+DATABASE_URL=
+
+# Application
+NEXT_PUBLIC_APP_URL=
+```
+
+### Billing (Polar.sh)
+
+```bash
+POLAR_ACCESS_TOKEN=
+POLAR_ORGANIZATION_ID=
+POLAR_WEBHOOK_SECRET=
+POLAR_PRODUCT_BASIC=
+POLAR_PRODUCT_PRO=
+```
+
+### Infrastructure (Hetzner)
+
+```bash
+HETZNER_API_TOKEN=
+HETZNER_SSH_KEY_ID=
+```
+
+### AI Providers
+
+```bash
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+PROXY_SIGNING_SECRET=
+```
+
+### Optional
+
+```bash
+# Webhooks
+CLERK_WEBHOOK_SECRET=
+
+# Email (Resend)
+RESEND_API_KEY=
+
+# Error Tracking (Sentry)
+SENTRY_DSN=
+
+# Caching (Upstash Redis)
+REDIS_URL=
+```
+
+See `.env.example` for the complete list with descriptions.
+
+## Deployment
+
+BlitzClaw is designed for deployment on **Vercel**:
+
+1. Connect your repository to Vercel
+2. Configure environment variables in Vercel dashboard
+3. Deploy
+
+The `vercel.json` configuration handles routing and build settings automatically.
+
+### Production Checklist
+
+- [ ] Configure all required environment variables
+- [ ] Set up Clerk production instance
+- [ ] Configure Polar.sh products and webhooks
+- [ ] Create Hetzner API token with server permissions
+- [ ] Pre-provision server pool with `npm run seed-pool`
+- [ ] Set up webhook endpoints for Clerk and Polar.sh
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
 
 ## Documentation
 
-- [Development Guide](docs/DEVELOPMENT.md) — Local setup & contribution
-- [Deployment Guide](docs/DEPLOYMENT.md) — Production deployment
-- [Proxy Architecture](docs/PROXY.md) — Token proxy details
-- [Full Spec](SPEC.md) — Technical specification
+- [Development Guide](docs/DEVELOPMENT.md) — Local setup and contribution guidelines
+- [Deployment Guide](docs/DEPLOYMENT.md) — Production deployment checklist
+- [Proxy Architecture](docs/PROXY.md) — Token proxy and usage metering details
+- [Technical Spec](SPEC.md) — Full technical specification
 
-## Architecture
+## How It Works
 
-```
-┌─────────────────────────────────────────┐
-│            BlitzClaw Platform           │
-├─────────────────────────────────────────┤
-│  ┌────────┐  ┌─────┐  ┌─────────────┐  │
-│  │ Web UI │──│ API │──│ Provisioner │  │
-│  └────────┘  └─────┘  └─────────────┘  │
-│                 │            │          │
-│           ┌─────┴─────┐      │          │
-│           ▼           ▼      ▼          │
-│       ┌───────┐  ┌───────┐ ┌───────┐   │
-│       │ Clerk │  │ Paddle │ │Hetzner│   │
-│       └───────┘  └───────┘ └───────┘   │
-└─────────────────────────────────────────┘
-                    │
-    ┌───────────────┼───────────────┐
-    ▼               ▼               ▼
-┌────────┐    ┌────────┐    ┌────────┐
-│Instance│    │Instance│    │Instance│
-│ User A │    │ User B │    │ User C │
-└───┬────┘    └────────┘    └────────┘
-    │
-    ▼
-┌────────────────┐
-│  Token Proxy   │
-│ (counts usage) │
-└───────┬────────┘
-        ▼
-┌────────────────┐
-│ Anthropic/     │
-│ OpenAI         │
-└────────────────┘
-```
+1. **User signs up** via Clerk authentication
+2. **Subscribes** to Basic or Pro plan through Polar.sh
+3. **Creates instance** — BlitzClaw assigns a pre-provisioned server from the pool
+4. **Connects Telegram** — User provides bot token, BlitzClaw configures the instance
+5. **Starts chatting** — AI assistant is ready with browser automation capabilities
+6. **Usage tracked** — Token proxy meters API calls, deducts from credit balance
 
-## Pricing
+### Server Pool
 
-| Item | Cost |
-|------|------|
-| Base fee | $20/month (includes ~$10 usage) |
-| Claude Sonnet 4 | $4.50/$22.50 per 1M tokens (in/out) |
-| Claude Haiku | $0.40/$2.00 per 1M tokens (in/out) |
-| GPT-4o | $3.75/$15.00 per 1M tokens (in/out) |
+BlitzClaw maintains a pool of pre-configured Hetzner servers. When a user creates an instance:
 
-~50% markup on provider costs covers infrastructure + operations.
+1. An available server is assigned from the pool
+2. OpenClaw is configured with user settings (SOUL.md, model, etc.)
+3. Telegram bot is connected
+4. Server status changes from `AVAILABLE` → `ASSIGNED`
 
-## Status
-
-🚧 **Under Development** — Phase 1 MVP in progress.
+This pool-based approach enables **instant provisioning** (seconds vs. minutes for cold starts).
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run `npm run lint` and fix issues
-5. Submit a pull request
-
-See [Development Guide](docs/DEVELOPMENT.md) for details.
+4. Run linting and tests (`npm run lint && npm run test`)
+5. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## License
 
@@ -207,4 +279,4 @@ MIT
 
 ---
 
-Built with ❤️ by the BlitzClaw team.
+Built with ⚡ by the BlitzClaw team.
