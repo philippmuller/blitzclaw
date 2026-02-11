@@ -147,15 +147,15 @@ export async function POST(request: Request) {
         },
       });
 
-      // Credit balance for subscription
+      // Credit balance for subscription - $5 for basic, $15 for pro
+      const creditsCents = plan === "pro" ? 1500 : 500;
       const existingBalance = await prisma.balance.findUnique({ where: { userId } });
 
       if (existingBalance) {
-        // Add $5 credit bonus for subscription
         await prisma.balance.update({
           where: { userId },
           data: { 
-            creditsCents: { increment: 500 },
+            creditsCents: { increment: creditsCents },
             autoTopupEnabled: true,
           },
         });
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
         await prisma.balance.create({
           data: {
             userId,
-            creditsCents: 500,
+            creditsCents,
             autoTopupEnabled: true,
             topupThresholdCents: 0,
             topupAmountCents: 0,
