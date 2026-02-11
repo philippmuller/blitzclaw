@@ -1,17 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "npx prisma db push --schema=packages/db/prisma/schema.prisma --accept-data-loss && cd packages/db && npm run build && cd ../../apps/web && npm run build",
-  "installCommand": "npm install --workspaces --include-workspace-root",
-  "outputDirectory": "apps/web/.next",
-  "headers": [
+  "crons": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, PATCH, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-BlitzClaw-Instance, X-BlitzClaw-Secret" }
-      ]
+      "path": "/api/internal/maintain-pool",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

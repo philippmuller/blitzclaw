@@ -52,6 +52,7 @@ export async function provisionPoolServer(options?: {
   model?: string;
   byokMode?: boolean;
   anthropicKey?: string;
+  serverType?: string; // "cx23" (basic) or "cx33" (pro)
 }): Promise<{
   id: string;
   hetznerServerId: string;
@@ -117,9 +118,10 @@ export async function provisionPoolServer(options?: {
     console.warn("HETZNER_SSH_KEY_ID not set - server will not have SSH access");
   }
   
-  console.log("Creating Hetzner server:", serverName);
+  console.log("Creating Hetzner server:", serverName, "type:", options?.serverType || "cx23");
   const { serverId, ipAddress } = await createServer({
     name: serverName,
+    serverType: options?.serverType, // "cx23" (basic) or "cx33" (pro)
     userData: cloudInit,
     sshKeys: sshKeyId ? [sshKeyId] : [],
     labels: {
@@ -374,6 +376,11 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
 }> {
   const { userId, channelType, personaTemplate, model, soulMd, channelConfig, byokMode, anthropicKey } = options;
 
+  // Get user's plan to determine server type
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
+  const isPro = user?.plan === "pro";
+  const serverType = isPro ? "cx33" : "cx23"; // Pro: 4 cores, 8GB; Basic: 2 cores, 4GB
+
   // Parse channelConfig to extract bot token
   let telegramBotToken: string | undefined;
   if (channelConfig) {
@@ -489,6 +496,7 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
         model: model || "claude-opus-4-6",
         byokMode,
         anthropicKey,
+        serverType, // Pro users get cx33, Basic get cx23
       });
       
       // Immediately assign it to this instance
