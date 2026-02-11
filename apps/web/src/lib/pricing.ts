@@ -104,7 +104,7 @@ export function getSupportedModels(): ModelPricing[] {
 /**
  * Minimum balance required to make API calls (in cents)
  */
-export const MINIMUM_BALANCE_CENTS = 1000; // $10
+export const MINIMUM_BALANCE_CENTS = 100; // $1
 
 /**
  * Maximum daily spend per account (in cents)

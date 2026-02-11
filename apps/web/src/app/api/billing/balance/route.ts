@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   const creditsCents = user.balance?.creditsCents ?? 0;
-  const minimumCents = 1000; // $10 minimum
+  const minimumCents = 100; // $1 minimum
 
   return NextResponse.json({
     creditsCents,

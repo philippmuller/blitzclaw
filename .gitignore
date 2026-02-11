@@ -47,3 +47,5 @@ data/
 *.db-journal
 .env.production
 .env.vercel
+.env.vercel-prod
+test-*.png
