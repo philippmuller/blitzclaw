@@ -231,16 +231,52 @@ export async function cleanupStuckServers(): Promise<{
 }
 
 /**
+ * Clean up orphaned servers (ASSIGNED but no instance linked)
+ * These can occur when an instance is deleted but the pool entry isn't properly returned.
+ */
+export async function cleanupOrphanedServers(): Promise<number> {
+  const orphaned = await prisma.serverPool.findMany({
+    where: {
+      status: ServerPoolStatus.ASSIGNED,
+      assignedTo: null,
+    },
+  });
+
+  if (orphaned.length === 0) {
+    return 0;
+  }
+
+  console.log(`Found ${orphaned.length} orphaned server(s):`, orphaned.map(s => s.id));
+
+  await prisma.serverPool.updateMany({
+    where: {
+      status: ServerPoolStatus.ASSIGNED,
+      assignedTo: null,
+    },
+    data: {
+      status: ServerPoolStatus.AVAILABLE,
+    },
+  });
+
+  console.log(`Returned ${orphaned.length} orphaned server(s) to AVAILABLE`);
+  return orphaned.length;
+}
+
+/**
  * Maintain the server pool (called periodically)
  */
 export async function maintainPool(): Promise<{
   provisioned: number;
   cleaned: number;
+  orphansCleaned: number;
   errors: string[];
 }> {
   const errors: string[] = [];
 
-  // Clean up stuck servers first
+  // Clean up orphaned servers first (ASSIGNED but no instance)
+  const orphansCleaned = await cleanupOrphanedServers();
+
+  // Clean up stuck provisioning servers
   const cleanupResult = await cleanupStuckServers();
   errors.push(...cleanupResult.errors);
 
