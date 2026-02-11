@@ -40,8 +40,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    if (body.plan === "pro" || body.plan === "basic") {
-      plan = body.plan;
+    // Support both "plan" and "tier" field names
+    const requestedPlan = body.plan || body.tier;
+    if (requestedPlan === "pro" || requestedPlan === "basic") {
+      plan = requestedPlan;
     }
     byokMode = body.byokMode === true;
     anthropicKey = body.anthropicKey;
