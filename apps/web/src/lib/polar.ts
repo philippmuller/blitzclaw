@@ -194,11 +194,18 @@ export async function getCustomerPortalUrl(customerId: string) {
 }
 
 /**
- * Verify Polar webhook signature
+ * Verify Polar webhook signature (Standard Webhooks format)
+ * 
+ * Polar uses Standard Webhooks format:
+ * - Header: 'webhook-signature' 
+ * - Format: 'v1,<base64-signature>'
+ * - Also requires 'webhook-id' and 'webhook-timestamp' headers
  */
 export function verifyWebhookSignature(
   payload: string,
-  signature: string | null
+  webhookId: string | null,
+  webhookTimestamp: string | null,
+  webhookSignature: string | null
 ): boolean {
   const secret = process.env.POLAR_WEBHOOK_SECRET;
   
@@ -207,22 +214,49 @@ export function verifyWebhookSignature(
     return true; // Allow in dev
   }
 
-  if (!signature) {
+  if (!webhookId || !webhookTimestamp || !webhookSignature) {
+    console.warn("Missing webhook headers for verification");
     return false;
   }
 
-  // Polar uses standard HMAC-SHA256
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("hex");
-
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expected)
-    );
-  } catch {
+    // Standard Webhooks format: sign "webhook_id.timestamp.payload"
+    const signedPayload = `${webhookId}.${webhookTimestamp}.${payload}`;
+    
+    // Secret might be base64 encoded with "whsec_" prefix
+    let secretBytes: Buffer;
+    if (secret.startsWith("whsec_")) {
+      secretBytes = Buffer.from(secret.substring(6), "base64");
+    } else {
+      secretBytes = Buffer.from(secret, "base64");
+    }
+    
+    const expected = crypto
+      .createHmac("sha256", secretBytes)
+      .update(signedPayload)
+      .digest("base64");
+
+    // Signature header can have multiple signatures: "v1,sig1 v1,sig2"
+    const signatures = webhookSignature.split(" ");
+    
+    for (const sig of signatures) {
+      const [version, signature] = sig.split(",");
+      if (version === "v1") {
+        try {
+          const sigMatch = crypto.timingSafeEqual(
+            Buffer.from(signature, "base64"),
+            Buffer.from(expected, "base64")
+          );
+          if (sigMatch) return true;
+        } catch {
+          // Continue checking other signatures
+        }
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Webhook signature verification error:", error);
     return false;
   }
 }

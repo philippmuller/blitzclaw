@@ -25,7 +25,10 @@ type PolarEventType =
   | "subscription.updated"
   | "subscription.canceled"
   | "subscription.revoked"
-  | "order.created";
+  | "order.created"
+  | "benefit_grant.created"
+  | "benefit_grant.updated"
+  | "benefit_grant.revoked";
 
 interface PolarWebhookEvent {
   type: PolarEventType;
@@ -51,12 +54,19 @@ interface PolarWebhookEvent {
 
 export async function POST(request: Request) {
   const payload = await request.text();
-  const signature = request.headers.get("polar-signature") ||
-                    request.headers.get("x-polar-signature");
+  
+  // Standard Webhooks headers
+  const webhookId = request.headers.get("webhook-id");
+  const webhookTimestamp = request.headers.get("webhook-timestamp");
+  const webhookSignature = request.headers.get("webhook-signature");
 
   // Verify webhook signature
-  if (!verifyWebhookSignature(payload, signature)) {
-    console.warn("⚠️ Polar webhook signature verification failed");
+  if (!verifyWebhookSignature(payload, webhookId, webhookTimestamp, webhookSignature)) {
+    console.warn("⚠️ Polar webhook signature verification failed", {
+      hasId: !!webhookId,
+      hasTimestamp: !!webhookTimestamp,
+      hasSignature: !!webhookSignature,
+    });
     // In sandbox/dev, continue anyway but log it
     if (process.env.NODE_ENV === "production" && polarConfig.server === "production") {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
@@ -201,6 +211,77 @@ export async function POST(request: Request) {
       }).catch(() => {});
 
       console.log(`🚫 Subscription revoked for user ${userId}, instances paused`);
+      break;
+    }
+
+    case "benefit_grant.created":
+    case "benefit_grant.updated": {
+      // Benefit granted - this is where credits get assigned
+      // The benefit should include the credit amount
+      const benefitData = data as {
+        id: string;
+        customer_id?: string;
+        customer?: { id: string; external_id?: string };
+        benefit?: { 
+          id: string; 
+          type: string; 
+          description?: string;
+          properties?: { amount?: number };
+        };
+        properties?: { amount?: number };
+        is_granted?: boolean;
+      };
+      
+      const benefitCustomerId = benefitData.customer_id || benefitData.customer?.id;
+      const benefitUserId = benefitData.customer?.external_id || data.metadata?.user_id;
+      
+      console.log(`🎁 Benefit grant event:`, {
+        type: event.type,
+        benefitType: benefitData.benefit?.type,
+        benefitId: benefitData.benefit?.id,
+        customerId: benefitCustomerId,
+        userId: benefitUserId,
+        isGranted: benefitData.is_granted,
+        properties: benefitData.properties,
+      });
+
+      // If this is a credit grant and we have a user ID, credit their balance
+      if (benefitUserId) {
+        // Get or create customer mapping if we have Polar customer ID
+        if (benefitCustomerId) {
+          await prisma.user.update({
+            where: { id: benefitUserId },
+            data: { polarCustomerId: benefitCustomerId },
+          }).catch(() => {});
+        }
+
+        // Ensure balance exists with initial credits
+        // Polar handles the actual credit tracking via meters
+        await prisma.balance.upsert({
+          where: { userId: benefitUserId },
+          update: {
+            // Don't override - just ensure it exists
+          },
+          create: {
+            userId: benefitUserId,
+            creditsCents: 500, // $5 initial credit
+            autoTopupEnabled: true,
+            topupThresholdCents: 0,
+            topupAmountCents: 0,
+          },
+        });
+        
+        console.log(`✅ Ensured balance exists for user ${benefitUserId}`);
+      }
+      break;
+    }
+
+    case "benefit_grant.revoked": {
+      // Benefit revoked - could pause access
+      console.log(`⚠️ Benefit revoked:`, {
+        benefitId: (data as { benefit?: { id: string } }).benefit?.id,
+        customerId: data.customer_id || data.customer?.id,
+      });
       break;
     }
 
