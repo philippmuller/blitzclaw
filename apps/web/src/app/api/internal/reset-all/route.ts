@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     for (const instance of instances) {
       if (instance.serverPool?.hetznerServerId) {
         try {
-          await deleteServer(instance.serverPool.hetznerServerId);
+          await deleteServer(parseInt(instance.serverPool.hetznerServerId, 10));
           deletedServers.push(instance.serverPool.hetznerServerId);
         } catch (err) {
           console.error(`Failed to delete Hetzner server ${instance.serverPool.hetznerServerId}:`, err);
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       
       for (const server of pool) {
         try {
-          await deleteServer(server.hetznerServerId);
+          await deleteServer(parseInt(server.hetznerServerId, 10));
           deletedPoolServers.push(server.hetznerServerId);
         } catch (err) {
           console.error(`Failed to delete pool server ${server.hetznerServerId}:`, err);
