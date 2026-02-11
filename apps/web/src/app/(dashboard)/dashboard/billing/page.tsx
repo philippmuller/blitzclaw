@@ -116,22 +116,22 @@ export default async function BillingPage() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Your Plan</p>
-              <p className="text-xl font-semibold text-foreground">
-                {user.billingMode === "byok" ? "BYOK" : "Managed"}
+              <p className="text-xl font-semibold text-foreground capitalize">
+                {user.plan || "No Plan"}
               </p>
             </div>
             <div className="text-3xl">📋</div>
           </div>
           <p className="text-sm text-muted-foreground">
-            {user.billingMode === "byok" 
-              ? "€14/mo — You pay Anthropic directly" 
-              : "Credits included in subscription"}
+            {user.plan === "basic" && "$5 credits included monthly"}
+            {user.plan === "pro" && "$15 credits included monthly"}
+            {!user.plan && "Subscribe to a plan to get started"}
           </p>
         </div>
       </div>
 
       {/* Upgrade/Downgrade Options */}
-      <UpgradeButtons currentBillingMode={user.billingMode} />
+      <UpgradeButtons currentPlan={user.plan} currentBillingMode={user.billingMode} />
 
       {/* Usage by Model */}
       {Object.keys(usageByModel).length > 0 && (
