@@ -132,7 +132,7 @@ export default function TopupPage() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="text-green-400 mt-0.5">✓</span>
-              <span><strong>€14/month flat fee</strong> for BlitzClaw access</span>
+              <span><strong>$14/month flat fee</strong> for BlitzClaw access</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-400 mt-0.5">✓</span>
@@ -193,7 +193,7 @@ export default function TopupPage() {
       <div className="bg-card border border-border rounded-xl p-6">
         <p className="text-sm text-muted-foreground mb-1">Current Balance</p>
         <p className="text-3xl font-bold text-foreground">
-          €{(balance / 100).toFixed(2)}
+          ${(balance / 100).toFixed(2)}
         </p>
       </div>
 
@@ -220,7 +220,7 @@ export default function TopupPage() {
               className="relative flex items-center justify-between p-4 bg-card border border-border rounded-xl hover:border-primary/50 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center gap-3">
-                <span className="text-xl font-bold text-foreground">€{amount}</span>
+                <span className="text-xl font-bold text-foreground">${amount}</span>
                 {popular && (
                   <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs font-medium rounded">
                     Popular

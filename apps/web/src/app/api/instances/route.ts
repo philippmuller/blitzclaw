@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       where: { userId: user.id },
       data: { 
         autoTopupEnabled: autoTopup,
-        topupAmountCents: 2500, // €25 top-up
+        topupAmountCents: 2500, // $25 top-up
       },
     });
   }
