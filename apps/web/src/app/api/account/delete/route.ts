@@ -2,7 +2,7 @@
  * Delete Account endpoint
  *
  * Deletes user account and all associated data:
- * - Cancels Creem subscription
+ * - Cancels Polar subscription
  * - Deletes Hetzner servers
  * - Deletes all database records
  */
@@ -11,7 +11,7 @@ import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
 import { deleteServer } from "@/lib/hetzner";
-import { cancelCreemSubscription } from "@/lib/creem";
+import { revokeSubscription } from "@/lib/polar";
 
 export async function DELETE() {
   const { userId: clerkId } = await auth();
@@ -34,13 +34,13 @@ export async function DELETE() {
 
   const errors: string[] = [];
 
-  // 1. Cancel Creem subscription (if exists)
-  if (user.creemSubscriptionId) {
+  // 1. Cancel Polar subscription (if exists)
+  if (user.polarSubscriptionId) {
     try {
-      await cancelCreemSubscription(user.creemSubscriptionId);
-      console.log(`Cancelled Creem subscription ${user.creemSubscriptionId} for user ${user.id}`);
+      await revokeSubscription(user.polarSubscriptionId);
+      console.log(`Cancelled Polar subscription ${user.polarSubscriptionId} for user ${user.id}`);
     } catch (error) {
-      console.error("Failed to cancel Creem subscription:", error);
+      console.error("Failed to cancel Polar subscription:", error);
       errors.push(`Subscription cancellation error: ${(error as Error).message}`);
     }
   }
