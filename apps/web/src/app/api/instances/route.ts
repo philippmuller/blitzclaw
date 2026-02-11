@@ -4,7 +4,7 @@ import { prisma } from "@blitzclaw/db";
 import { createInstance, listInstances } from "@/lib/provisioning";
 
 // Minimum balance required to create an instance (in cents)
-const MINIMUM_BALANCE_CENTS = 1000;
+const MINIMUM_BALANCE_CENTS = 100;
 
 /**
  * GET /api/instances - List user's instances

@@ -386,8 +386,8 @@ function OnboardingContent() {
                       </div>
                       <ul className="text-gray-400 text-sm space-y-1">
                         <li>✓ Dedicated server</li>
-                        <li>✓ Credits included</li>
-                        <li>✓ Top up anytime</li>
+                        <li>✓ $5 credits included</li>
+                        <li>✓ Pay as you go</li>
                       </ul>
                     </button>
 
@@ -407,8 +407,9 @@ function OnboardingContent() {
                       </div>
                       <ul className="text-gray-400 text-sm space-y-1">
                         <li>✓ Dedicated server</li>
-                        <li>✓ Credits included</li>
+                        <li>✓ $15 credits included</li>
                         <li>✓ Priority support</li>
+                        <li>✓ Advanced tools</li>
                       </ul>
                     </button>
                   </div>
