@@ -266,12 +266,11 @@ export async function POST(request: Request) {
           }).catch(() => {});
         }
 
-        // Get credit amount from Polar benefit properties (in dollars, convert to cents)
-        // Polar sends amount in the benefit properties
+        // Get credit amount from Polar benefit properties (already in cents)
         const benefitAmount = benefitData.properties?.amount || benefitData.benefit?.properties?.amount;
-        const creditsCents = benefitAmount ? Math.round(benefitAmount * 100) : 500; // Default $5 if not specified
+        const creditsCents = benefitAmount || 500; // Default 500 cents ($5) if not specified
         
-        console.log(`💰 Benefit credit amount: $${benefitAmount} = ${creditsCents} cents`);
+        console.log(`💰 Benefit credit amount: ${creditsCents} cents`);
 
         const existingBenefitBalance = await prisma.balance.findUnique({ 
           where: { userId: benefitUserId } 
