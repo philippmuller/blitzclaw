@@ -46,20 +46,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Find the instance or pool entry
-    // The instance_id from cloud-init might be a pool ID or instance ID
+    // The instance_id from cloud-init is the Hetzner server ID (from metadata service)
+    // It might also be a pool ID or instance ID for backwards compatibility
+    const instanceIdStr = String(instance_id);
     
-    // First try to find by pool entry
+    // First try to find by pool entry (checking hetznerServerId which stores the Hetzner ID)
     const poolEntry = await prisma.serverPool.findFirst({
       where: {
         OR: [
-          { id: instance_id },
-          { hetznerServerId: instance_id },
+          { id: instanceIdStr },
+          { hetznerServerId: instanceIdStr },
         ]
       },
       include: {
         instance: true,
       }
     });
+    
+    console.log(`Looking for pool entry with id=${instanceIdStr}, found:`, poolEntry?.id || "none");
 
     if (poolEntry?.assignedTo) {
       // Update the associated instance to ACTIVE

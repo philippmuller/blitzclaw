@@ -332,10 +332,12 @@ ${JSON.stringify({
       systemctl status openclaw || true
       
       echo "=== Signaling ready ==="
+      # Get Hetzner server ID from metadata service (more reliable for callback matching)
+      HETZNER_ID=$(curl -s http://169.254.169.254/hetzner/v1/metadata/instance-id || echo "${instanceId}")
       curl -X POST "${blitzclawApiUrl}/api/internal/instance-ready" \
         -H "Content-Type: application/json" \
         -H "X-Instance-Secret: ${proxySecret}" \
-        -d '{"instance_id": "${instanceId}"}' \
+        -d "{\"instance_id\": \"$HETZNER_ID\"}" \
         || echo "Callback failed (non-fatal)"
       
       touch /etc/blitzclaw/ready
