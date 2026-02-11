@@ -295,6 +295,7 @@ export async function maintainPool(): Promise<{
   return {
     provisioned,
     cleaned: cleanupResult.cleaned,
+    orphansCleaned,
     errors,
   };
 }
