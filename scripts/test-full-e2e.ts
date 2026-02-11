@@ -510,10 +510,10 @@ async function cleanupTest() {
       if (data.errors && data.errors.length > 0) {
         log(`    ⚠️  Some cleanup errors: ${data.errors.join(", ")}`);
       }
-      if (data.creem?.cancelled) {
-        log(`  ✓ Creem subscription cancelled`);
-      } else if (data.creem?.error) {
-        log(`    ⚠️  Creem cancellation error: ${data.creem.error}`);
+      if (data.polar?.cancelled) {
+        log(`  ✓ Polar subscription cancelled`);
+      } else if (data.polar?.error) {
+        log(`    ⚠️  Polar cancellation error: ${data.polar.error}`);
       }
       if (data.hetzner?.deleted) {
         log(`  ✓ Hetzner servers deleted`);

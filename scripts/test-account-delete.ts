@@ -4,7 +4,7 @@
  * 
  * Creates a test user with full setup, then deletes it via the API.
  * Verifies:
- * 1. Creem subscription cancellation
+ * 1. Polar subscription cancellation
  * 2. Hetzner server deletion (if exists)
  * 3. Database cleanup (user, instances, balance, usage logs)
  * 
@@ -67,13 +67,13 @@ async function testAccountDeletion() {
     await prisma.user.update({
       where: { id: deleteTestDbUser.id },
       data: {
-        creemSubscriptionId: "sub_test_delete_" + Date.now(),
-        creemCustomerId: "cus_test_delete_" + Date.now(),
+        polarSubscriptionId: "sub_test_delete_" + Date.now(),
+        polarCustomerId: "cus_test_delete_" + Date.now(),
         billingMode: "byok",
         anthropicKey: "sk-ant-api03-test-delete-key",
       },
     });
-    console.log(`   ✅ Added Creem subscription ID`);
+    console.log(`   ✅ Added Polar subscription ID`);
 
     // Step 4: Create balance
     console.log("\n4️⃣ Creating balance record...");

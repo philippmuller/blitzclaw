@@ -132,15 +132,15 @@ async function testSubscribeEndpoint() {
 }
 
 // ==============================================================
-// 2. CREEM WEBHOOK TESTS (simulated)
+// 2. POLAR WEBHOOK TESTS (simulated)
 // ==============================================================
-async function testCreemWebhook() {
-  log("\n🔔 TESTING: /api/webhooks/creem");
+async function testPolarWebhook() {
+  log("\n🔔 TESTING: /api/webhooks/polar");
   log("=".repeat(50));
 
   // Test 2.1: Invalid JSON
   try {
-    const resp = await fetch(`${BASE_URL}/api/webhooks/creem`, {
+    const resp = await fetch(`${BASE_URL}/api/webhooks/polar`, {
       method: "POST",
       headers: { "Content-Type": "text/plain" },
       body: "not json",
@@ -158,11 +158,12 @@ async function testCreemWebhook() {
   // Test 2.2: Valid webhook structure (will log but process)
   // Note: Without proper signature, this tests the parsing logic
   const testUserId = "test-user-" + Date.now();
+  const timestamp = Math.floor(Date.now() / 1000).toString();
   try {
     const webhookPayload = {
       type: "subscription.active",
       data: {
-        subscription_id: "sub_test123",
+        id: "sub_test123",
         customer_id: "cus_test456",
         metadata: {
           user_id: testUserId,
@@ -173,11 +174,14 @@ async function testCreemWebhook() {
       },
     };
     
-    const resp = await fetch(`${BASE_URL}/api/webhooks/creem`, {
+    const resp = await fetch(`${BASE_URL}/api/webhooks/polar`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        // No signature - webhook will warn but process
+        // Standard Webhooks headers (signature will be invalid but tests parsing)
+        "webhook-id": "test_" + Date.now(),
+        "webhook-timestamp": timestamp,
+        "webhook-signature": "v1,invalid_test_signature",
       },
       body: JSON.stringify(webhookPayload),
     });
@@ -198,7 +202,7 @@ async function testCreemWebhook() {
 
   // Test 2.3: Test different event types
   const eventTypes = [
-    { type: "checkout.completed", tier: "basic" },
+    { type: "order.created", tier: "basic" },
     { type: "subscription.active", tier: "pro" },
     { type: "subscription.canceled", tier: "byok" },
   ];
@@ -208,13 +212,19 @@ async function testCreemWebhook() {
       const payload = {
         type,
         data: {
+          id: `test_${Date.now()}`,
           metadata: { user_id: `test-${Date.now()}`, tier, type: "subscription" },
         },
       };
       
-      const resp = await fetch(`${BASE_URL}/api/webhooks/creem`, {
+      const resp = await fetch(`${BASE_URL}/api/webhooks/polar`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "webhook-id": "test_" + Date.now(),
+          "webhook-timestamp": Math.floor(Date.now() / 1000).toString(),
+          "webhook-signature": "v1,invalid_test_signature",
+        },
         body: JSON.stringify(payload),
       });
       
@@ -351,18 +361,19 @@ function testTierLogic() {
   log("\n💰 TESTING: Tier Credits Logic (unit tests)");
   log("=".repeat(50));
 
-  // Test expected credits per tier based on code analysis
+  // Test expected credits per tier based on Polar pricing
+  // Basic: $5 (500 cents), Pro: $15 (1500 cents)
   const expectedCredits = {
     byok: 0,      // BYOK pays Anthropic directly
-    basic: 1000,  // €10 in cents  
-    pro: 11000,   // €110 in cents
+    basic: 500,   // $5 in cents  
+    pro: 1500,    // $15 in cents
   };
 
   // Since we can't import directly, we verify the values in source
   const sourceCredits = {
     byok: 0,
-    basic: 1000,
-    pro: 11000,
+    basic: 500,
+    pro: 1500,
   };
 
   for (const [tier, expected] of Object.entries(expectedCredits)) {
@@ -409,7 +420,7 @@ async function main() {
 
   // Run all tests
   await testSubscribeEndpoint();
-  await testCreemWebhook();
+  await testPolarWebhook();
   await testAuthEndpoint();
   await testClerkWebhook();
   await testInstanceEndpoint();
