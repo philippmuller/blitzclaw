@@ -266,8 +266,13 @@ export async function POST(request: Request) {
           }).catch(() => {});
         }
 
-        // Ensure balance exists with initial credits
-        // Polar handles the actual credit tracking via meters
+        // Get credit amount from Polar benefit properties (in dollars, convert to cents)
+        // Polar sends amount in the benefit properties
+        const benefitAmount = benefitData.properties?.amount || benefitData.benefit?.properties?.amount;
+        const creditsCents = benefitAmount ? Math.round(benefitAmount * 100) : 500; // Default $5 if not specified
+        
+        console.log(`💰 Benefit credit amount: $${benefitAmount} = ${creditsCents} cents`);
+
         const existingBenefitBalance = await prisma.balance.findUnique({ 
           where: { userId: benefitUserId } 
         });
@@ -276,7 +281,7 @@ export async function POST(request: Request) {
           await prisma.balance.create({
             data: {
               userId: benefitUserId,
-              creditsCents: 500, // $5 initial credit
+              creditsCents,
               autoTopupEnabled: true,
               topupThresholdCents: 0,
               topupAmountCents: 0,
@@ -284,12 +289,12 @@ export async function POST(request: Request) {
           });
           console.log(`✅ Created balance for user ${benefitUserId}`);
         } else if (existingBenefitBalance.creditsCents === 0) {
-          // Balance exists but is 0 - this shouldn't happen but fix it
+          // Balance exists but is 0 - credit from benefit
           await prisma.balance.update({
             where: { userId: benefitUserId },
-            data: { creditsCents: 500 },
+            data: { creditsCents },
           });
-          console.log(`✅ Fixed 0 balance for user ${benefitUserId}`);
+          console.log(`✅ Credited ${creditsCents} cents for user ${benefitUserId}`);
         } else {
           console.log(`✅ Balance already exists for user ${benefitUserId}: ${existingBenefitBalance.creditsCents} cents`);
         }
