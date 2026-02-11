@@ -1,7 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
-import { InstanceCard } from "@/components";
+import { InstanceCardWithActions } from "@/components";
 
 export default async function InstancesPage() {
   const clerkUser = await currentUser();
@@ -64,7 +64,7 @@ export default async function InstancesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {instances.map((instance) => (
-            <InstanceCard
+            <InstanceCardWithActions
               key={instance.id}
               id={instance.id}
               status={instance.status}

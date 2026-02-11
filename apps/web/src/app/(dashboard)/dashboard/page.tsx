@@ -2,7 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
-import { BalanceCard, InstanceCard } from "@/components";
+import { BalanceCard, InstanceCardWithActions } from "@/components";
 
 async function getOrCreateUser(clerkUser: NonNullable<Awaited<ReturnType<typeof currentUser>>>) {
   let user = await prisma.user.findUnique({
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {user.instances.map((instance) => (
-              <InstanceCard
+              <InstanceCardWithActions
                 key={instance.id}
                 id={instance.id}
                 status={instance.status}

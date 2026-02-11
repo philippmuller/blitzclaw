@@ -1,5 +1,6 @@
 export { BalanceCard } from "./BalanceCard";
 export { InstanceCard } from "./InstanceCard";
+export { InstanceCardWithActions } from "./InstanceCardWithActions";
 export { StatusBadge } from "./StatusBadge";
 export { TelegramSetup } from "./TelegramSetup";
 export { SoulEditor } from "./SoulEditor";

@@ -599,18 +599,67 @@ export async function deleteInstance(instanceId: string, userId: string): Promis
 /**
  * Restart an instance (restart OpenClaw on the server)
  */
-export async function restartInstance(instanceId: string, userId: string): Promise<boolean> {
+export async function restartInstance(instanceId: string, userId: string): Promise<{
+  success: boolean;
+  output?: string;
+  error?: string;
+}> {
   const instance = await prisma.instance.findFirst({
     where: { id: instanceId, userId },
   });
 
-  if (!instance || !instance.hetznerServerId) {
-    return false;
+  if (!instance || !instance.ipAddress) {
+    return { success: false, error: "Instance not found or no IP" };
   }
 
-  // For now, just reboot the server
-  // In production, we'd SSH in and restart the OpenClaw service
-  await rebootServer(parseInt(instance.hetznerServerId, 10));
+  try {
+    const { sshExec } = await import("./ssh");
+    const { stdout, stderr, code } = await sshExec(
+      instance.ipAddress,
+      "systemctl restart openclaw && sleep 2 && systemctl is-active openclaw",
+      { timeout: 30000 }
+    );
 
-  return true;
+    if (code === 0) {
+      return { success: true, output: stdout.trim() };
+    } else {
+      return { success: false, error: stderr || stdout || "Unknown error" };
+    }
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Repair an instance (run openclaw doctor --fix)
+ */
+export async function repairInstance(instanceId: string, userId: string): Promise<{
+  success: boolean;
+  output?: string;
+  error?: string;
+}> {
+  const instance = await prisma.instance.findFirst({
+    where: { id: instanceId, userId },
+  });
+
+  if (!instance || !instance.ipAddress) {
+    return { success: false, error: "Instance not found or no IP" };
+  }
+
+  try {
+    const { sshExec } = await import("./ssh");
+    const { stdout, stderr, code } = await sshExec(
+      instance.ipAddress,
+      "openclaw doctor --fix 2>&1 || true; systemctl restart openclaw && sleep 2 && systemctl is-active openclaw",
+      { timeout: 60000 }
+    );
+
+    return { 
+      success: code === 0, 
+      output: stdout.trim(),
+      error: code !== 0 ? (stderr || "Doctor command failed") : undefined
+    };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
 }
