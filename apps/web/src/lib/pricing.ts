@@ -11,14 +11,15 @@ export interface ModelPricing {
 }
 
 // Base API costs (what we pay) - updated Feb 2026
+// Source: https://www.anthropic.com/pricing
 const BASE_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = {
-  // Latest Anthropic models (Feb 2026)
-  "claude-opus-4-6": { inputPer1M: 500, outputPer1M: 2500 },       // $5/$25
-  "claude-sonnet-4-5": { inputPer1M: 300, outputPer1M: 1500 },     // $3/$15
-  "claude-haiku-4-5": { inputPer1M: 100, outputPer1M: 500 },       // $1/$5
+  // Latest Anthropic models (Feb 2026) - CORRECT PRICING
+  "claude-opus-4-6": { inputPer1M: 1500, outputPer1M: 7500 },      // $15/$75 per 1M
+  "claude-sonnet-4-5": { inputPer1M: 300, outputPer1M: 1500 },     // $3/$15 per 1M
+  "claude-haiku-4-5": { inputPer1M: 100, outputPer1M: 500 },       // $1/$5 per 1M
   
   // Legacy model IDs (keep for backwards compat)
-  "claude-opus-4-20250514": { inputPer1M: 500, outputPer1M: 2500 },
+  "claude-opus-4-20250514": { inputPer1M: 1500, outputPer1M: 7500 },
   "claude-sonnet-4-20250514": { inputPer1M: 300, outputPer1M: 1500 },
   "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },
 };
