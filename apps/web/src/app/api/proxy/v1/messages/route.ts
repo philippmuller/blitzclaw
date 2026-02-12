@@ -72,15 +72,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check instance status
+  // Check instance status (admin pause only - not for balance)
   if (instance.status === InstanceStatus.PAUSED) {
     return NextResponse.json(
       { 
-        error: "Instance paused due to insufficient balance",
-        code: "BALANCE_DEPLETED",
-        message: "Please top up your account to continue using this instance.",
+        error: "Instance paused",
+        code: "INSTANCE_PAUSED",
+        message: "Your instance has been paused. Please contact support.",
       },
-      { status: 402 }
+      { status: 403 }
     );
   }
 
