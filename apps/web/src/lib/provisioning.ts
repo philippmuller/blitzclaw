@@ -159,7 +159,7 @@ export async function provisionPoolServer(options?: {
         name: serverName,
         size: doSize,
         userData: cloudInit,
-        sshKeys: doSshKeyId ? [doSshKeyId] : [],
+        sshKeys: doSshKeyId ? [doSshKeyId] : undefined,
         labels: {
           service: "blitzclaw",
           type: "pool",
@@ -512,22 +512,24 @@ export async function createInstance(options: CreateInstanceOptions): Promise<{
           ipAddress: poolServer.ipAddress,
         };
         
-        // Update Hetzner labels with user info for dashboard visibility
-        try {
-          const { updateServerLabels, renameServer } = await import("./hetzner");
-          const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-          const userLabel = user?.email?.split("@")[0]?.slice(0, 20) || userId.slice(0, 20);
-          
-          await updateServerLabels(parseInt(poolServer.serverId, 10), {
-            service: "blitzclaw",
-            type: "instance",
-            instance_id: instance.id.slice(0, 63), // Hetzner label value max 63 chars
-            user: userLabel.replace(/[^a-zA-Z0-9_-]/g, "_"),
-          });
-          await renameServer(parseInt(poolServer.serverId, 10), `blitz-${userLabel}`);
-          console.log(`🏷️ Server labeled for user: ${userLabel}`);
-        } catch (labelError) {
-          console.error("Failed to update server labels (non-fatal):", labelError);
+        // Update provider labels/tags with user info for dashboard visibility
+        if (poolServer.provider === CloudProvider.HETZNER) {
+          try {
+            const { updateServerLabels, renameServer } = await import("./hetzner");
+            const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+            const userLabel = user?.email?.split("@")[0]?.slice(0, 20) || userId.slice(0, 20);
+            
+            await updateServerLabels(parseInt(poolServer.serverId, 10), {
+              service: "blitzclaw",
+              type: "instance",
+              instance_id: instance.id.slice(0, 63), // Hetzner label value max 63 chars
+              user: userLabel.replace(/[^a-zA-Z0-9_-]/g, "_"),
+            });
+            await renameServer(parseInt(poolServer.serverId, 10), `blitz-${userLabel}`);
+            console.log(`🏷️ Server labeled for user: ${userLabel}`);
+          } catch (labelError) {
+            console.error("Failed to update server labels (non-fatal):", labelError);
+          }
         }
       } else {
         console.error("❌ Pool server configuration failed:", configResult.error);
