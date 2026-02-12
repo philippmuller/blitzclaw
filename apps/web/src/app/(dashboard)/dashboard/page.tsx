@@ -75,7 +75,7 @@ export default async function DashboardPage() {
   // Check if user is in BYOK mode (any instance using their own API key)
   const isByokUser = user.instances.some(i => i.useOwnApiKey);
 
-  const belowMinimum = creditsCents < 1000;
+  const belowMinimum = creditsCents < 100; // $1 minimum
   const monthlyUsageCents = await getMonthlyUsage(user.id);
   
   const activeInstances = user.instances.filter(i => i.status === "ACTIVE").length;

@@ -32,7 +32,7 @@ export default async function BillingPage() {
   if (!user) return null;
 
   const creditsCents = user.balance?.creditsCents ?? 0;
-  const belowMinimum = creditsCents < 1000;
+  const belowMinimum = creditsCents < 100; // $1 minimum
 
   // Calculate usage stats
   const now = new Date();
