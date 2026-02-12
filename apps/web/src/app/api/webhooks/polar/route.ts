@@ -62,17 +62,14 @@ export async function POST(request: Request) {
   const webhookSignature = request.headers.get("webhook-signature");
 
   // Verify webhook signature
-  // TODO: Fix signature verification - temporarily disabled for launch
-  const signatureValid = verifyWebhookSignature(payload, webhookId, webhookTimestamp, webhookSignature);
-  if (!signatureValid) {
-    console.warn("⚠️ Polar webhook signature verification failed (continuing anyway)", {
+  if (!verifyWebhookSignature(payload, webhookId, webhookTimestamp, webhookSignature)) {
+    console.warn("⚠️ Polar webhook signature verification failed", {
       hasId: !!webhookId,
       hasTimestamp: !!webhookTimestamp,
       hasSignature: !!webhookSignature,
       server: polarConfig.server,
     });
-    // Temporarily disabled for debugging - signature verification not blocking
-    // TODO: Re-enable once signature mismatch is fixed
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let event: PolarWebhookEvent;

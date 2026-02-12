@@ -227,15 +227,10 @@ export function verifyWebhookSignature(
     // Standard Webhooks format: sign "webhook_id.timestamp.payload"
     const signedPayload = `${webhookId}.${webhookTimestamp}.${payload}`;
     
-    // Secret might be base64 encoded with "whsec_" or "polar_whs_" prefix
-    let secretBytes: Buffer;
-    if (secret.startsWith("whsec_")) {
-      secretBytes = Buffer.from(secret.substring(6), "base64");
-    } else if (secret.startsWith("polar_whs_")) {
-      secretBytes = Buffer.from(secret.substring(10), "base64");
-    } else {
-      secretBytes = Buffer.from(secret, "base64");
-    }
+    // Polar SDK approach: base64 encode the raw secret string, then base64 decode for HMAC
+    // The Standard Webhooks library expects the secret to be base64 encoded
+    const base64Secret = Buffer.from(secret, "utf-8").toString("base64");
+    const secretBytes = Buffer.from(base64Secret, "base64");
     
     const expected = crypto
       .createHmac("sha256", secretBytes)
@@ -260,6 +255,10 @@ export function verifyWebhookSignature(
       }
     }
     
+    console.warn("Webhook signature mismatch", { 
+      expected: expected.substring(0, 20) + "...",
+      received: webhookSignature.substring(0, 30) + "..."
+    });
     return false;
   } catch (error) {
     console.error("Webhook signature verification error:", error);
