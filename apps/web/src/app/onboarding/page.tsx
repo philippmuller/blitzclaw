@@ -346,7 +346,7 @@ function OnboardingContent() {
               </div>
               
               <div className="space-y-6">
-                {/* Toggle: Do you have your own API key? */}
+                {/* BYOK toggle hidden for launch - can re-enable later
                 <div className="p-4 bg-gray-800/50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -367,6 +367,7 @@ function OnboardingContent() {
                     </button>
                   </div>
                 </div>
+                */}
 
                 {/* Plan Selection — always visible */}
                 <div className="space-y-4">

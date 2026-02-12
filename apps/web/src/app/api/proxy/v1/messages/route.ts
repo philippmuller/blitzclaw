@@ -422,44 +422,8 @@ export async function POST(req: NextRequest) {
 
   // 10b. Send low balance email notifications (async, don't block)
   const userEmail = instance.user.email;
-  const balanceRecord = instance.user.balance;
-  
-  if (userEmail && balanceRecord) {
-    const LOW_BALANCE_THRESHOLD = 500; // $5
-    const CRITICAL_BALANCE_THRESHOLD = 100; // $1
-    const EMAIL_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
-    const now = new Date();
-    
-    // Send $5 warning (if not sent recently)
-    if (newBalanceCents < LOW_BALANCE_THRESHOLD && newBalanceCents >= CRITICAL_BALANCE_THRESHOLD) {
-      const lastSent = balanceRecord.lastLowBalanceEmail;
-      if (!lastSent || (now.getTime() - lastSent.getTime()) > EMAIL_COOLDOWN_MS) {
-        sendLowBalanceWarning(userEmail, newBalanceCents).then(sent => {
-          if (sent) {
-            prisma.balance.update({
-              where: { userId: instance.userId },
-              data: { lastLowBalanceEmail: now },
-            }).catch(e => console.error("Failed to update lastLowBalanceEmail:", e));
-          }
-        }).catch(e => console.error("Low balance email error:", e));
-      }
-    }
-    
-    // Send $1 critical warning (if not sent recently)
-    if (newBalanceCents < CRITICAL_BALANCE_THRESHOLD && newBalanceCents > 0) {
-      const lastSent = balanceRecord.lastCriticalBalanceEmail;
-      if (!lastSent || (now.getTime() - lastSent.getTime()) > EMAIL_COOLDOWN_MS) {
-        sendCriticalBalanceWarning(userEmail, newBalanceCents).then(sent => {
-          if (sent) {
-            prisma.balance.update({
-              where: { userId: instance.userId },
-              data: { lastCriticalBalanceEmail: now },
-            }).catch(e => console.error("Failed to update lastCriticalBalanceEmail:", e));
-          }
-        }).catch(e => console.error("Critical balance email error:", e));
-      }
-    }
-  }
+  // NOTE: Low balance emails disabled - Polar handles overage billing now
+  // Users will be billed for usage beyond included credits at end of billing cycle
 
   // 11. Return response to instance
   return NextResponse.json(responseData);
