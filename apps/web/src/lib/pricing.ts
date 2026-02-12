@@ -118,7 +118,7 @@ export const MINIMUM_BALANCE_CENTS = 100; // $1
  * Maximum daily spend per account (in cents)
  * Safety limit to prevent runaway costs
  */
-export const DAILY_LIMIT_CENTS = 20000; // $200/day
+export const DAILY_LIMIT_CENTS = 10000; // $100/day safety cap
 
 /**
  * Default model for new instances

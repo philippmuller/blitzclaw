@@ -11,8 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma, InstanceStatus } from "@blitzclaw/db";
 import { calculateCost, DAILY_LIMIT_CENTS } from "@/lib/pricing";
-import { checkAndTriggerTopup } from "@/lib/auto-topup";
-import { sendLowBalanceWarning, sendCriticalBalanceWarning } from "@/lib/email";
+// Polar handles usage-based billing - no auto-topup or balance blocking needed
 import { trackUsage, calculateCredits } from "@/lib/polar";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
@@ -92,27 +91,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Check user balance - hard block at $0
-  const balance = instance.user.balance?.creditsCents ?? 0;
-  
-  if (balance <= 0) {
-    return NextResponse.json(
-      {
-        error: "Balance depleted",
-        code: "BALANCE_DEPLETED",
-        message: "Your balance is empty. Please top up to continue using your assistant.",
-        currentBalance: balance,
-        topUpUrl: "https://www.blitzclaw.com/dashboard/billing",
-      },
-      { status: 402 }
-    );
-  }
-  
-  // 3a. Auto-downgrade to Haiku when balance < $1 (stretches remaining credits)
-  const LOW_BALANCE_THRESHOLD = 100; // $1
-  const isLowBalance = balance < LOW_BALANCE_THRESHOLD;
-
-  // 3b. Check daily spend limit
+  // 3. Daily spend limit (safety cap) - Polar handles actual billing
+  // No balance blocking since Polar meters usage and bills overages
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   
@@ -151,15 +131,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Use model from instance settings (allows dashboard override)
-  // Auto-downgrade to Haiku when balance < $1 to stretch remaining credits
-  let model = instance.model || requestBody.model || "claude-opus-4-6";
-  let modelDowngraded = false;
-  
-  if (isLowBalance && model !== "claude-haiku-4-5") {
-    model = "claude-haiku-4-5";
-    modelDowngraded = true;
-    console.log(`Auto-downgraded to Haiku for instance ${instance.id} (balance: ${balance}¢)`);
-  }
+  const model = instance.model || requestBody.model || "claude-opus-4-6";
   
   // Override the model in the request to Anthropic
   requestBody.model = model;
@@ -359,10 +331,9 @@ export async function POST(req: NextRequest) {
 
   const { costCents } = costResult;
 
-  // 9. Deduct from balance and log usage (atomic transaction)
-  let newBalanceCents = balance;
+  // 9. Log usage and update balance (for tracking - Polar handles actual billing)
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Create usage log
       await tx.usageLog.create({
         data: {
@@ -374,7 +345,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Deduct from balance
+      // Deduct from balance (for tracking purposes - Polar handles actual billing)
       const updatedBalance = await tx.balance.update({
         where: { userId: instance.userId },
         data: {
@@ -384,19 +355,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Check if balance went negative - pause instance
-      if (updatedBalance.creditsCents < 0) {
-        console.warn(`Instance ${instance.id} balance depleted, pausing...`);
-        await tx.instance.update({
-          where: { id: instance.id },
-          data: { status: InstanceStatus.PAUSED },
-        });
-      }
-
-      return updatedBalance;
     });
-    
-    newBalanceCents = result.creditsCents;
     
     // Track usage with Polar for managed billing users (not BYOK)
     if (instance.user.billingMode === "managed" && instance.user.polarCustomerId) {
@@ -413,25 +372,8 @@ export async function POST(req: NextRequest) {
     console.error(`Failed to log usage for instance ${instance.id}:`, error);
   }
 
-  // 10. Check if auto top-up needed (async, don't block response)
-  const topupThreshold = instance.user.balance?.topupThresholdCents ?? 500;
-  if (newBalanceCents < topupThreshold && newBalanceCents >= 0) {
-    // Trigger auto top-up in background (Paddle charges directly if subscription exists)
-    checkAndTriggerTopup(instance.userId).then((result) => {
-      if (result.success) {
-        console.log(`Auto top-up successful for user ${instance.userId}`);
-      } else {
-        console.warn(`Auto top-up failed for user ${instance.userId}: ${result.error}`);
-      }
-    }).catch((err) => {
-      console.error(`Auto top-up error for user ${instance.userId}:`, err);
-    });
-  }
-
-  // 10b. Send low balance email notifications (async, don't block)
-  const userEmail = instance.user.email;
-  // NOTE: Low balance emails disabled - Polar handles overage billing now
-  // Users will be billed for usage beyond included credits at end of billing cycle
+  // NOTE: No auto top-up or balance blocking - Polar handles usage-based billing
+  // Users are billed for overage beyond included credits at end of billing cycle
 
   // 11. Return response to instance
   return NextResponse.json(responseData);
