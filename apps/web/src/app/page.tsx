@@ -84,15 +84,15 @@ export default async function Home() {
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="inline-block px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary mb-6">
-            ⚡ Deploy in under 3 minutes
+            ⚡ Your assistant live in ~60 seconds
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Your Personal AI Assistant
+            Your AI assistant, ready in a minute.
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Chat on Telegram. It learns your workflows, manages tasks, shares secrets securely, and gets things done.
+            No setup, no API keys, no server management. Just sign up, pick a plan, connect Telegram, and start chatting.
             <br />
-            From <span className="text-primary font-medium">$19/mo</span> all-in.
+            Powered by Claude. Plans from <span className="text-primary font-medium">$19/mo</span> with usage-based pricing after included credits.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
@@ -118,7 +118,11 @@ export default async function Home() {
             </a>
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
-            New to AI assistants?{" "}
+            Want the details?{" "}
+            <Link href="/pricing" className="text-primary hover:underline">
+              See pricing
+            </Link>
+            {" · "}
             <Link href="/guide" className="text-primary hover:underline">
               Getting started guide
             </Link>
@@ -133,44 +137,44 @@ export default async function Home() {
         <div id="features" className="max-w-5xl mx-auto px-6 py-20 grid md:grid-cols-3 gap-8">
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🚀</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Quick Setup</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">60‑Second Setup</h3>
             <p className="text-muted-foreground">
-              Get started in under 3 minutes. No VMs to manage, no infrastructure headaches.
+              No VMs, no config, no DevOps. Your assistant is live in about a minute.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🧠</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Your Own Instance</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Powered by Claude</h3>
             <p className="text-muted-foreground">
-              Dedicated server with its own memory and context. Your assistant learns and remembers.
+              The best AI for real work — writing, research, planning, and deep task execution.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🔋</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Batteries Included</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Browser Automation</h3>
             <p className="text-muted-foreground">
-              Browser automation, web search, file access — ready to go out of the box.
+              Screenshots, web scraping, and browser control included out of the box.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">💬</div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Chat on Telegram</h3>
             <p className="text-muted-foreground">
-              Talk to your assistant in Telegram. WhatsApp coming soon.
+              Your assistant lives where you already work. WhatsApp is next.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🔑</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Secure Secret Sharing</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Secure by Default</h3>
             <p className="text-muted-foreground">
-              Share API keys and tokens via dashboard — no need to send secrets through chat.
+              Share secrets in the dashboard, not in chat. Your data stays in your instance.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">💰</div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Simple Pricing</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Usage-Based Pricing</h3>
             <p className="text-muted-foreground">
-              From $19/mo for your dedicated server. Bring your own API key to save on usage costs.
+              $19 or $39/month includes hosting and credits. Pay only for what you use beyond that.
             </p>
           </div>
         </div>
@@ -231,9 +235,9 @@ export default async function Home() {
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-primary mb-6">BlitzClaw</h3>
               <div className="flex flex-col items-center justify-center h-[280px]">
-                <div className="text-6xl font-bold text-primary mb-2">&lt;3 min</div>
+                <div className="text-6xl font-bold text-primary mb-2">~1 min</div>
                 <p className="text-muted-foreground text-center max-w-xs">
-                  Pick a model, connect Telegram, deploy — done.
+                  Sign up, pick a plan, connect Telegram — your assistant is live.
                 </p>
               </div>
               <p className="text-xs text-muted-foreground mt-4 text-center">
@@ -289,9 +293,9 @@ export default async function Home() {
                 1
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-1">Sign up & subscribe</h3>
+                <h3 className="font-semibold text-foreground mb-1">Sign up & pick a plan</h3>
                 <p className="text-muted-foreground">
-                  Your subscription gets you a dedicated server. Bring your own Anthropic API key — you control your AI costs.
+                  Choose $19 or $39/month. Hosting and credits included — no API keys required.
                 </p>
               </div>
             </div>
@@ -300,9 +304,9 @@ export default async function Home() {
                 2
               </div>
               <div>
-                <h3 className="font-semibold text-foreground mb-1">Create a Telegram bot</h3>
+                <h3 className="font-semibold text-foreground mb-1">Connect Telegram</h3>
                 <p className="text-muted-foreground">
-                  Open @BotFather, create a bot, copy the token. Takes 30 seconds.
+                  Use @BotFather to create a bot and paste the token. It’s quick.
                 </p>
               </div>
             </div>
@@ -313,9 +317,34 @@ export default async function Home() {
               <div>
                 <h3 className="font-semibold text-foreground mb-1">Start chatting</h3>
                 <p className="text-muted-foreground">
-                  Your assistant is live. Message it on Telegram and watch it work. Slack, Discord, and WhatsApp coming soon — included in your subscription.
+                  Your assistant is live. Ask it to research, automate the browser, or run tasks. More chat apps coming soon.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* FAQ */}
+        <div className="max-w-4xl mx-auto px-6 py-20">
+          <h2 className="text-3xl font-bold text-foreground text-center mb-12">FAQ</h2>
+          <div className="space-y-6">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="font-semibold text-foreground mb-2">Do I need my own API keys?</h3>
+              <p className="text-muted-foreground">
+                No. BlitzClaw includes credits and handles the infrastructure. If you want, you can bring your own keys later.
+              </p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="font-semibold text-foreground mb-2">What’s included with the subscription?</h3>
+              <p className="text-muted-foreground">
+                A dedicated instance, Claude-powered assistant, browser automation, and Telegram integration.
+              </p>
+            </div>
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h3 className="font-semibold text-foreground mb-2">How does usage-based pricing work?</h3>
+              <p className="text-muted-foreground">
+                Each plan includes monthly credits. After that, you only pay for additional usage.
+              </p>
             </div>
           </div>
         </div>
@@ -324,15 +353,15 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Ready for your own AI assistant?
+              Ready to get your assistant live?
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Join in under 3 minutes. No DevOps required.
+              Go from signup to Telegram chat in about a minute. No setup, no servers.
             </p>
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
-                  Get Started — $19/mo →
+                  Get Started — from $19/mo →
                 </button>
               </SignInButton>
             </SignedOut>
