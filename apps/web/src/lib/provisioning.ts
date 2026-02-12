@@ -2,8 +2,9 @@
  * Server pool and instance provisioning service
  */
 
-import { prisma, ServerPoolStatus, InstanceStatus } from "@blitzclaw/db";
+import { prisma, ServerPoolStatus, InstanceStatus, CloudProvider } from "@blitzclaw/db";
 import { createServer, deleteServer, getServer, rebootServer } from "./hetzner";
+import { createDroplet, deleteDroplet, getDroplet } from "./digitalocean";
 import { generateCloudInit, generateSoulMd } from "./cloud-init";
 import { randomBytes } from "crypto";
 
@@ -105,44 +106,88 @@ export async function provisionPoolServer(options?: {
     byokMode,
   });
 
-  // Create server on Hetzner
+  // Try Hetzner first, fall back to DigitalOcean if IP limit exceeded
   const serverName = `blitz-pool-${Date.now()}`;
+  let serverId: string;
+  let ipAddress: string;
+  let provider: CloudProvider = CloudProvider.HETZNER;
   
-  // Get SSH key ID from env (must be configured in Hetzner)
-  const sshKeyId = process.env.HETZNER_SSH_KEY_ID;
-  console.log("Hetzner config:", {
-    sshKeyId,
+  // Get SSH key IDs from env
+  const hetznerSshKeyId = process.env.HETZNER_SSH_KEY_ID;
+  const doSshKeyId = process.env.DIGITALOCEAN_SSH_KEY_ID;
+  
+  console.log("Provider config:", {
+    hetznerSshKeyId,
+    doSshKeyId,
     hasHetznerToken: !!process.env.HETZNER_API_TOKEN,
+    hasDoToken: !!process.env.DIGITALOCEAN_API_TOKEN,
   });
-  if (!sshKeyId) {
-    console.warn("HETZNER_SSH_KEY_ID not set - server will not have SSH access");
+
+  try {
+    // Try Hetzner first (cheaper)
+    console.log("Creating Hetzner server:", serverName, "type:", options?.serverType || "cx23");
+    const hetznerResult = await createServer({
+      name: serverName,
+      serverType: options?.serverType, // "cx23" (basic) or "cx33" (pro)
+      userData: cloudInit,
+      sshKeys: hetznerSshKeyId ? [hetznerSshKeyId] : [],
+      labels: {
+        service: "blitzclaw",
+        type: "pool",
+        pool_id: poolEntryId,
+      },
+    });
+    serverId = hetznerResult.serverId.toString();
+    ipAddress = hetznerResult.ipAddress;
+    provider = CloudProvider.HETZNER;
+  } catch (hetznerError) {
+    const errorMsg = (hetznerError as Error).message;
+    
+    // Only fall back to DO if it's an IP limit error
+    if (errorMsg.includes("Primary IP limit exceeded") || errorMsg.includes("limit")) {
+      console.log("Hetzner IP limit reached, falling back to DigitalOcean...");
+      
+      if (!process.env.DIGITALOCEAN_API_TOKEN) {
+        throw new Error("Hetzner IP limit reached and DIGITALOCEAN_API_TOKEN not configured");
+      }
+      
+      // Map server type to DO size
+      const doSize = options?.serverType === "cx33" ? "s-2vcpu-4gb" : "s-1vcpu-2gb";
+      
+      console.log("Creating DigitalOcean droplet:", serverName, "size:", doSize);
+      const doResult = await createDroplet({
+        name: serverName,
+        size: doSize,
+        userData: cloudInit,
+        sshKeys: doSshKeyId ? [doSshKeyId] : [],
+        labels: {
+          service: "blitzclaw",
+          type: "pool",
+          pool_id: poolEntryId,
+        },
+      });
+      serverId = doResult.dropletId.toString();
+      ipAddress = doResult.ipAddress;
+      provider = CloudProvider.DIGITALOCEAN;
+    } else {
+      // Re-throw non-limit errors
+      throw hetznerError;
+    }
   }
-  
-  console.log("Creating Hetzner server:", serverName, "type:", options?.serverType || "cx23");
-  const { serverId, ipAddress } = await createServer({
-    name: serverName,
-    serverType: options?.serverType, // "cx23" (basic) or "cx33" (pro)
-    userData: cloudInit,
-    sshKeys: sshKeyId ? [sshKeyId] : [],
-    labels: {
-      service: "blitzclaw",
-      type: "pool",
-      pool_id: poolEntryId,
-    },
-  });
 
   // Create pool entry in database
   const poolEntry = await prisma.serverPool.create({
     data: {
-      hetznerServerId: serverId.toString(),
+      hetznerServerId: serverId, // Note: field name is misleading but kept for compatibility
       ipAddress,
       status: ServerPoolStatus.PROVISIONING,
+      provider,
     },
   });
 
   return {
     id: poolEntry.id,
-    hetznerServerId: serverId.toString(),
+    hetznerServerId: serverId, // Kept for compatibility
     ipAddress,
     gatewayToken,
     proxySecret,
@@ -200,6 +245,18 @@ export async function markServerReady(hetznerServerId: string): Promise<void> {
 }
 
 /**
+ * Delete a server from the appropriate provider
+ */
+async function deleteServerFromProvider(serverId: string, provider: CloudProvider): Promise<void> {
+  if (provider === CloudProvider.DIGITALOCEAN) {
+    await deleteDroplet(parseInt(serverId, 10));
+  } else {
+    // Default to Hetzner
+    await deleteServer(parseInt(serverId, 10));
+  }
+}
+
+/**
  * Clean up stuck provisioning servers
  */
 export async function cleanupStuckServers(): Promise<{
@@ -219,8 +276,11 @@ export async function cleanupStuckServers(): Promise<{
 
   for (const server of stuckServers) {
     try {
-      // Delete from Hetzner
-      await deleteServer(parseInt(server.hetznerServerId, 10));
+      // Delete from the appropriate provider
+      await deleteServerFromProvider(
+        server.hetznerServerId,
+        server.provider || CloudProvider.HETZNER
+      );
       // Delete from database
       await prisma.serverPool.delete({ where: { id: server.id } });
       results.cleaned++;
@@ -308,6 +368,7 @@ export async function maintainPool(): Promise<{
 export async function assignServerToInstance(instanceId: string): Promise<{
   serverId: string;
   ipAddress: string;
+  provider: CloudProvider;
 } | null> {
   // Try to get an available server from the pool
   const poolServer = await prisma.serverPool.findFirst({
@@ -330,6 +391,7 @@ export async function assignServerToInstance(instanceId: string): Promise<{
   return {
     serverId: poolServer.hetznerServerId,
     ipAddress: poolServer.ipAddress,
+    provider: poolServer.provider || CloudProvider.HETZNER,
   };
 }
 

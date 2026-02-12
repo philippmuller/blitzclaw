@@ -99,9 +99,10 @@ model UsageLog {
 
 model ServerPool {
   id              String           @id @default(cuid())
-  hetznerServerId String           @unique
+  hetznerServerId String           @unique  // Actually serverId from any provider
   ipAddress       String
   status          ServerPoolStatus @default(AVAILABLE)
+  provider        CloudProvider    @default(HETZNER)
   assignedTo      String?          @unique
   instance        Instance?        @relation(fields: [assignedTo], references: [id])
   createdAt       DateTime         @default(now())
@@ -112,4 +113,9 @@ enum ServerPoolStatus {
   AVAILABLE
   ASSIGNED
   PROVISIONING
+}
+
+enum CloudProvider {
+  HETZNER
+  DIGITALOCEAN
 }

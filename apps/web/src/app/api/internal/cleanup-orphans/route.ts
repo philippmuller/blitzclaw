@@ -12,26 +12,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
 import { cleanupOrphanedServers, getPoolStatus } from "@/lib/provisioning";
 import { getServer } from "@/lib/hetzner";
+import { getDroplet } from "@/lib/digitalocean";
 
 const DEBUG_KEY = "blitz-debug-2026";
 
 /**
- * Clean up pool servers that no longer exist in Hetzner
+ * Clean up pool servers that no longer exist in their cloud provider
  */
-async function cleanupDeletedHetznerServers(): Promise<number> {
+async function cleanupDeletedCloudServers(): Promise<number> {
   // Get all pool servers from DB
   const poolServers = await prisma.serverPool.findMany({
-    select: { id: true, hetznerServerId: true, status: true },
+    select: { id: true, hetznerServerId: true, status: true, provider: true },
   });
 
   let cleaned = 0;
   for (const server of poolServers) {
-    // Check if server exists in Hetzner (returns null if not found)
-    const hetznerServer = await getServer(parseInt(server.hetznerServerId, 10));
+    let serverExists = false;
     
-    if (!hetznerServer) {
-      // Server doesn't exist in Hetzner - delete from DB
-      console.log(`Pool server ${server.id} (Hetzner ${server.hetznerServerId}) no longer exists - removing from DB`);
+    try {
+      if (server.provider === "DIGITALOCEAN") {
+        // Check DigitalOcean
+        const droplet = await getDroplet(parseInt(server.hetznerServerId, 10));
+        serverExists = droplet !== null;
+      } else {
+        // Default to Hetzner
+        const hetznerServer = await getServer(parseInt(server.hetznerServerId, 10));
+        serverExists = hetznerServer !== null;
+      }
+    } catch {
+      // If we can't check, assume it doesn't exist
+      serverExists = false;
+    }
+    
+    if (!serverExists) {
+      // Server doesn't exist in cloud provider - delete from DB
+      console.log(`Pool server ${server.id} (${server.provider || "HETZNER"} ${server.hetznerServerId}) no longer exists - removing from DB`);
       await prisma.serverPool.delete({ where: { id: server.id } });
       cleaned++;
     }
@@ -50,8 +65,8 @@ export async function GET(req: NextRequest) {
   try {
     const beforeStatus = await getPoolStatus();
     
-    // First clean up pool servers that don't exist in Hetzner
-    const deletedFromDb = await cleanupDeletedHetznerServers();
+    // First clean up pool servers that don't exist in cloud providers
+    const deletedFromDb = await cleanupDeletedCloudServers();
     
     // Then clean up orphaned assigned servers
     const orphansCleaned = await cleanupOrphanedServers();
