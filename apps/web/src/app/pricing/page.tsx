@@ -38,7 +38,7 @@ const tiers = [
       "Telegram integration",
       "Use your own API key (save on usage costs)",
       "Advanced browser automation",
-      "LinkedIn & tool integrations",
+      "Priority support",
       "$15 in AI credits included",
       "Additional usage billed at $0.01 per credit",
     ],

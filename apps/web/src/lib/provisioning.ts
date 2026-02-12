@@ -7,7 +7,7 @@ import { createServer, deleteServer, getServer, rebootServer } from "./hetzner";
 import { generateCloudInit, generateSoulMd } from "./cloud-init";
 import { randomBytes } from "crypto";
 
-const MIN_POOL_SIZE = 3;
+const MIN_POOL_SIZE = 5;
 const MAX_POOL_SIZE = 10;
 const PROVISIONING_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
