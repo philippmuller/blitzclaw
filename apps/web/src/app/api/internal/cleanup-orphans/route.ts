@@ -26,10 +26,10 @@ async function cleanupDeletedHetznerServers(): Promise<number> {
 
   let cleaned = 0;
   for (const server of poolServers) {
-    try {
-      // Check if server exists in Hetzner
-      await getServer(parseInt(server.hetznerServerId, 10));
-    } catch (error) {
+    // Check if server exists in Hetzner (returns null if not found)
+    const hetznerServer = await getServer(parseInt(server.hetznerServerId, 10));
+    
+    if (!hetznerServer) {
       // Server doesn't exist in Hetzner - delete from DB
       console.log(`Pool server ${server.id} (Hetzner ${server.hetznerServerId}) no longer exists - removing from DB`);
       await prisma.serverPool.delete({ where: { id: server.id } });
