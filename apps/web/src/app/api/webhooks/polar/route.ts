@@ -95,9 +95,9 @@ export async function POST(request: Request) {
   const data = event.data;
   
   // Get our user ID from external_id or metadata
-  const userId = data.customer_external_id || 
-                 data.customer?.external_id || 
-                 data.metadata?.user_id;
+  let userId = data.customer_external_id || 
+               data.customer?.external_id || 
+               data.metadata?.user_id;
   
   const polarCustomerId = data.customer_id || data.customer?.id;
   const subscriptionId = data.subscription_id || data.id;
@@ -126,20 +126,40 @@ export async function POST(request: Request) {
         }, { status: 400 });
       }
 
-      // IDEMPOTENCY: Check if already processed
-      const existingUser = await prisma.user.findUnique({
+      // Try to find user by ID first
+      let user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { polarSubscriptionId: true, polarCustomerId: true },
+        select: { id: true, polarSubscriptionId: true, polarCustomerId: true },
       });
 
-      if (existingUser?.polarSubscriptionId === subscriptionId) {
+      // FALLBACK: If user not found by ID, try to find by email
+      if (!user && data.customer?.email) {
+        console.log(`User ${userId} not found, trying email lookup: ${data.customer.email}`);
+        user = await prisma.user.findFirst({
+          where: { email: data.customer.email },
+          select: { id: true, polarSubscriptionId: true, polarCustomerId: true },
+        });
+        if (user) {
+          console.log(`Found user by email: ${user.id}`);
+          // Use the found user's ID for updates
+          userId = user.id; // Reassign userId for the rest of the handler
+        }
+      }
+
+      if (!user) {
+        console.error("User not found by ID or email", { userId, email: data.customer?.email });
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      // IDEMPOTENCY: Check if already processed
+      if (user?.polarSubscriptionId === subscriptionId) {
         console.log(`⏭️ Skipping duplicate webhook for subscription ${subscriptionId}`);
         return NextResponse.json({ received: true, skipped: "duplicate" });
       }
 
       // Update user with Polar IDs
       await prisma.user.update({
-        where: { id: userId },
+        where: { id: user.id },
         data: {
           polarCustomerId,
           polarSubscriptionId: subscriptionId,
@@ -150,11 +170,11 @@ export async function POST(request: Request) {
 
       // Credit balance for subscription - $5 for basic, $15 for pro
       const creditsCents = plan === "pro" ? 1500 : 500;
-      const existingBalance = await prisma.balance.findUnique({ where: { userId } });
+      const existingBalance = await prisma.balance.findUnique({ where: { userId: user.id } });
 
       if (existingBalance) {
         await prisma.balance.update({
-          where: { userId },
+          where: { userId: user.id },
           data: { 
             creditsCents: { increment: creditsCents },
             autoTopupEnabled: true,
@@ -163,7 +183,7 @@ export async function POST(request: Request) {
       } else {
         await prisma.balance.create({
           data: {
-            userId,
+            userId: user.id,
             creditsCents,
             autoTopupEnabled: true,
             topupThresholdCents: 0,
@@ -174,7 +194,7 @@ export async function POST(request: Request) {
 
       // Reactivate any paused instances
       await prisma.instance.updateMany({
-        where: { userId, status: InstanceStatus.PAUSED },
+        where: { userId: user.id, status: InstanceStatus.PAUSED },
         data: { status: InstanceStatus.ACTIVE },
       });
 
@@ -187,7 +207,7 @@ export async function POST(request: Request) {
           .catch((e) => console.error("Failed to send welcome email:", e));
       }
 
-      console.log(`✅ Subscription active for user ${userId} (${plan})`);
+      console.log(`✅ Subscription active for user ${user.id} (${plan})`);
       break;
     }
 
@@ -254,7 +274,7 @@ export async function POST(request: Request) {
       };
       
       const benefitCustomerId = benefitData.customer_id || benefitData.customer?.id;
-      const benefitUserId = benefitData.customer?.external_id || data.metadata?.user_id;
+      let benefitUserId = benefitData.customer?.external_id || data.metadata?.user_id;
       
       console.log(`🎁 Benefit grant event:`, {
         type: event.type,
@@ -266,12 +286,34 @@ export async function POST(request: Request) {
         properties: benefitData.properties,
       });
 
-      // If this is a credit grant and we have a user ID, credit their balance
+      let benefitUser = null as { id: string } | null;
       if (benefitUserId) {
+        benefitUser = await prisma.user.findUnique({ where: { id: benefitUserId }, select: { id: true } });
+
+        // FALLBACK: If user not found by ID, try to find by email
+        if (!benefitUser && data.customer?.email) {
+          console.log(`User ${benefitUserId} not found, trying email lookup: ${data.customer.email}`);
+          benefitUser = await prisma.user.findFirst({
+            where: { email: data.customer.email },
+            select: { id: true },
+          });
+          if (benefitUser) {
+            console.log(`Found user by email: ${benefitUser.id}`);
+            benefitUserId = benefitUser.id;
+          }
+        }
+
+        if (!benefitUser) {
+          console.error("User not found by ID or email", { userId: benefitUserId, email: data.customer?.email });
+        }
+      }
+
+      // If this is a credit grant and we have a user ID, credit their balance
+      if (benefitUser) {
         // Get or create customer mapping if we have Polar customer ID
         if (benefitCustomerId) {
           await prisma.user.update({
-            where: { id: benefitUserId },
+            where: { id: benefitUser.id },
             data: { polarCustomerId: benefitCustomerId },
           }).catch(() => {});
         }
@@ -283,29 +325,29 @@ export async function POST(request: Request) {
         console.log(`💰 Benefit credit amount: ${creditsCents} cents`);
 
         const existingBenefitBalance = await prisma.balance.findUnique({ 
-          where: { userId: benefitUserId } 
+          where: { userId: benefitUser.id } 
         });
         
         if (!existingBenefitBalance) {
           await prisma.balance.create({
             data: {
-              userId: benefitUserId,
+              userId: benefitUser.id,
               creditsCents,
               autoTopupEnabled: true,
               topupThresholdCents: 0,
               topupAmountCents: 0,
             },
           });
-          console.log(`✅ Created balance for user ${benefitUserId}`);
+          console.log(`✅ Created balance for user ${benefitUser.id}`);
         } else if (existingBenefitBalance.creditsCents === 0) {
           // Balance exists but is 0 - credit from benefit
           await prisma.balance.update({
-            where: { userId: benefitUserId },
+            where: { userId: benefitUser.id },
             data: { creditsCents },
           });
-          console.log(`✅ Credited ${creditsCents} cents for user ${benefitUserId}`);
+          console.log(`✅ Credited ${creditsCents} cents for user ${benefitUser.id}`);
         } else {
-          console.log(`✅ Balance already exists for user ${benefitUserId}: ${existingBenefitBalance.creditsCents} cents`);
+          console.log(`✅ Balance already exists for user ${benefitUser.id}: ${existingBenefitBalance.creditsCents} cents`);
         }
       }
       break;
