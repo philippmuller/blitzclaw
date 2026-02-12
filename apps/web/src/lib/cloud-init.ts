@@ -287,6 +287,22 @@ ${JSON.stringify({
       
       Instance ID: ${instanceId}
       
+      ## Screenshots (Browser Workaround)
+      
+      If the browser tool fails, use chromium directly:
+      
+      \`\`\`bash
+      chromium --headless --no-sandbox --disable-gpu --screenshot=/tmp/shot.png --window-size=1280,800 "https://example.com"
+      \`\`\`
+      
+      **Important:** Snap sandboxes the filesystem. The actual file is at:
+      \`/tmp/snap-private-tmp/snap.chromium/tmp/shot.png\`
+      
+      Copy it to your workspace before sending:
+      \`\`\`bash
+      cp /tmp/snap-private-tmp/snap.chromium/tmp/shot.png /root/.openclaw/workspace/
+      \`\`\`
+      
       ## Secrets
       User secrets are available at /root/.openclaw/secrets.env
       Source this file to access API keys and tokens the user has shared.
