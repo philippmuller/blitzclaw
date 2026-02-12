@@ -436,7 +436,7 @@ function OnboardingContent() {
                 )}
 
                 {/* Info Box */}
-                <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4">
+                <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4 space-y-2">
                   <p>
                     Every plan runs on its own <strong className="text-gray-300">secure, isolated server</strong>. 
                     {state.hasOwnKey 
@@ -444,6 +444,11 @@ function OnboardingContent() {
                       : " Credits are used for AI responses. Top up via our dashboard when you run low."
                     }
                   </p>
+                  {state.tier === "pro" && (
+                    <p className="text-yellow-400/80">
+                      ⏱️ Pro servers have more power — provisioning may take up to 5 minutes.
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -583,7 +588,12 @@ function OnboardingContent() {
                 Setting up your server and connecting to Telegram...
               </p>
               <div className="text-sm text-gray-500 space-y-1">
-                <p>This usually takes 1-2 minutes</p>
+                <p>
+                  {state.tier === "pro" 
+                    ? "Pro servers may take up to 5 minutes to provision"
+                    : "This usually takes 1-2 minutes"
+                  }
+                </p>
                 <p className="text-gray-600">We&apos;ll email you when your assistant is ready</p>
               </div>
             </div>
