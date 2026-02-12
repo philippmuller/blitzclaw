@@ -114,6 +114,7 @@ export function calculateCredits(
   model: string
 ): number {
   // Anthropic pricing per 1M tokens (in dollars)
+  // Source: https://www.anthropic.com/pricing
   const pricing: Record<string, { input: number; output: number }> = {
     "claude-sonnet-4": { input: 3, output: 15 },
     "claude-sonnet-4-5": { input: 3, output: 15 },
@@ -122,6 +123,7 @@ export function calculateCredits(
     "claude-3-5-haiku-20241022": { input: 1, output: 5 },
     "claude-opus-4": { input: 15, output: 75 },
     "claude-opus-4-5": { input: 15, output: 75 },
+    "claude-opus-4-6": { input: 15, output: 75 },  // Latest Opus
     "claude-3-opus-20240229": { input: 15, output: 75 },
   };
 
@@ -133,8 +135,8 @@ export function calculateCredits(
     (inputTokens / 1_000_000) * p.input +
     (outputTokens / 1_000_000) * p.output;
 
-  // Convert to cents and add 100% markup
-  const creditsWithMarkup = Math.ceil(rawCost * 100 * 2);
+  // Convert to cents and add 50% markup (matches pricing.ts MARKUP_MULTIPLIER)
+  const creditsWithMarkup = Math.ceil(rawCost * 100 * 1.5);
 
   // Minimum 1 credit per request
   return Math.max(1, creditsWithMarkup);
