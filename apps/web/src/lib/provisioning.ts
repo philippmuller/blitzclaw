@@ -5,6 +5,7 @@
 import { prisma, ServerPoolStatus, InstanceStatus, CloudProvider } from "@blitzclaw/db";
 import { createServer, deleteServer, getServer, rebootServer } from "./hetzner";
 import { createDroplet, deleteDroplet, getDroplet } from "./digitalocean";
+import { createVultrInstance, deleteVultrInstance, getVultrInstance } from "./vultr";
 import { generateCloudInit, generateSoulMd } from "./cloud-init";
 import { randomBytes } from "crypto";
 
@@ -106,29 +107,38 @@ export async function provisionPoolServer(options?: {
     byokMode,
   });
 
-  // Try Hetzner first, fall back to DigitalOcean if IP limit exceeded
+  // Try providers in order: Hetzner -> DigitalOcean -> Vultr
   const serverName = `blitz-pool-${Date.now()}`;
-  let serverId: string;
-  let ipAddress: string;
+  let serverId: string | undefined;
+  let ipAddress: string | undefined;
   let provider: CloudProvider = CloudProvider.HETZNER;
   
   // Get SSH key IDs from env
   const hetznerSshKeyId = process.env.HETZNER_SSH_KEY_ID;
   const doSshKeyId = process.env.DIGITALOCEAN_SSH_KEY_ID;
+  const vultrSshKeyId = process.env.VULTR_SSH_KEY_ID;
   
   console.log("Provider config:", {
     hetznerSshKeyId,
     doSshKeyId,
+    vultrSshKeyId,
     hasHetznerToken: !!process.env.HETZNER_API_TOKEN,
     hasDoToken: !!process.env.DIGITALOCEAN_API_TOKEN,
+    hasVultrToken: !!process.env.VULTR_API_TOKEN,
   });
 
+  // Helper to check if error is a limit error
+  const isLimitError = (msg: string) => 
+    msg.includes("limit") || msg.includes("Limit") || msg.includes("quota") || msg.includes("exceeded");
+
+  let lastError: Error | null = null;
+
+  // Try Hetzner first (cheapest)
   try {
-    // Try Hetzner first (cheaper)
     console.log("Creating Hetzner server:", serverName, "type:", options?.serverType || "cx23");
     const hetznerResult = await createServer({
       name: serverName,
-      serverType: options?.serverType, // "cx23" (basic) or "cx33" (pro)
+      serverType: options?.serverType,
       userData: cloudInit,
       sshKeys: hetznerSshKeyId ? [hetznerSshKeyId] : [],
       labels: {
@@ -141,38 +151,71 @@ export async function provisionPoolServer(options?: {
     ipAddress = hetznerResult.ipAddress;
     provider = CloudProvider.HETZNER;
   } catch (hetznerError) {
-    const errorMsg = (hetznerError as Error).message;
+    lastError = hetznerError as Error;
+    const errorMsg = lastError.message;
     
-    // Only fall back to DO if it's an IP limit error
-    if (errorMsg.includes("Primary IP limit exceeded") || errorMsg.includes("limit")) {
-      console.log("Hetzner IP limit reached, falling back to DigitalOcean...");
-      
-      if (!process.env.DIGITALOCEAN_API_TOKEN) {
-        throw new Error("Hetzner IP limit reached and DIGITALOCEAN_API_TOKEN not configured");
-      }
-      
-      // Map server type to DO size
-      const doSize = options?.serverType === "cx33" ? "s-2vcpu-4gb" : "s-1vcpu-2gb";
-      
-      console.log("Creating DigitalOcean droplet:", serverName, "size:", doSize);
-      const doResult = await createDroplet({
-        name: serverName,
-        size: doSize,
-        userData: cloudInit,
-        sshKeys: doSshKeyId ? [doSshKeyId] : undefined,
-        labels: {
-          service: "blitzclaw",
-          type: "pool",
-          pool_id: poolEntryId,
-        },
-      });
-      serverId = doResult.dropletId.toString();
-      ipAddress = doResult.ipAddress;
-      provider = CloudProvider.DIGITALOCEAN;
-    } else {
-      // Re-throw non-limit errors
-      throw hetznerError;
+    if (!isLimitError(errorMsg)) {
+      throw hetznerError; // Non-limit error, don't try other providers
     }
+    
+    console.log("Hetzner limit reached, trying DigitalOcean...");
+    
+    // Try DigitalOcean second
+    if (process.env.DIGITALOCEAN_API_TOKEN) {
+      try {
+        const doSize = options?.serverType === "cx33" ? "s-2vcpu-4gb" : "s-1vcpu-2gb";
+        console.log("Creating DigitalOcean droplet:", serverName, "size:", doSize);
+        const doResult = await createDroplet({
+          name: serverName,
+          size: doSize,
+          userData: cloudInit,
+          sshKeys: doSshKeyId ? [doSshKeyId] : undefined,
+          tags: ["blitzclaw", "pool", poolEntryId],
+        });
+        serverId = doResult.dropletId.toString();
+        ipAddress = doResult.ipAddress;
+        provider = CloudProvider.DIGITALOCEAN;
+        lastError = null; // Success!
+      } catch (doError) {
+        lastError = doError as Error;
+        if (!isLimitError(lastError.message)) {
+          throw doError;
+        }
+        console.log("DigitalOcean limit reached, trying Vultr...");
+      }
+    }
+    
+    // Try Vultr third
+    if (lastError && process.env.VULTR_API_TOKEN) {
+      try {
+        const vultrPlan = options?.serverType === "cx33" ? "vc2-2c-4gb" : "vc2-1c-2gb";
+        console.log("Creating Vultr instance:", serverName, "plan:", vultrPlan);
+        const vultrResult = await createVultrInstance({
+          name: serverName,
+          plan: vultrPlan,
+          userData: cloudInit,
+          sshKeyIds: vultrSshKeyId ? [vultrSshKeyId] : undefined,
+          tags: ["blitzclaw", "pool", poolEntryId],
+        });
+        serverId = vultrResult.instanceId;
+        ipAddress = vultrResult.ipAddress;
+        provider = CloudProvider.VULTR;
+        lastError = null; // Success!
+      } catch (vultrError) {
+        lastError = vultrError as Error;
+        console.log("Vultr also failed:", lastError.message);
+      }
+    }
+    
+    // If all providers failed, throw
+    if (lastError) {
+      throw new Error(`All cloud providers at capacity: ${lastError.message}`);
+    }
+  }
+
+  // Ensure we have a server (TypeScript guard)
+  if (!serverId || !ipAddress) {
+    throw new Error("Failed to provision server: no provider succeeded");
   }
 
   // Create pool entry in database
@@ -250,6 +293,8 @@ export async function markServerReady(hetznerServerId: string): Promise<void> {
 async function deleteServerFromProvider(serverId: string, provider: CloudProvider): Promise<void> {
   if (provider === CloudProvider.DIGITALOCEAN) {
     await deleteDroplet(parseInt(serverId, 10));
+  } else if (provider === CloudProvider.VULTR) {
+    await deleteVultrInstance(serverId);
   } else {
     // Default to Hetzner
     await deleteServer(parseInt(serverId, 10));

@@ -13,6 +13,7 @@ import { prisma } from "@blitzclaw/db";
 import { cleanupOrphanedServers, getPoolStatus } from "@/lib/provisioning";
 import { getServer } from "@/lib/hetzner";
 import { getDroplet } from "@/lib/digitalocean";
+import { getVultrInstance } from "@/lib/vultr";
 
 const DEBUG_KEY = "blitz-debug-2026";
 
@@ -34,6 +35,10 @@ async function cleanupDeletedCloudServers(): Promise<number> {
         // Check DigitalOcean
         const droplet = await getDroplet(parseInt(server.hetznerServerId, 10));
         serverExists = droplet !== null;
+      } else if (server.provider === "VULTR") {
+        // Check Vultr
+        const instance = await getVultrInstance(server.hetznerServerId);
+        serverExists = instance !== null;
       } else {
         // Default to Hetzner
         const hetznerServer = await getServer(parseInt(server.hetznerServerId, 10));

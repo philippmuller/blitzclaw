@@ -118,4 +118,13 @@ enum ServerPoolStatus {
 enum CloudProvider {
   HETZNER
   DIGITALOCEAN
+  VULTR
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  plan      String?  // "basic" | "pro"
+  createdAt DateTime @default(now())
+  notified  Boolean  @default(false)
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useUser, useClerk, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink, Key } from "lucide-react";
+import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink, Key, AlertTriangle } from "lucide-react";
 
 type Step = "billing" | "telegram" | "persona" | "launching";
 
@@ -47,6 +47,9 @@ function OnboardingContent() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasCapacity, setHasCapacity] = useState(true);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 
   // Check if returning from checkout - wait for webhook to credit balance
   useEffect(() => {
@@ -92,12 +95,49 @@ function OnboardingContent() {
     }
   }, [searchParams]);
 
+  // Check capacity on load
+  useEffect(() => {
+    async function checkCapacity() {
+      try {
+        const res = await fetch("/api/waitlist");
+        if (res.ok) {
+          const data = await res.json();
+          setHasCapacity(data.hasCapacity);
+        }
+      } catch (e) {
+        console.error("Failed to check capacity:", e);
+      }
+    }
+    checkCapacity();
+  }, []);
+
   // Check existing subscription on load
   useEffect(() => {
     if (isLoaded && user) {
       checkUserStatus();
     }
   }, [isLoaded, user]);
+
+  async function handleJoinWaitlist() {
+    if (!waitlistEmail.includes("@")) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: waitlistEmail, plan: state.tier }),
+      });
+      
+      if (res.ok) {
+        setWaitlistSubmitted(true);
+      }
+    } catch (e) {
+      console.error("Waitlist error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function checkUserStatus() {
     try {
@@ -451,23 +491,58 @@ function OnboardingContent() {
                   )}
                 </div>
 
-                <button
-                  onClick={handleSubscribe}
-                  disabled={
-                    loading ||
-                    (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
-                  }
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      Continue — ${state.tier === "pro" ? "39" : "19"}/mo
-                      <ExternalLink className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                {/* Waitlist form when no capacity */}
+                {!hasCapacity ? (
+                  <div className="p-4 bg-yellow-900/30 border border-yellow-700 rounded-lg space-y-4">
+                    <div className="flex items-center gap-2 text-yellow-300">
+                      <AlertTriangle className="w-5 h-5" />
+                      <span className="font-medium">We&apos;re at capacity!</span>
+                    </div>
+                    <p className="text-gray-400 text-sm">
+                      All servers are currently assigned. Join the waitlist and we&apos;ll email you when a spot opens up.
+                    </p>
+                    {waitlistSubmitted ? (
+                      <div className="text-green-400 text-sm">
+                        ✓ You&apos;re on the list! We&apos;ll email you soon.
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={waitlistEmail}
+                          onChange={(e) => setWaitlistEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        />
+                        <button
+                          onClick={handleJoinWaitlist}
+                          disabled={loading || !waitlistEmail.includes("@")}
+                          className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium"
+                        >
+                          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Join Waitlist"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSubscribe}
+                    disabled={
+                      loading ||
+                      (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
+                    }
+                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        Continue — ${state.tier === "pro" ? "39" : "19"}/mo
+                        <ExternalLink className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           )}
