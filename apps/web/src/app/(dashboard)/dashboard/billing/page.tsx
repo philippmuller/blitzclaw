@@ -1,9 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
-import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 import { BalanceCard } from "@/components";
 import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
-import { UpgradeButtons } from "./UpgradeButtons";
 
 async function getUserWithUsage(clerkId: string) {
   const user = await prisma.user.findUnique({
@@ -32,7 +30,6 @@ export default async function BillingPage() {
   if (!user) return null;
 
   const creditsCents = user.balance?.creditsCents ?? 0;
-  const belowMinimum = creditsCents < 100; // $1 minimum
 
   // Calculate usage stats
   const now = new Date();
@@ -44,25 +41,25 @@ export default async function BillingPage() {
   const monthlyUsage = monthlyLogs.reduce(
     (acc, log) => ({
       costCents: acc.costCents + log.costCents,
-      tokensIn: acc.tokensIn + log.tokensIn,
-      tokensOut: acc.tokensOut + log.tokensOut,
     }),
-    { costCents: 0, tokensIn: 0, tokensOut: 0 }
+    { costCents: 0 }
   );
 
   // Group by model
-  const usageByModel: Record<string, { costCents: number; tokensIn: number; tokensOut: number }> = {};
+  const usageByModel: Record<string, { costCents: number; requests: number }> = {};
   for (const log of monthlyLogs) {
     if (!usageByModel[log.model]) {
-      usageByModel[log.model] = { costCents: 0, tokensIn: 0, tokensOut: 0 };
+      usageByModel[log.model] = { costCents: 0, requests: 0 };
     }
     usageByModel[log.model].costCents += log.costCents;
-    usageByModel[log.model].tokensIn += log.tokensIn;
-    usageByModel[log.model].tokensOut += log.tokensOut;
+    usageByModel[log.model].requests += 1;
   }
 
   // Recent transactions (last 10 logs)
   const recentLogs = allLogs.slice(0, 10);
+
+  // Included credits based on plan
+  const includedCredits = user.plan === "pro" ? 15 : user.plan === "basic" ? 5 : 0;
 
   return (
     <div className="space-y-8">
@@ -71,24 +68,16 @@ export default async function BillingPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Billing</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your balance and view usage history.
+            View your usage and manage your subscription.
           </p>
         </div>
-        <div className="flex gap-3">
-          <ManageSubscriptionButton />
-          <Link
-            href="/dashboard/billing/topup"
-            className="px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
-          >
-            Top Up Balance
-          </Link>
-        </div>
+        <ManageSubscriptionButton />
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Balance */}
-        <BalanceCard creditsCents={creditsCents} belowMinimum={belowMinimum} />
+        {/* Intelligence Cost */}
+        <BalanceCard creditsCents={creditsCents} />
 
         {/* Monthly Usage */}
         <div className="bg-card border border-border rounded-xl p-6">
@@ -101,17 +90,12 @@ export default async function BillingPage() {
             </div>
             <div className="text-3xl">📊</div>
           </div>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>
-              {monthlyUsage.tokensIn.toLocaleString()} tokens in
-            </p>
-            <p>
-              {monthlyUsage.tokensOut.toLocaleString()} tokens out
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            {monthlyLogs.length} requests this billing cycle
+          </p>
         </div>
 
-        {/* Subscription Info */}
+        {/* Plan Info */}
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -120,18 +104,13 @@ export default async function BillingPage() {
                 {user.plan || "No Plan"}
               </p>
             </div>
-            <div className="text-3xl">📋</div>
+            <div className="text-3xl">✨</div>
           </div>
           <p className="text-sm text-muted-foreground">
-            {user.plan === "basic" && "$5 credits included monthly"}
-            {user.plan === "pro" && "$15 credits included monthly"}
-            {!user.plan && "Subscribe to a plan to get started"}
+            ${includedCredits} credits included monthly
           </p>
         </div>
       </div>
-
-      {/* Upgrade/Downgrade Options */}
-      <UpgradeButtons currentPlan={user.plan} currentBillingMode={user.billingMode} />
 
       {/* Usage by Model */}
       {Object.keys(usageByModel).length > 0 && (
@@ -142,8 +121,7 @@ export default async function BillingPage() {
               <thead className="bg-secondary/50">
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Model</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Tokens In</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Tokens Out</th>
+                  <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Requests</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Cost</th>
                 </tr>
               </thead>
@@ -152,10 +130,7 @@ export default async function BillingPage() {
                   <tr key={model}>
                     <td className="px-4 py-3 font-medium text-foreground">{model}</td>
                     <td className="px-4 py-3 text-right text-muted-foreground">
-                      {data.tokensIn.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">
-                      {data.tokensOut.toLocaleString()}
+                      {data.requests.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right text-foreground font-medium">
                       ${(data.costCents / 100).toFixed(2)}
@@ -182,7 +157,6 @@ export default async function BillingPage() {
                 <tr>
                   <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Time</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground">Model</th>
-                  <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Tokens</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-muted-foreground">Cost</th>
                 </tr>
               </thead>
@@ -193,9 +167,6 @@ export default async function BillingPage() {
                       {new Date(log.timestamp).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 font-medium text-foreground">{log.model}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">
-                      {log.tokensIn.toLocaleString()} / {log.tokensOut.toLocaleString()}
-                    </td>
                     <td className="px-4 py-3 text-right text-foreground font-medium">
                       ${(log.costCents / 100).toFixed(4)}
                     </td>
