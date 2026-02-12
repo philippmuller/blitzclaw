@@ -181,3 +181,52 @@ export async function sendBalanceDepletedNotice(email: string): Promise<boolean>
     `,
   });
 }
+
+/**
+ * Send welcome email on first subscription
+ */
+export async function sendWelcomeEmail(
+  email: string,
+  plan: "basic" | "pro"
+): Promise<boolean> {
+  const planName = plan === "pro" ? "Pro" : "Basic";
+  const planEmoji = plan === "pro" ? "⚡" : "🎯";
+  
+  return sendEmail({
+    to: email,
+    subject: "Welcome to BlitzClaw! 🚀",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #2563eb; margin-bottom: 8px;">Welcome to BlitzClaw! 🚀</h1>
+        <p style="font-size: 18px; color: #333;">You're all set with the <strong>${planEmoji} ${planName} plan</strong>.</p>
+        
+        <div style="background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 24px 0;">
+          <h3 style="margin-top: 0; color: #1e40af;">Quick Start Guide</h3>
+          <ol style="color: #444; line-height: 1.8; padding-left: 20px;">
+            <li><strong>Go to your dashboard</strong> — manage your AI assistant settings</li>
+            <li><strong>Connect Telegram</strong> — link your Telegram account to start chatting</li>
+            <li><strong>Start chatting!</strong> — your AI assistant is ready to help</li>
+          </ol>
+        </div>
+        
+        <p style="margin: 24px 0;">
+          <a href="${APP_URL}/dashboard" 
+             style="background: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+            Open Dashboard →
+          </a>
+        </p>
+        
+        <p style="color: #666;">
+          Questions? Just reply to this email or reach out anytime.
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+        <p style="color: #999; font-size: 12px;">
+          <a href="${APP_URL}/dashboard" style="color: #999;">Dashboard</a> · 
+          <a href="${APP_URL}/dashboard/billing" style="color: #999;">Billing</a> · 
+          <a href="${APP_URL}" style="color: #999;">BlitzClaw</a>
+        </p>
+      </div>
+    `,
+  });
+}

@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { prisma, InstanceStatus } from "@blitzclaw/db";
 import { verifyWebhookSignature, polarConfig } from "@/lib/polar";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // Webhook event types we care about
 type PolarEventType =
@@ -176,6 +177,15 @@ export async function POST(request: Request) {
         where: { userId, status: InstanceStatus.PAUSED },
         data: { status: InstanceStatus.ACTIVE },
       });
+
+      // Send welcome email for new subscriptions
+      if (event.type === "subscription.created" && data.customer?.email) {
+        sendWelcomeEmail(data.customer.email, plan as "basic" | "pro")
+          .then((sent) => {
+            if (sent) console.log(`📧 Welcome email sent to ${data.customer?.email}`);
+          })
+          .catch((e) => console.error("Failed to send welcome email:", e));
+      }
 
       console.log(`✅ Subscription active for user ${userId} (${plan})`);
       break;
