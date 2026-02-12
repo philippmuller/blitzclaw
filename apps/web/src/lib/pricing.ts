@@ -17,11 +17,18 @@ const BASE_COSTS: Record<string, { inputPer1M: number; outputPer1M: number }> = 
   "claude-opus-4-6": { inputPer1M: 1500, outputPer1M: 7500 },      // $15/$75 per 1M
   "claude-sonnet-4-5": { inputPer1M: 300, outputPer1M: 1500 },     // $3/$15 per 1M
   "claude-haiku-4-5": { inputPer1M: 100, outputPer1M: 500 },       // $1/$5 per 1M
-  
+
+  // Current/alternate Anthropic IDs
+  "claude-opus-4": { inputPer1M: 1500, outputPer1M: 7500 },
+  "claude-opus-4-5": { inputPer1M: 1500, outputPer1M: 7500 },
+  "claude-sonnet-4": { inputPer1M: 300, outputPer1M: 1500 },
+
   // Legacy model IDs (keep for backwards compat)
   "claude-opus-4-20250514": { inputPer1M: 1500, outputPer1M: 7500 },
   "claude-sonnet-4-20250514": { inputPer1M: 300, outputPer1M: 1500 },
-  "claude-3-5-haiku-20241022": { inputPer1M: 80, outputPer1M: 400 },
+  "claude-3-opus-20240229": { inputPer1M: 1500, outputPer1M: 7500 },
+  "claude-3-5-sonnet-20241022": { inputPer1M: 300, outputPer1M: 1500 },
+  "claude-3-5-haiku-20241022": { inputPer1M: 100, outputPer1M: 500 },
 };
 
 // Our markup (50%)

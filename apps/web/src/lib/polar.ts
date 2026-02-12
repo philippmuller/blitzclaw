@@ -101,7 +101,7 @@ export async function trackUsage(
 
 /**
  * Calculate cost in credits (cents) for an API call
- * Includes 100% markup on Anthropic pricing
+ * Includes 50% markup on Anthropic pricing
  * 
  * @param inputTokens - Number of input tokens
  * @param outputTokens - Number of output tokens  
@@ -116,27 +116,35 @@ export function calculateCredits(
   // Anthropic pricing per 1M tokens (in dollars)
   // Source: https://www.anthropic.com/pricing
   const pricing: Record<string, { input: number; output: number }> = {
-    "claude-sonnet-4": { input: 3, output: 15 },
-    "claude-sonnet-4-5": { input: 3, output: 15 },
-    "claude-3-5-sonnet-20241022": { input: 3, output: 15 },
-    "claude-haiku-4-5": { input: 1, output: 5 },
-    "claude-3-5-haiku-20241022": { input: 1, output: 5 },
-    "claude-opus-4": { input: 15, output: 75 },
+    "claude-opus-4-6": { input: 15, output: 75 },
     "claude-opus-4-5": { input: 15, output: 75 },
-    "claude-opus-4-6": { input: 15, output: 75 },  // Latest Opus
+    "claude-opus-4": { input: 15, output: 75 },
+    "claude-sonnet-4-5": { input: 3, output: 15 },
+    "claude-sonnet-4": { input: 3, output: 15 },
+    "claude-haiku-4-5": { input: 1, output: 5 },
+
+    // Legacy model IDs
+    "claude-opus-4-20250514": { input: 15, output: 75 },
+    "claude-sonnet-4-20250514": { input: 3, output: 15 },
     "claude-3-opus-20240229": { input: 15, output: 75 },
+    "claude-3-5-sonnet-20241022": { input: 3, output: 15 },
+    "claude-3-5-haiku-20241022": { input: 1, output: 5 },
   };
 
+  const normalizedModel = model.startsWith("anthropic/")
+    ? model.slice("anthropic/".length).toLowerCase()
+    : model.toLowerCase();
+
   // Default to Sonnet pricing if model not found
-  const p = pricing[model] || pricing["claude-sonnet-4"];
+  const p = pricing[normalizedModel] || pricing["claude-sonnet-4"];
 
-  // Calculate raw cost in dollars
-  const rawCost =
-    (inputTokens / 1_000_000) * p.input +
-    (outputTokens / 1_000_000) * p.output;
+  // Convert dollars -> cents per 1M, then apply the same markup/rounding as pricing.ts
+  const inputPer1M = Math.ceil(p.input * 100 * 1.5);
+  const outputPer1M = Math.ceil(p.output * 100 * 1.5);
 
-  // Convert to cents and add 50% markup (matches pricing.ts MARKUP_MULTIPLIER)
-  const creditsWithMarkup = Math.ceil(rawCost * 100 * 1.5);
+  const inputCost = Math.ceil((inputTokens * inputPer1M) / 1_000_000);
+  const outputCost = Math.ceil((outputTokens * outputPer1M) / 1_000_000);
+  const creditsWithMarkup = inputCost + outputCost;
 
   // Minimum 1 credit per request
   return Math.max(1, creditsWithMarkup);

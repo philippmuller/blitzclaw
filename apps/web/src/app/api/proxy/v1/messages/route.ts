@@ -22,6 +22,8 @@ const PROXY_SIGNING_SECRET = process.env.PROXY_SIGNING_SECRET;
 interface AnthropicUsage {
   input_tokens: number;
   output_tokens: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
 }
 
 interface AnthropicResponse {
@@ -343,7 +345,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(responseData);
   }
 
-  const costResult = calculateCost(model, usage.input_tokens, usage.output_tokens);
+  const cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+  const cacheReadTokens = usage.cache_read_input_tokens || 0;
+  const effectiveInputTokens = usage.input_tokens +
+    Math.ceil(cacheCreationTokens * 1.25) +
+    Math.ceil(cacheReadTokens * 0.1);
+
+  const costResult = calculateCost(model, effectiveInputTokens, usage.output_tokens);
   if (!costResult) {
     console.warn(`Unknown model ${model}, skipping billing`);
     return NextResponse.json(responseData);
@@ -360,7 +368,7 @@ export async function POST(req: NextRequest) {
         data: {
           instanceId: instance.id,
           model,
-          tokensIn: usage.input_tokens,
+          tokensIn: effectiveInputTokens,
           tokensOut: usage.output_tokens,
           costCents,
         },
@@ -392,10 +400,10 @@ export async function POST(req: NextRequest) {
     
     // Track usage with Polar for managed billing users (not BYOK)
     if (instance.user.billingMode === "managed" && instance.user.polarCustomerId) {
-      const polarCredits = calculateCredits(usage.input_tokens, usage.output_tokens, model);
+      const polarCredits = calculateCredits(effectiveInputTokens, usage.output_tokens, model);
       trackUsage(instance.user.id, polarCredits, {
         model,
-        input_tokens: usage.input_tokens,
+        input_tokens: effectiveInputTokens,
         output_tokens: usage.output_tokens,
         instance_id: instance.id,
       }).catch(err => console.error("Polar tracking failed:", err));
