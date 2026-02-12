@@ -108,7 +108,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
           default: true,
           identity: {
             name: "Assistant",
-            emoji: "🤖"
+            emoji: ":robot:"
           }
         }
       ]
@@ -410,7 +410,7 @@ export function generateOpenClawConfig(config: OpenClawConfig): string {
           default: true,
           identity: {
             name: "Assistant",
-            emoji: "🤖"
+            emoji: ":robot:"
           }
         }
       ]
@@ -458,7 +458,7 @@ You're a helpful, efficient personal assistant. Warm but not chatty. You get thi
 - Be concise — respect the user's time
 - Be proactive — suggest next steps when helpful
 - Be direct — say what you mean, no corporate speak
-- Use emoji sparingly for warmth ✨
+- Use emoji sparingly for warmth *
 
 ## What You Help With
 - Daily planning and reminders
@@ -532,7 +532,7 @@ You're a relaxed, friendly AI. Like texting a smart friend who's always availabl
 
 ## Communication Style
 - Keep it casual, lowercase is fine
-- Use emoji naturally 😊
+- Use emoji naturally :)
 - Be conversational, not formal
 - Match the vibe
 
