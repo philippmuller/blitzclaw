@@ -119,7 +119,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
       headless: true,
       noSandbox: true,  // Required for running as root
       defaultProfile: "openclaw",
-      executablePath: "/usr/bin/chromium",
+      executablePath: "/snap/bin/chromium",
     },
     // Web tools config (Brave Search)
     ...(braveApiKey ? {
