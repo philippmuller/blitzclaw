@@ -1,71 +1,93 @@
 # BlitzClaw Handoff Document
 
-*Last updated: 2026-02-08*
+*Last updated: 2026-02-13*
 
 ## What Is BlitzClaw?
 
-One-click OpenClaw deployment SaaS. Users sign up, subscribe (€20/mo), enter their Telegram bot token, and get a running OpenClaw instance on a dedicated Hetzner VPS.
+One-click OpenClaw deployment SaaS. Users sign up, subscribe, connect Telegram, and get a dedicated AI assistant instance. Premium models (Claude Opus), zero configuration required.
 
-**Live URL:** https://www.blitzclaw.com
+**Live URL:** https://www.blitzclaw.com  
 **GitHub:** https://github.com/philippmuller/blitzclaw
 
 ## Tech Stack
 
 - **Frontend:** Next.js 14 (App Router), Tailwind CSS, dark theme
 - **Auth:** Clerk
-- **Billing:** Paddle (Merchant of Record - handles tax/compliance)
+- **Billing:** Polar.sh (Merchant of Record - handles subscriptions + usage metering)
 - **Database:** Neon PostgreSQL + Prisma ORM
-- **Server Provisioning:** Hetzner Cloud API
+- **Infrastructure:** Multi-cloud (Hetzner, DigitalOcean, Vultr) - all Frankfurt/Germany
 - **Deployment:** Vercel
 
-## Current Status (What Works)
+## Current Status
 
-### ✅ Completed
-1. **User auth** - Clerk sign-up/sign-in working
-2. **Subscription checkout** - Paddle integration, €20/mo subscription
-3. **Paddle webhooks** - `transaction.completed`, `subscription.created`, etc. properly credit balance
-4. **Server provisioning** - Hetzner VPS created with cloud-init
-5. **OpenClaw installation** - Node.js 22 + OpenClaw installed via cloud-init
-6. **Telegram bot** - Bot connects and responds to messages
-7. **Dashboard** - Shows instances, billing, settings
-8. **Logo/favicon** - BlitzClaw lightning claw logo
+### ✅ Working
+1. **User auth** — Clerk sign-up/sign-in
+2. **Subscription checkout** — Polar.sh integration, $19 Basic / $39 Pro
+3. **Polar webhooks** — Credits user balance on subscription
+4. **Multi-cloud provisioning** — Hetzner → DigitalOcean → Vultr fallback
+5. **Server pool** — Pre-provisioned servers for instant deployment
+6. **OpenClaw installation** — Node.js 22 + OpenClaw via cloud-init
+7. **Telegram integration** — Bot connects and responds
+8. **Billing proxy** — Token proxy tracks usage, sends to Polar meter
+9. **Usage-based billing** — No balance blocking, Polar bills overage monthly
+10. **Dashboard** — Instances, billing (Intelligence Cost), settings
+11. **Waitlist** — Shows email form when all providers at capacity
+12. **Welcome email** — Sends via Resend on subscription
 
-### ⚠️ Partially Working
-1. **Billing proxy** - Code deployed but new instances needed to test (existing instance predates proxy)
-2. **Delete account** - Code written, but Vercel builds were failing (just fixed)
-3. **Manage subscription** - Portal link API added, needs testing
-
-### ❌ Not Working / Incomplete
-1. **Auto top-up** - Paddle off-session charges enabled (needs production verification).
-2. **Usage metering display** - Shows 0 tokens because existing instance calls Anthropic directly (proxy not configured)
+### ⚠️ Not Yet Implemented
+1. **WhatsApp/Slack channels** — Telegram only for now
+2. **BYOK (Bring Your Own Key)** — Hidden, all users use managed billing
+3. **Google Calendar integration** — Planned
+4. **Google Drive integration** — Planned
+5. **Codex + GitHub + Vercel skill** — Planned
 
 ## Architecture
 
-### How Billing Proxy Works (for new instances)
+### Billing Flow
 
 ```
-User's Telegram → OpenClaw Instance → BlitzClaw Proxy → Anthropic API
-                                            ↓
-                                    Log usage + deduct balance
+User subscribes (Polar.sh)
+        ↓
+Webhook → Credit $5 (Basic) or $15 (Pro) to balance
+        ↓
+User chats via Telegram
+        ↓
+OpenClaw Instance → Token Proxy → Anthropic API
+        ↓
+Proxy logs usage:
+  1. Deduct from DB balance (for dashboard display)
+  2. Send meter event to Polar (for billing)
+        ↓
+End of month: Polar bills subscription + overage
 ```
 
-- Instance configured with custom provider `blitzclaw-anthropic`
-- Uses `proxySecret` as API key
-- Proxy at `/api/proxy/v1/messages` validates, forwards, logs usage
-- `proxySecret` stored in Instance table (added via Prisma migration)
+**Key points:**
+- No balance blocking — usage always continues
+- $100/day safety cap (rate limit, not hard block)
+- 50% margin on Anthropic costs (MARKUP_MULTIPLIER = 1.5)
 
-### Cloud-Init Flow
+### Multi-Cloud Provisioning
 
-1. Hetzner creates VPS with user-data (cloud-init YAML)
-2. Cloud-init writes config files:
-   - `/root/.openclaw/openclaw.json` - gateway + channel config
-   - `/root/.openclaw/agents/main/agent/auth-profiles.json` - proxy auth
-3. Runs `/root/setup-openclaw.sh`:
-   - Installs Node.js 22
-   - Installs OpenClaw globally
-   - Configures firewall (UFW)
-   - Starts OpenClaw service
-4. Calls back to `/api/internal/instance-ready` (marks ACTIVE)
+```
+provisionServer()
+    ↓
+Try Hetzner (nbg1) ──fail──→ Try DigitalOcean (fra1) ──fail──→ Try Vultr (fra)
+    ↓ success                      ↓ success                        ↓ success
+Create ServerPool entry with provider type
+    ↓
+Cloud-init installs OpenClaw
+    ↓
+Callback to /api/internal/instance-ready
+    ↓
+Server status: PROVISIONING → AVAILABLE
+```
+
+### Server Specs
+
+| Plan | Hetzner | DigitalOcean | Vultr |
+|------|---------|--------------|-------|
+| Basic | cx23 (2 ARM, 4GB) €4/mo | s-1vcpu-2gb $12/mo | vc2-1c-2gb $10/mo |
+| Pro | cx33 (4 ARM, 8GB) €8/mo | s-2vcpu-4gb $24/mo | vc2-2c-4gb $20/mo |
 
 ### Key Files
 
@@ -73,117 +95,128 @@ User's Telegram → OpenClaw Instance → BlitzClaw Proxy → Anthropic API
 apps/web/src/
 ├── app/
 │   ├── api/
-│   │   ├── billing/
-│   │   │   ├── subscribe/route.ts    # Create Paddle checkout
-│   │   │   ├── topup/route.ts        # Manual top-up
-│   │   │   └── portal/route.ts       # Paddle customer portal link
-│   │   ├── webhooks/paddle/route.ts  # Handle Paddle events
-│   │   ├── instances/route.ts        # Create instance
-│   │   ├── proxy/v1/messages/route.ts # Billing proxy
-│   │   └── account/delete/route.ts   # Delete account
-│   ├── (dashboard)/dashboard/        # Dashboard pages
-│   └── onboarding/page.tsx           # Onboarding wizard
+│   │   ├── polar/checkout/route.ts     # Create Polar checkout
+│   │   ├── webhooks/polar/route.ts     # Handle Polar events
+│   │   ├── proxy/v1/messages/route.ts  # Token proxy (billing)
+│   │   ├── waitlist/route.ts           # Capacity check + waitlist
+│   │   └── internal/
+│   │       ├── maintain-pool/route.ts  # Pool maintenance cron
+│   │       ├── cleanup-orphans/route.ts # Clean orphaned servers
+│   │       └── diagnostics/route.ts    # Debug endpoint
+│   ├── (dashboard)/dashboard/          # Dashboard pages
+│   └── onboarding/page.tsx             # Onboarding wizard
 ├── lib/
-│   ├── cloud-init.ts                 # Generate cloud-init YAML
-│   ├── provisioning.ts               # Server pool + instance creation
-│   ├── hetzner.ts                    # Hetzner API wrapper
-│   ├── pricing.ts                    # Cost calculation (100% markup)
-│   └── auto-topup.ts                 # Auto top-up logic
-packages/db/prisma/schema.prisma      # Database schema
+│   ├── cloud-init.ts         # Generate cloud-init YAML
+│   ├── provisioning.ts       # Multi-cloud provisioning
+│   ├── hetzner.ts            # Hetzner API
+│   ├── digitalocean.ts       # DigitalOcean API
+│   ├── vultr.ts              # Vultr API
+│   ├── polar.ts              # Polar.sh API + usage tracking
+│   └── pricing.ts            # Cost calculation (50% markup)
+packages/db/prisma/schema.prisma
 ```
 
-## Environment Variables (Vercel)
+## Environment Variables
 
-Required in Vercel project settings:
+### Required (Vercel)
 
-```
+```bash
 # Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-CLERK_SECRET_KEY
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
 
-# Paddle
-PADDLE_API_KEY
-PADDLE_WEBHOOK_SECRET
-PADDLE_CLIENT_TOKEN
-PADDLE_SUBSCRIPTION_PRICE_ID
-PADDLE_TOPUP_10_PRICE_ID
-PADDLE_TOPUP_25_PRICE_ID
-PADDLE_TOPUP_50_PRICE_ID
-PADDLE_ENVIRONMENT
+# Polar.sh
+POLAR_ACCESS_TOKEN=
+POLAR_WEBHOOK_SECRET=
+POLAR_PRODUCT_BASIC_ID=
+POLAR_PRODUCT_PRO_ID=
+POLAR_SANDBOX=false
 
-# Hetzner
-HETZNER_API_TOKEN
-HETZNER_SSH_KEY_ID               # 106934050
+# Infrastructure
+HETZNER_API_TOKEN=
+HETZNER_SSH_KEY_ID=
+DIGITALOCEAN_API_TOKEN=
+DIGITALOCEAN_SSH_KEY_ID=
+VULTR_API_TOKEN=
+VULTR_SSH_KEY_ID=
 
 # Anthropic
-ANTHROPIC_API_KEY                # BlitzClaw's key (used by proxy)
+ANTHROPIC_API_KEY=
+PROXY_SIGNING_SECRET=
 
 # Database
-DATABASE_URL                     # Neon PostgreSQL connection string
+DATABASE_URL=
+
+# Email
+RESEND_API_KEY=
+
+# Internal
+DIAGNOSTICS_KEY=blitz-debug-2026
 ```
 
-## Open Problems & Decisions Needed
+## Pricing
 
-### 1. Auto Top-Up
+| Plan | Monthly | Included Credits | Overage |
+|------|---------|------------------|---------|
+| Basic | $19/mo | $5 | Billed via Polar |
+| Pro | $39/mo | $15 | Billed via Polar |
 
-**Status:** Paddle now supports off-session charges via subscription transactions.
+### AI Model Costs (user pays, includes 50% margin)
 
-**Current behavior:** When balance < €5, we create a Paddle transaction against the subscription (true auto top-up).
+| Model | Input/1M | Output/1M |
+|-------|----------|-----------|
+| Claude Opus | $22.50 | $112.50 |
+| Claude Sonnet | $4.50 | $22.50 |
+| Claude Haiku | $1.50 | $7.50 |
 
-### 2. Existing Instance Doesn't Use Proxy
+**Safety cap:** $100/day (429 error, resets at midnight)
 
-The test instance (178.156.163.99) was provisioned before proxy code was added. It calls Anthropic directly, so usage isn't tracked.
+## Internal Endpoints
 
-**Fix:** Delete instance via dashboard, re-provision. New instance will use proxy.
+All require `?key=blitz-debug-2026`:
 
-### 3. Webhook Signature Verification
+- `GET /api/internal/diagnostics` — Pool status, user list
+- `GET /api/internal/diagnostics?email=xxx` — Search specific user
+- `POST /api/internal/maintain-pool` — Trigger pool maintenance
+- `POST /api/internal/cleanup-orphans` — Clean orphaned cloud servers
 
-Paddle webhook verification uses HMAC SHA256 with the Paddle-Signature header.
+## Useful Commands
 
-### 4. Instance-Ready Callback
-
-Callback URL was using Vercel preview URL (requires auth). Fixed to use production URL. Needs verification with new instance.
-
-## Pricing Model
-
-- **Subscription:** €20/month (includes €10 credits)
-- **Markup:** 100% (MARKUP_MULTIPLIER = 2.0)
-- **Minimum balance:** €5 (MINIMUM_BALANCE_CENTS = 500)
-- **Daily limit:** $200/day (DAILY_LIMIT_CENTS = 20000)
-- **Auto top-up:** €25 when balance < €5 (not automatic, see above)
-
-## Testing Flow
-
-1. Sign up at blitzclaw.com
-2. Subscribe (€20, test mode works)
-3. Enter Telegram bot token (create via @BotFather)
-4. Wait for provisioning (~2-3 min)
-5. Message your bot on Telegram
-6. Check dashboard for usage (only works with new instances + proxy)
-
-## Recent Fixes (2026-02-08)
-
-1. **Cloud-init YAML parsing** - Moved auth-profiles.json from heredoc to write_files
-2. **Callback URL** - Use production URL, not preview URL
-3. **JSON trailing newlines** - Use `|-` YAML block style
-4. **TypeScript error** - Fixed `instanceId` → `instance.id` in proxy route
-
-## Vercel Project
-
-- **Project ID:** `prj_xpDp8Rne9I7Wu0uL2abcPgPlqhuC`
-- **Token:** `DvRuedocAPUgsBKRwnTj1jm3`
-
-Check deployment status:
 ```bash
-curl -s "https://api.vercel.com/v6/deployments?projectId=prj_xpDp8Rne9I7Wu0uL2abcPgPlqhuC&limit=5" \
-  -H "Authorization: Bearer DvRuedocAPUgsBKRwnTj1jm3" | jq '.deployments[] | {state, error: .errorMessage}'
+# Check pool status
+curl "https://www.blitzclaw.com/api/internal/diagnostics?key=blitz-debug-2026" | jq '.pool'
+
+# Check specific user
+curl "https://www.blitzclaw.com/api/internal/diagnostics?key=blitz-debug-2026&email=test" | jq '.'
+
+# Trigger pool maintenance
+curl -X POST "https://www.blitzclaw.com/api/internal/maintain-pool?key=blitz-debug-2026"
+
+# Clean orphaned servers
+curl -X POST "https://www.blitzclaw.com/api/internal/cleanup-orphans?key=blitz-debug-2026"
 ```
+
+## Current Cloud Limits
+
+| Provider | Limit | Status |
+|----------|-------|--------|
+| Hetzner | 4 IPs | Need 1 month payment history to increase |
+| DigitalOcean | 3 droplets | Increase requested |
+| Vultr | ~10 instances | New account, limits TBD |
 
 ## Next Steps
 
-1. **Verify Vercel build passes** after TypeScript fix
-2. **Test delete account** functionality
-3. **Test manage subscription** (Paddle portal)
-4. **Decide on auto top-up approach** (Stripe vs notification)
-5. **Test full flow with new instance** to verify billing proxy works
-6. **Rotate all API keys** before production launch (they were exposed in Discord)
+1. **Scale capacity** — Wait for DO limit increase, monitor Vultr
+2. **Google integrations** — Calendar, Drive read access
+3. **Codex skill** — Pre-configured GitHub + Vercel for code shipping
+4. **WhatsApp channel** — After Telegram proven
+5. **Landing page video** — Demo of Codex building + deploying a page
+
+## Key Decisions Made
+
+- **No balance blocking** — Polar handles overage billing
+- **No BYOK for launch** — Simplifies support, hidden toggle exists
+- **Multi-cloud** — Reliability over cost optimization
+- **50% margin** — Covers infra + profit
+- **Germany-only servers** — GDPR compliance
+- **Premium models default** — Opus, not Sonnet/Haiku
