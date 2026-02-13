@@ -92,7 +92,7 @@ export default async function Home() {
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="inline-block px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-sm text-primary mb-6">
-            ⚡ Your assistant live in ~60 seconds
+            ⚡ Your assistant live in ~5 minutes
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             Your AI assistant, ready in a minute.
@@ -390,6 +390,43 @@ export default async function Home() {
                 Go to Dashboard →
               </Link>
             </SignedIn>
+          </div>
+        </div>
+
+        {/* Get Started */}
+        <div className="max-w-5xl mx-auto px-6 py-20">
+          <h2 className="text-3xl font-bold text-foreground text-center mb-4">Get Started in 5 Minutes</h2>
+          <p className="text-muted-foreground text-center mb-10">
+            Watch the quick walkthrough, then follow the steps below.
+          </p>
+          <div className="flex flex-col items-center gap-10">
+            <div className="w-full max-w-3xl">
+              <div className="relative w-full pt-[56.25%] rounded-xl overflow-hidden border border-border bg-card">
+                <iframe
+                  src="https://www.loom.com/embed/52635d7f2e0b4b2d83ba406523930a5a"
+                  title="BlitzClaw - Get Started in 5 Minutes"
+                  className="absolute inset-0 h-full w-full"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+            <ol className="w-full max-w-3xl space-y-4 text-muted-foreground">
+              <li className="bg-card border border-border rounded-xl p-4">
+                <span className="text-foreground font-medium">1. Sign up</span> — Click "Create Your Own Agent" and sign in with Google or email
+              </li>
+              <li className="bg-card border border-border rounded-xl p-4">
+                <span className="text-foreground font-medium">2. Pick a plan</span> — Basic ($19/mo) or Pro ($39/mo)
+              </li>
+              <li className="bg-card border border-border rounded-xl p-4">
+                <span className="text-foreground font-medium">3. Create your Telegram bot</span> — Open Telegram, search @BotFather, send /newbot, copy the token
+              </li>
+              <li className="bg-card border border-border rounded-xl p-4">
+                <span className="text-foreground font-medium">4. Connect</span> — Paste your bot token in the dashboard
+              </li>
+              <li className="bg-card border border-border rounded-xl p-4">
+                <span className="text-foreground font-medium">5. Start chatting</span> — Open your bot in Telegram and say hi! 🎉
+              </li>
+            </ol>
           </div>
         </div>
 
