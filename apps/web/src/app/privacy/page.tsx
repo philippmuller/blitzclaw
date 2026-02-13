@@ -25,7 +25,7 @@ export default function PrivacyPage() {
             <strong>2M Ventures UG (haftungsbeschränkt)</strong><br />
             Geschäftsführer: Philipp Müller<br />
             Hohenstaufenstr. 22, 10779 Berlin, Germany<br />
-            Email: privacy@blitzclaw.com
+            Email: support@blitzclaw.com
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">2. Data We Collect</h2>
@@ -128,7 +128,7 @@ export default function PrivacyPage() {
             <li><strong>Withdraw consent:</strong> Where processing is based on consent</li>
           </ul>
           <p>
-            Contact privacy@blitzclaw.com to exercise these rights. We respond within 30 days.
+            Contact support@blitzclaw.com to exercise these rights. We respond within 30 days.
           </p>
           <p>
             <strong>Supervisory authority:</strong> You may lodge a complaint with the Berlin 
@@ -152,14 +152,19 @@ export default function PrivacyPage() {
 
           <h2 className="text-xl font-semibold text-white mt-8">8. Security</h2>
           <p>
-            We implement technical and organizational measures including:
+            We implement basic technical and organizational measures including:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>TLS encryption for data in transit</li>
-            <li>Encrypted storage for sensitive data</li>
-            <li>Access controls and authentication</li>
-            <li>Regular security monitoring</li>
+            <li>SSH key-based access to instances</li>
+            <li>Access controls and authentication via Clerk</li>
           </ul>
+          <p>
+            As noted in our Terms of Service, BlitzClaw is experimental software that has not 
+            undergone formal security audits. Data stored on your instance (including secrets 
+            and credentials) is not encrypted at rest by BlitzClaw. Provider-level disk encryption 
+            may be available depending on the infrastructure provider.
+          </p>
           <p>
             No system is 100% secure. You are responsible for securing your account credentials 
             and any secrets you store in your instance.
@@ -179,7 +184,7 @@ export default function PrivacyPage() {
 
           <h2 className="text-xl font-semibold text-white mt-8">11. Contact</h2>
           <p>
-            For privacy inquiries: privacy@blitzclaw.com<br />
+            For privacy inquiries: support@blitzclaw.com<br />
             General support: support@blitzclaw.com
           </p>
         </div>
