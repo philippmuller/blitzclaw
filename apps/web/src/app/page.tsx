@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 
+// Make page dynamic (queries DB)
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
+  // Get available server count for display
+  const availableServers = await prisma.serverPool.count({
+    where: { status: "AVAILABLE" },
+  });
+  
   // Check if user is signed in and needs onboarding
   const { userId } = await auth();
   
@@ -117,7 +125,16 @@ export default async function Home() {
               See How It Works
             </a>
           </div>
-          <p className="mt-6 text-sm text-muted-foreground">
+          {/* Server availability */}
+          <p className="mt-6 text-xs text-muted-foreground/70">
+            {availableServers > 0 ? (
+              <span className="text-green-500">● {availableServers} server{availableServers !== 1 ? 's' : ''} ready for instant deployment</span>
+            ) : (
+              <span className="text-amber-500">● High demand — join waitlist for next available slot</span>
+            )}
+          </p>
+          
+          <p className="mt-4 text-sm text-muted-foreground">
             Want the details?{" "}
             <Link href="/pricing" className="text-primary hover:underline">
               See pricing
