@@ -55,18 +55,7 @@ export default function ImpressumPage() {
             10779 Berlin
           </p>
           
-          <h2 className="text-xl font-semibold text-white mt-8">Streitschlichtung</h2>
-          <p>
-            Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
-            <a 
-              href="https://ec.europa.eu/consumers/odr/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:underline"
-            >
-              https://ec.europa.eu/consumers/odr/
-            </a>
-          </p>
+          <h2 className="text-xl font-semibold text-white mt-8">Verbraucherstreitbeilegung</h2>
           <p>
             Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
             Verbraucherschlichtungsstelle teilzunehmen.

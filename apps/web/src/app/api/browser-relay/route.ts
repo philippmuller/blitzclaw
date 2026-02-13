@@ -16,7 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@blitzclaw/db";
 
 // For MVP: Store pending connections in memory
 // Production: Use Redis or similar
