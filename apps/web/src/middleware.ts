@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/refund",
   "/impressum",         // Legal requirement (Germany)
   "/guide",             // Getting started guide
+  "/guides",            // Tips & guides page
   "/agents",            // Sub-agents explainer
   "/api/webhooks/(.*)",
   "/api/polar/(.*)",    // Polar checkout/webhooks
