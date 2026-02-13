@@ -56,13 +56,13 @@ export default async function Home() {
               href="/guide"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Guide
+              Agent?
             </Link>
             <Link
-              href="/agents"
+              href="/guides"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Agents
+              Guides
             </Link>
             <SignedOut>
               <SignInButton mode="modal">
