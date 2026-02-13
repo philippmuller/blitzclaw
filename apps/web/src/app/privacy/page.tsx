@@ -15,117 +15,172 @@ export default function PrivacyPage() {
         <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
         
         <div className="prose prose-invert prose-gray max-w-none space-y-6 text-gray-300">
-          <p><strong>Last updated:</strong> February 9, 2026</p>
+          <p><strong>Last updated:</strong> February 13, 2026</p>
           
-          <h2 className="text-xl font-semibold text-white mt-8">1. Introduction</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">1. Data Controller</h2>
           <p>
-            BlitzClaw ("we", "our", "us") respects your privacy. This policy explains how we collect, 
-            use, and protect your information when you use our AI assistant deployment service.
+            The data controller for BlitzClaw is:
+          </p>
+          <p>
+            <strong>2M Ventures UG (haftungsbeschränkt)</strong><br />
+            Geschäftsführer: Philipp Müller<br />
+            Hohenstaufenstr. 22, 10779 Berlin, Germany<br />
+            Email: privacy@blitzclaw.com
           </p>
           
-          <h2 className="text-xl font-semibold text-white mt-8">2. Information We Collect</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">2. Data We Collect</h2>
           
-          <h3 className="text-lg font-medium text-white mt-6">Account Information</h3>
+          <h3 className="text-lg font-medium text-white mt-6">Account Data</h3>
           <p>
-            When you create an account, we collect your email address and authentication data 
-            provided through our authentication provider (Clerk).
+            Email address and authentication credentials (processed via Clerk).
           </p>
           
-          <h3 className="text-lg font-medium text-white mt-6">Payment Information</h3>
+          <h3 className="text-lg font-medium text-white mt-6">Instance Configuration</h3>
           <p>
-            Payment processing is handled by Creem, our payment processor. We do not store 
-            your credit card details. Creem may collect billing information as described in 
-            their privacy policy.
+            Settings you configure for your AI assistant: name, personality, connected services.
           </p>
           
           <h3 className="text-lg font-medium text-white mt-6">Usage Data</h3>
           <p>
-            We collect data about your use of the Service, including API usage, token consumption, 
-            and instance activity for billing and service improvement purposes.
+            API usage metrics, token consumption, instance status — for billing and service operation.
           </p>
           
           <h3 className="text-lg font-medium text-white mt-6">Conversation Data</h3>
           <p>
-            Messages between you and your AI assistant are processed to provide the Service. 
-            Conversations may be stored temporarily for context and are processed by third-party 
-            AI providers (Anthropic) according to their data handling policies.
+            Messages exchanged with your AI assistant are processed to provide the service. See 
+            Section 3 for important information about third-party processing.
           </p>
+
+          <h2 className="text-xl font-semibold text-white mt-8">3. Third-Party Data Processing</h2>
           
-          <h2 className="text-xl font-semibold text-white mt-8">3. How We Use Your Information</h2>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>To provide and maintain the Service</li>
-            <li>To process payments and manage subscriptions</li>
-            <li>To communicate with you about your account</li>
-            <li>To improve and develop new features</li>
-            <li>To detect and prevent fraud or abuse</li>
-          </ul>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">4. Data Sharing</h2>
-          <p>We share data with:</p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li><strong>Anthropic</strong> — AI model provider (processes conversation content)</li>
-            <li><strong>Creem</strong> — Payment processor (handles billing)</li>
-            <li><strong>Clerk</strong> — Authentication provider (handles login)</li>
-            <li><strong>Hetzner</strong> — Infrastructure provider (hosts your instance)</li>
-          </ul>
+          <div className="bg-yellow-900/30 border border-yellow-600/50 p-4 rounded-lg">
+            <h3 className="text-lg font-medium text-white mt-2">⚠️ Anthropic (AI Provider)</h3>
+            <p className="mt-2">
+              <strong>All content you send to your AI assistant is transmitted to Anthropic, PBC 
+              (San Francisco, USA) for processing.</strong> This includes:
+            </p>
+            <ul className="list-disc pl-6 space-y-1 mt-2">
+              <li>All messages you send</li>
+              <li>Files or data you share with or through the assistant</li>
+              <li>Content the assistant accesses on your behalf (websites, documents)</li>
+              <li>Any secrets or credentials you instruct the assistant to use</li>
+            </ul>
+            <p className="mt-2">
+              Anthropic processes this data under their own privacy policy and terms. We cannot 
+              control how Anthropic stores, processes, or uses your data. Review Anthropic's 
+              policies: <a href="https://www.anthropic.com/legal/privacy" className="text-blue-400 hover:underline" target="_blank" rel="noopener">anthropic.com/legal/privacy</a>
+            </p>
+            <p className="mt-2">
+              <strong>Data transfer:</strong> Your data is transferred to the USA. Anthropic 
+              participates in standard contractual clauses for EU-US data transfers.
+            </p>
+          </div>
+
+          <h3 className="text-lg font-medium text-white mt-6">Polar.sh (Payment Processing)</h3>
           <p>
-            We do not sell your personal information to third parties.
+            Polar acts as Merchant of Record for all payments. Polar collects billing information 
+            including payment method details. We do not store your payment card data.
+            See: <a href="https://polar.sh/legal/privacy" className="text-blue-400 hover:underline" target="_blank" rel="noopener">polar.sh/legal/privacy</a>
           </p>
-          
+
+          <h3 className="text-lg font-medium text-white mt-6">Clerk (Authentication)</h3>
+          <p>
+            Clerk processes your login credentials and manages authentication sessions.
+            See: <a href="https://clerk.com/legal/privacy" className="text-blue-400 hover:underline" target="_blank" rel="noopener">clerk.com/legal/privacy</a>
+          </p>
+
+          <h3 className="text-lg font-medium text-white mt-6">Infrastructure Providers</h3>
+          <p>
+            Your instance runs on servers provided by Hetzner, DigitalOcean, or Vultr (EU/Germany 
+            datacenter). These providers have physical access to server infrastructure but not 
+            to application-level data which is encrypted.
+          </p>
+
+          <h2 className="text-xl font-semibold text-white mt-8">4. Legal Basis for Processing (GDPR Art. 6)</h2>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Contract performance (Art. 6(1)(b)):</strong> Processing necessary to provide the service you requested</li>
+            <li><strong>Legitimate interest (Art. 6(1)(f)):</strong> Service security, fraud prevention, service improvement</li>
+            <li><strong>Legal obligation (Art. 6(1)(c)):</strong> Tax records, law enforcement requests</li>
+            <li><strong>Consent (Art. 6(1)(a)):</strong> For optional processing, where applicable</li>
+          </ul>
+
           <h2 className="text-xl font-semibold text-white mt-8">5. Data Retention</h2>
-          <p>
-            We retain your data for as long as your account is active. When you delete your account, 
-            we delete your data within 30 days, except where retention is required by law.
-          </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">6. Data Security</h2>
-          <p>
-            We implement appropriate technical and organizational measures to protect your data. 
-            However, no method of transmission over the Internet is 100% secure.
-          </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">7. Your Rights</h2>
-          <p>Depending on your location, you may have rights to:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Access your personal data</li>
-            <li>Correct inaccurate data</li>
-            <li>Delete your data</li>
-            <li>Export your data</li>
-            <li>Object to certain processing</li>
+            <li><strong>Account data:</strong> Until account deletion plus 30 days</li>
+            <li><strong>Instance data:</strong> Deleted within 7 days of instance termination</li>
+            <li><strong>Billing records:</strong> 10 years (German tax law requirement)</li>
+            <li><strong>Conversation data on your instance:</strong> You control this; deleted when instance is deleted</li>
           </ul>
           <p>
-            Contact us at privacy@blitzclaw.com to exercise these rights.
+            Note: Data sent to Anthropic is retained according to Anthropic's policies, which we 
+            cannot control.
           </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">8. International Transfers</h2>
+
+          <h2 className="text-xl font-semibold text-white mt-8">6. Your Rights (GDPR)</h2>
+          <p>You have the right to:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>Access (Art. 15):</strong> Request a copy of your personal data</li>
+            <li><strong>Rectification (Art. 16):</strong> Correct inaccurate data</li>
+            <li><strong>Erasure (Art. 17):</strong> Request deletion of your data</li>
+            <li><strong>Restriction (Art. 18):</strong> Limit how we process your data</li>
+            <li><strong>Portability (Art. 20):</strong> Receive your data in machine-readable format</li>
+            <li><strong>Object (Art. 21):</strong> Object to processing based on legitimate interest</li>
+            <li><strong>Withdraw consent:</strong> Where processing is based on consent</li>
+          </ul>
           <p>
-            Your data may be transferred to and processed in countries outside your residence. 
-            We ensure appropriate safeguards are in place for such transfers.
+            Contact privacy@blitzclaw.com to exercise these rights. We respond within 30 days.
           </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">9. Children's Privacy</h2>
           <p>
-            The Service is not intended for users under 18. We do not knowingly collect data 
-            from children.
+            <strong>Supervisory authority:</strong> You may lodge a complaint with the Berlin 
+            Commissioner for Data Protection (Berliner Beauftragte für Datenschutz und Informationsfreiheit).
           </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">10. Changes to This Policy</h2>
+
+          <h2 className="text-xl font-semibold text-white mt-8">7. International Transfers</h2>
           <p>
-            We may update this policy from time to time. We will notify you of significant changes 
-            via email or through the Service.
+            Your data is transferred to:
           </p>
-          
+          <ul className="list-disc pl-6 space-y-2">
+            <li><strong>USA (Anthropic):</strong> Conversation data for AI processing</li>
+            <li><strong>USA (Clerk):</strong> Authentication data</li>
+            <li><strong>EU/USA (Polar):</strong> Payment data</li>
+          </ul>
+          <p>
+            For US transfers, we rely on Standard Contractual Clauses (SCCs) where available from 
+            the provider. You acknowledge that US law may provide different data protection standards 
+            than EU law.
+          </p>
+
+          <h2 className="text-xl font-semibold text-white mt-8">8. Security</h2>
+          <p>
+            We implement technical and organizational measures including:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>TLS encryption for data in transit</li>
+            <li>Encrypted storage for sensitive data</li>
+            <li>Access controls and authentication</li>
+            <li>Regular security monitoring</li>
+          </ul>
+          <p>
+            No system is 100% secure. You are responsible for securing your account credentials 
+            and any secrets you store in your instance.
+          </p>
+
+          <h2 className="text-xl font-semibold text-white mt-8">9. Children</h2>
+          <p>
+            BlitzClaw is not intended for users under 18. We do not knowingly collect data from 
+            minors. If you believe a minor has provided data, contact us for deletion.
+          </p>
+
+          <h2 className="text-xl font-semibold text-white mt-8">10. Changes</h2>
+          <p>
+            We may update this policy. Material changes will be notified via email at least 14 
+            days before taking effect.
+          </p>
+
           <h2 className="text-xl font-semibold text-white mt-8">11. Contact</h2>
           <p>
-            For privacy-related questions, contact us at support@blitzclaw.com
-          </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">12. Data Controller</h2>
-          <p>
-            2M Ventures UG (haftungsbeschränkt)<br />
-            Geschäftsführer: Philipp Müller<br />
-            Hohenstaufenstr. 22<br />
-            10779 Berlin, Germany
+            For privacy inquiries: privacy@blitzclaw.com<br />
+            General support: support@blitzclaw.com
           </p>
         </div>
       </div>

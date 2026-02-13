@@ -15,71 +15,74 @@ export default function RefundPage() {
         <h1 className="text-3xl font-bold mb-8">Refund Policy</h1>
         
         <div className="prose prose-invert prose-gray max-w-none space-y-6 text-gray-300">
-          <p><strong>Last updated:</strong> February 9, 2026</p>
+          <p><strong>Last updated:</strong> February 13, 2026</p>
           
-          <h2 className="text-xl font-semibold text-white mt-8">Overview</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">Payment Processing</h2>
           <p>
-            BlitzClaw operates on a subscription model. We want you to be satisfied with 
-            our service, but due to the nature of server and AI compute costs, refunds are limited.
+            All payments for BlitzClaw are processed by Polar.sh ("Polar"), acting as Merchant 
+            of Record. Refunds are processed through Polar according to this policy.
+          </p>
+          
+          <h2 className="text-xl font-semibold text-white mt-8">EU Right of Withdrawal</h2>
+          <p>
+            As an EU consumer, you have a 14-day right of withdrawal for digital services. However, 
+            by activating your BlitzClaw instance, you:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Request immediate performance of the service</li>
+            <li>Acknowledge that server and AI compute resources are consumed immediately</li>
+            <li>Agree to waive the right of withdrawal once the service begins</li>
+          </ul>
+          <p>
+            If you have not yet created an instance, you may request a full refund within 14 days 
+            of subscription purchase.
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Subscription Refunds</h2>
           <p>
-            If you cancel within the first 7 days of your initial subscription and have not 
-            created an instance, you may request a full refund of the subscription fee.
+            <strong>Before instance creation:</strong> Full refund within 14 days.
           </p>
           <p>
-            After the 7-day period, subscription fees are non-refundable, but you can cancel anytime 
-            to prevent future charges. Your service will continue until the end of the billing period.
+            <strong>After instance creation:</strong> No refund for the current billing period. 
+            You may cancel anytime to prevent future charges. Service continues until period end.
+          </p>
+          <p>
+            <strong>Technical issues:</strong> If we cannot provide functioning service due to 
+            our fault for more than 72 consecutive hours, you may request a pro-rata refund for 
+            the affected period.
           </p>
           
-          <h2 className="text-xl font-semibold text-white mt-8">Credit/Top-up Refunds</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">Usage Credits</h2>
           <p>
-            For plans that include credits or top-ups:
+            AI usage beyond included credits is billed by Polar at the end of each billing cycle. 
+            Usage credits that have been consumed represent costs already incurred and are not 
+            refundable.
           </p>
-          <p>
-            <strong>Unused credits:</strong> If you have unused credits and wish to close your account, 
-            we may issue a partial refund for unused credits at our discretion, minus a 20% processing fee.
-          </p>
-          <p>
-            <strong>Used credits:</strong> Credits that have been consumed (for AI model usage, compute, 
-            etc.) are non-refundable as these costs have been incurred.
-          </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">Service Issues</h2>
-          <p>
-            If you experience significant service issues or downtime that prevents you from using 
-            BlitzClaw, contact us at support@blitzclaw.com. We will evaluate refund requests on a 
-            case-by-case basis and may offer:
-          </p>
-          <ul className="list-disc pl-6 space-y-2">
-            <li>Service credits for future use</li>
-            <li>Partial refunds for affected periods</li>
-            <li>Extended subscription time</li>
-          </ul>
           
           <h2 className="text-xl font-semibold text-white mt-8">How to Request a Refund</h2>
           <p>
-            To request a refund, email support@blitzclaw.com with:
+            Email support@blitzclaw.com with:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>Your account email</li>
-            <li>Reason for the refund request</li>
-            <li>Any relevant details about the issue</li>
+            <li>Reason for refund request</li>
+            <li>Order/transaction ID if available</li>
           </ul>
           <p>
-            We aim to respond to refund requests within 3 business days.
+            We respond within 5 business days. Approved refunds are processed by Polar and 
+            typically appear within 5-10 business days depending on your payment provider.
           </p>
-          
-          <h2 className="text-xl font-semibold text-white mt-8">Payment Processor</h2>
+
+          <h2 className="text-xl font-semibold text-white mt-8">Chargebacks</h2>
           <p>
-            Refunds are processed through Creem, our payment processor. Refunds typically appear 
-            on your statement within 5-10 business days, depending on your bank or card issuer.
+            Please contact us before initiating a chargeback with your bank. Chargebacks for 
+            legitimate charges may result in account suspension. We will work with you to resolve 
+            billing issues directly.
           </p>
           
           <h2 className="text-xl font-semibold text-white mt-8">Contact</h2>
           <p>
-            For refund requests or billing questions, contact us at support@blitzclaw.com
+            Billing questions: support@blitzclaw.com
           </p>
         </div>
       </div>
