@@ -89,7 +89,7 @@ export default class BrowserRelayServer implements Party.Server {
     this.connections.delete(connection.id);
   }
 
-  private parseMessage(message: string | ArrayBuffer): (AuthMessage & RelayMessage) | null {
+  private parseMessage(message: string | ArrayBuffer): (AuthMessage | RelayMessage) | null {
     try {
       const raw = typeof message === "string" ? message : new TextDecoder().decode(message);
       return JSON.parse(raw);
@@ -149,8 +149,8 @@ export default class BrowserRelayServer implements Party.Server {
   }
 
   private async validateToken(token: string): Promise<ValidateResponse> {
-    const apiBase = this.env.BROWSER_RELAY_API_BASE || "https://www.blitzclaw.com";
-    const url = `${apiBase.replace(/\/$/, "")}/api/browser-relay?action=validate&token=${encodeURIComponent(token)}`;
+    const apiBase = "https://www.blitzclaw.com";
+    const url = `${apiBase}/api/browser-relay?action=validate&token=${encodeURIComponent(token)}`;
 
     try {
       const response = await fetch(url);
