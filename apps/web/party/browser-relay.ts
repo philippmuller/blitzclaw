@@ -28,7 +28,7 @@ type ValidateResponse = {
 export default class BrowserRelayServer implements Party.Server {
   private connections = new Map<string, ConnectionMeta>();
 
-  constructor(readonly room: Party.Room, readonly env: Party.Env) {}
+  constructor(readonly room: Party.Room) {}
 
   onConnect(connection: Party.Connection) {
     connection.send(
