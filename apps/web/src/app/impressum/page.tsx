@@ -16,7 +16,7 @@ export default function ImpressumPage() {
         
         <div className="prose prose-invert prose-gray max-w-none space-y-6 text-gray-300">
           
-          <h2 className="text-xl font-semibold text-white mt-8">Angaben gemäß § 5 TMG</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">Angaben gemäß § 5 DDG</h2>
           
           <p>
             <strong>2M Ventures UG (haftungsbeschränkt)</strong><br />
@@ -74,8 +74,8 @@ export default function ImpressumPage() {
           
           <h2 className="text-xl font-semibold text-white mt-8">Haftung für Inhalte</h2>
           <p>
-            Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten 
-            nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als 
+            Als Diensteanbieter sind wir gemäß § 7 Abs.1 DDG für eigene Inhalte auf diesen Seiten 
+            nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG sind wir als 
             Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde 
             Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige 
             Tätigkeit hinweisen.
