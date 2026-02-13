@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      padding: 20px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: #171717;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #6b7280;
+    }
+    
+    .status-dot.connected {
+      background: #22c55e;
+    }
+    
+    .status-dot.connecting {
+      background: #eab308;
+      animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .status-text {
+      font-size: 14px;
+      color: #a1a1aa;
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    .label {
+      display: block;
+      font-size: 12px;
+      color: #a1a1aa;
+      margin-bottom: 6px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #171717;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      color: #fafafa;
+      font-size: 14px;
+      outline: none;
+    }
+    
+    input:focus {
+      border-color: #3b82f6;
+    }
+    
+    input::placeholder {
+      color: #52525b;
+    }
+    
+    button {
+      width: 100%;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+    
+    .btn-primary:disabled {
+      background: #1e3a5f;
+      cursor: not-allowed;
+    }
+    
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+    
+    .error {
+      color: #f87171;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    
+    .help {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #27272a;
+      font-size: 12px;
+      color: #71717a;
+      text-align: center;
+    }
+    
+    .help a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    
+    .help a:hover {
+      text-decoration: underline;
+    }
+    
+    .connected-view {
+      display: none;
+    }
+    
+    .connected-view.active {
+      display: block;
+    }
+    
+    .disconnected-view {
+      display: block;
+    }
+    
+    .disconnected-view.hidden {
+      display: none;
+    }
+    
+    .instance-info {
+      background: #171717;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    
+    .instance-label {
+      color: #71717a;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">⚡</div>
+    <div class="title">BlitzClaw Relay</div>
+  </div>
+  
+  <div class="status">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="status-text" id="statusText">Disconnected</div>
+  </div>
+  
+  <!-- Disconnected View -->
+  <div class="disconnected-view" id="disconnectedView">
+    <div class="input-group">
+      <label class="label">Connection Token</label>
+      <input type="text" id="tokenInput" placeholder="Paste token from dashboard...">
+    </div>
+    
+    <button class="btn-primary" id="connectBtn">Connect</button>
+    <div class="error" id="errorMsg"></div>
+  </div>
+  
+  <!-- Connected View -->
+  <div class="connected-view" id="connectedView">
+    <div class="instance-info">
+      <div class="instance-label">Connected to your BlitzClaw instance</div>
+      <div>Your AI assistant can now use this browser</div>
+    </div>
+    
+    <button class="btn-danger" id="disconnectBtn">Disconnect</button>
+  </div>
+  
+  <div class="help">
+    Get your token from <a href="https://blitzclaw.com/dashboard" target="_blank">blitzclaw.com/dashboard</a>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
