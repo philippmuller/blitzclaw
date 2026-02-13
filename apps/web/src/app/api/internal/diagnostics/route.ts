@@ -138,6 +138,10 @@ export async function GET(req: NextRequest) {
     const envCheck = {
       hasHetznerToken: !!process.env.HETZNER_API_TOKEN,
       hasHetznerSshKeyId: !!process.env.HETZNER_SSH_KEY_ID,
+      hasDoToken: !!process.env.DIGITALOCEAN_API_TOKEN,
+      hasDoSshKeyId: !!process.env.DIGITALOCEAN_SSH_KEY_ID,
+      hasVultrToken: !!process.env.VULTR_API_TOKEN,
+      hasVultrSshKeyId: !!process.env.VULTR_SSH_KEY_ID,
       hasSshPrivateKey: !!process.env.BLITZCLAW_SSH_PRIVATE_KEY,
       hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
       hasPolarToken: !!process.env.POLAR_ACCESS_TOKEN,
