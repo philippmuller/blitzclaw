@@ -96,7 +96,56 @@ export default function PrivacyPage() {
             to application-level data which is encrypted.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">4. Legal Basis for Processing (GDPR Art. 6)</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">4. Sub-Processors</h2>
+          <p>We use the following third-party service providers who may process your data:</p>
+          <table className="w-full text-left mt-4 border-collapse">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="py-2 pr-4">Provider</th>
+                <th className="py-2 pr-4">Purpose</th>
+                <th className="py-2">Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Anthropic, PBC</td>
+                <td className="py-2 pr-4">AI model provider</td>
+                <td className="py-2">USA</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Clerk, Inc.</td>
+                <td className="py-2 pr-4">Authentication</td>
+                <td className="py-2">USA</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Polar Software AB</td>
+                <td className="py-2 pr-4">Payment processing (MOR)</td>
+                <td className="py-2">Sweden</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Hetzner Online GmbH</td>
+                <td className="py-2 pr-4">Server infrastructure</td>
+                <td className="py-2">Germany</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">DigitalOcean, LLC</td>
+                <td className="py-2 pr-4">Server infrastructure</td>
+                <td className="py-2">USA (Frankfurt DC)</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Vultr Holdings, LLC</td>
+                <td className="py-2 pr-4">Server infrastructure</td>
+                <td className="py-2">USA (Frankfurt DC)</td>
+              </tr>
+              <tr className="border-b border-gray-800">
+                <td className="py-2 pr-4">Vercel, Inc.</td>
+                <td className="py-2 pr-4">Web application hosting</td>
+                <td className="py-2">USA</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2 className="text-xl font-semibold text-white mt-8">5. Legal Basis for Processing (GDPR Art. 6)</h2>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Contract performance (Art. 6(1)(b)):</strong> Processing necessary to provide the service you requested</li>
             <li><strong>Legitimate interest (Art. 6(1)(f)):</strong> Service security, fraud prevention, service improvement</li>
@@ -104,7 +153,7 @@ export default function PrivacyPage() {
             <li><strong>Consent (Art. 6(1)(a)):</strong> For optional processing, where applicable</li>
           </ul>
 
-          <h2 className="text-xl font-semibold text-white mt-8">5. Data Retention</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">6. Data Retention</h2>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Account data:</strong> Until account deletion plus 30 days</li>
             <li><strong>Instance data:</strong> Deleted within 7 days of instance termination</li>
@@ -116,7 +165,7 @@ export default function PrivacyPage() {
             cannot control.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">6. Your Rights (GDPR)</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">7. Your Rights (GDPR)</h2>
           <p>You have the right to:</p>
           <ul className="list-disc pl-6 space-y-2">
             <li><strong>Access (Art. 15):</strong> Request a copy of your personal data</li>
@@ -135,7 +184,7 @@ export default function PrivacyPage() {
             Commissioner for Data Protection (Berliner Beauftragte für Datenschutz und Informationsfreiheit).
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">7. International Transfers</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">8. International Transfers</h2>
           <p>
             Your data is transferred to:
           </p>
@@ -150,7 +199,7 @@ export default function PrivacyPage() {
             than EU law.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">8. Security</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">9. Security</h2>
           <p>
             We implement basic technical and organizational measures including:
           </p>
@@ -170,19 +219,19 @@ export default function PrivacyPage() {
             and any secrets you store in your instance.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">9. Children</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">10. Children</h2>
           <p>
             BlitzClaw is not intended for users under 18. We do not knowingly collect data from 
             minors. If you believe a minor has provided data, contact us for deletion.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">10. Changes</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">11. Changes</h2>
           <p>
             We may update this policy. Material changes will be notified via email at least 14 
             days before taking effect.
           </p>
 
-          <h2 className="text-xl font-semibold text-white mt-8">11. Contact</h2>
+          <h2 className="text-xl font-semibold text-white mt-8">12. Contact</h2>
           <p>
             For privacy inquiries: support@blitzclaw.com<br />
             General support: support@blitzclaw.com
