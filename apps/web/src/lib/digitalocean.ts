@@ -125,11 +125,27 @@ export async function createDroplet(options: CreateDropletOptions): Promise<{
     }),
   });
 
-  const publicIpv4 = response.droplet.networks?.v4?.find((net) => net.type === "public");
+  const dropletId = response.droplet.id;
+  
+  // Poll for IP address (DO takes a few seconds to assign one)
+  let ipAddress = "";
+  for (let i = 0; i < 30; i++) { // Max 60 seconds
+    const droplet = await getDroplet(dropletId);
+    const publicIpv4 = droplet?.networks?.v4?.find((net) => net.type === "public");
+    if (publicIpv4?.ip_address) {
+      ipAddress = publicIpv4.ip_address;
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+  }
+  
+  if (!ipAddress) {
+    throw new Error(`Droplet ${dropletId} created but no IP assigned after 60 seconds`);
+  }
 
   return {
-    dropletId: response.droplet.id,
-    ipAddress: publicIpv4?.ip_address || "",
+    dropletId,
+    ipAddress,
   };
 }
 
