@@ -1,0 +1,4 @@
+{
+  "name": "blitzclaw-relay",
+  "main": "party/browser-relay.ts"
+}
