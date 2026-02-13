@@ -189,6 +189,11 @@ export default async function DashboardPage() {
         )}
       </div>
 
+      <div className="bg-muted/40 border border-border rounded-lg px-4 py-3 text-sm text-muted-foreground">
+        <span className="mr-2">💡</span>
+        Tip: Periodically ask your assistant "Update yourself" to get the latest features and fixes.
+      </div>
+
       {/* Quick Tips - only show for new users without instances */}
       {totalInstances === 0 && !isByokUser && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
