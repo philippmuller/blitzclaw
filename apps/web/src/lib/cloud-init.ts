@@ -121,6 +121,10 @@ export function generateCloudInit(options: CloudInitOptions): string {
       defaultProfile: "openclaw",
       executablePath: "/snap/bin/chromium",
     },
+    // Cron/reminder support
+    cron: {
+      enabled: true,
+    },
     // Web tools config (Brave Search)
     ...(braveApiKey ? {
       tools: {
