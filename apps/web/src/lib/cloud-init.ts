@@ -381,7 +381,7 @@ runcmd:
   - /root/setup-openclaw.sh >> /var/log/blitzclaw-setup.log 2>&1
   - |
       # Weekly OpenClaw update (Sunday 4am UTC)
-      echo "0 4 * * 0 root /usr/bin/npm i -g openclaw@latest >> /var/log/openclaw-update.log 2>&1 && pkill -USR1 openclaw 2>/dev/null || true" >> /etc/crontab
+      echo "0 4 * * 1,4 root /usr/bin/npm i -g openclaw@latest >> /var/log/openclaw-update.log 2>&1 && pkill -USR1 openclaw 2>/dev/null || true" >> /etc/crontab
 `;
 
   return cloudConfig;
