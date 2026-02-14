@@ -3,10 +3,11 @@ import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 export const metadata = {
   title: "Pricing | BlitzClaw",
-  description: "Simple pricing for your AI assistant. BYOK or managed billing.",
+  description: "Simple usage-based pricing for your AI assistant.",
 };
 
 const tiers = [
+  {
   {
     name: "Basic",
     price: 19,
@@ -17,10 +18,11 @@ const tiers = [
       "Dedicated server — 2 vCPU, 2GB RAM",
       "All Claude models available",
       "Telegram integration",
-      "Use your own API key (save on usage costs)",
       "Browser automation",
       "$5 in AI credits included",
-      "Additional usage billed at $0.01 per credit",
+      "No API key required (BlitzClaw handles model access)",
+      "Usage is metered automatically after included credits",
+      "No balance top-ups needed",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -36,11 +38,12 @@ const tiers = [
       "Dedicated server — 2 vCPU, 4GB RAM",
       "All Claude models available",
       "Telegram integration",
-      "Use your own API key (save on usage costs)",
       "Advanced browser automation",
       "Priority support",
       "$15 in AI credits included",
-      "Additional usage billed at $0.01 per credit",
+      "No API key required (BlitzClaw handles model access)",
+      "Usage is metered automatically after included credits",
+      "No balance top-ups needed",
     ],
     notIncluded: [],
     cta: "Get Started",
@@ -86,8 +89,8 @@ export default function PricingPage() {
         <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
           Simple, Transparent Pricing
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Choose the plan that fits your needs. Upgrade, downgrade, or cancel anytime.
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          No API keys, no plan-switching to handle usage spikes, and no manual top-ups. Billing is automatic and usage-based.
         </p>
       </div>
 
@@ -179,34 +182,30 @@ export default function PricingPage() {
         <div className="space-y-6">
           <div className="bg-card border border-border rounded-xl p-6">
             <h3 className="font-semibold text-foreground mb-2">
-              What's the difference between BYOK and managed billing?
+              Do I need my own API key?
             </h3>
             <p className="text-muted-foreground text-sm">
-              <strong>BYOK (Bring Your Own Key):</strong> You provide your own Anthropic API key and pay Anthropic directly.
-              You get full control and pay exactly what Anthropic charges — no markup from us.
-              <br /><br />
-              <strong>Managed billing (Basic/Pro):</strong> We handle the API billing for you. Your subscription
-              includes credits that are used for API calls. No Anthropic account needed — just sign up and chat.
+              No. BlitzClaw includes managed model access — you don&apos;t need to bring your own Anthropic or OpenAI key.
+              Just sign up and start using your assistant.
             </p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6">
             <h3 className="font-semibold text-foreground mb-2">
-              What happens if I run out of credits?
+              Do I need to switch plans as my usage changes?
             </h3>
             <p className="text-muted-foreground text-sm">
-              On managed plans, you can top up your balance anytime. Your assistant will pause if credits run out
-              until you add more. On BYOK, your usage is billed directly to your Anthropic account.
+              No plan switching is required for normal usage changes. Your usage is metered automatically after included credits,
+              so you can keep using your assistant without manual plan juggling.
             </p>
           </div>
 
           <div className="bg-card border border-border rounded-xl p-6">
             <h3 className="font-semibold text-foreground mb-2">
-              Can I switch plans later?
+              Do I need to top up balance manually?
             </h3>
             <p className="text-muted-foreground text-sm">
-              Yes! You can upgrade, downgrade, or switch between BYOK and managed billing at any time
-              from your dashboard. Changes take effect on your next billing cycle.
+              No. Billing is automatic via metered usage. There&apos;s no separate wallet or top-up flow to maintain.
             </p>
           </div>
 

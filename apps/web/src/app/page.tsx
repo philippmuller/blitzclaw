@@ -383,21 +383,21 @@ export default async function Home() {
           <h2 className="text-3xl font-bold text-foreground text-center mb-12">FAQ</h2>
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold text-foreground mb-2">Do I need my own API keys?</h3>
+              <h3 className="font-semibold text-foreground mb-2">Do I need my own API key?</h3>
               <p className="text-muted-foreground">
-                No. BlitzClaw includes credits and handles the infrastructure. If you want, you can bring your own keys later.
+                No. BlitzClaw includes managed model access — you don&apos;t need to bring your own API keys.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold text-foreground mb-2">What’s included with the subscription?</h3>
+              <h3 className="font-semibold text-foreground mb-2">Do I need to switch plans as my usage changes?</h3>
               <p className="text-muted-foreground">
-                A dedicated instance, Claude-powered assistant, browser automation, and Telegram integration.
+                No plan switching is required for normal usage changes. Your usage is metered automatically after included credits.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold text-foreground mb-2">How does usage-based pricing work?</h3>
+              <h3 className="font-semibold text-foreground mb-2">Do I need to top up balance manually?</h3>
               <p className="text-muted-foreground">
-                Each plan includes monthly credits. After that, you only pay for additional usage.
+                No. Billing is automatic via metered usage, so there&apos;s no separate wallet or manual top-up flow.
               </p>
             </div>
           </div>
