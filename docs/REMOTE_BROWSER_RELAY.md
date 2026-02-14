@@ -74,6 +74,82 @@ Chrome Extension → WebRTC/TURN → VM Gateway
 
 Start with WebSocket relay through BlitzClaw API. Simpler, works everywhere, can optimize later.
 
+## Implemented Agent Integration (Current)
+
+The following agent path is now implemented in `apps/web`:
+
+- Relay client library: `apps/web/src/lib/browser-relay-client.ts`
+- VM-facing CDP endpoint: `apps/web/src/app/api/browser-relay/cdp/route.ts`
+- PartyKit relay endpoint: `wss://blitzclaw-relay.philippmuller.partykit.dev/parties/main/{instanceId}`
+
+### VM → API Contract
+
+`POST /api/browser-relay/cdp`
+
+Headers:
+- `x-instance-secret: <instance proxySecret>`
+
+Body:
+```json
+{
+  "method": "Page.navigate",
+  "params": {
+    "url": "https://example.com"
+  }
+}
+```
+
+Optional:
+- `timeoutMs` (100 to 120000)
+
+Success response:
+```json
+{
+  "ok": true,
+  "method": "Page.navigate",
+  "result": {
+    "frameId": "..."
+  }
+}
+```
+
+Error response:
+```json
+{
+  "ok": false,
+  "error": "Extension not connected"
+}
+```
+
+### Agent Relay Auth + Message Flow
+
+1. API authenticates `x-instance-secret` against `Instance.proxySecret`.
+2. API opens (or reuses) a WebSocket client for the instance room.
+3. Client authenticates to PartyKit with:
+```json
+{
+  "type": "auth",
+  "role": "agent",
+  "token": "<instance proxySecret>"
+}
+```
+4. API sends CDP command message:
+```json
+{
+  "type": "cdp",
+  "id": 1,
+  "method": "Runtime.evaluate",
+  "params": { "expression": "document.title" }
+}
+```
+5. API waits for `cdp_result` (success) or `cdp_error` (failure) and returns that to the VM caller.
+
+### Connection Behavior
+
+- Auto reconnect with backoff is enabled in the relay client.
+- API requests reuse in-memory relay clients per instance/secret pair.
+- In-flight CDP commands are timed out and rejected if relay disconnects.
+
 ## Components to Build
 
 ### 1. Chrome Extension (New)
