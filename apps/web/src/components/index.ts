@@ -1,4 +1,5 @@
 export { BalanceCard } from "./BalanceCard";
+export { BrowserRelayCard } from "./BrowserRelayCard";
 export { InstanceCard } from "./InstanceCard";
 export { InstanceCardWithActions } from "./InstanceCardWithActions";
 export { StatusBadge } from "./StatusBadge";

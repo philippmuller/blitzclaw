@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { StatusBadge, TelegramSetup, SoulEditor, ModelSelector } from "@/components";
+import { StatusBadge, TelegramSetup, SoulEditor, ModelSelector, BrowserRelayCard } from "@/components";
 
 interface Instance {
   id: string;
@@ -256,6 +256,11 @@ export default function InstanceDetailPage() {
           currentModel={instance.model || "claude-opus-4-6"}
         />
       </div>
+
+      {/* Browser Relay */}
+      {instance.status === "ACTIVE" && (
+        <BrowserRelayCard instanceId={instanceId} />
+      )}
 
       {/* Web UI Access */}
       {instance.status === "ACTIVE" && instance.ipAddress && (
