@@ -23,10 +23,10 @@ A browser relay that connects the user's local Chrome to their remote BlitzClaw 
 ## User Experience
 
 1. User installs "BlitzClaw Browser Relay" Chrome extension
-2. User goes to BlitzClaw dashboard → "Connect Browser"
-3. Dashboard shows a connection code/token
-4. User clicks extension icon → enters code
-5. Extension connects to their BlitzClaw instance
+2. Agent (or dashboard) generates a connect link
+3. User opens `/relay/connect?token=...&instance=...`
+4. User clicks "Allow and Connect" on the confirmation page
+5. Extension auto-connects with the link token
 6. Agent can now see/control user's browser tabs
 
 **Example interaction:**
@@ -79,8 +79,8 @@ Start with WebSocket relay through BlitzClaw API. Simpler, works everywhere, can
 ### 1. Chrome Extension (New)
 
 Fork/modify OpenClaw's existing browser relay extension:
-- Add "Connect to Remote" option
-- Input field for connection token
+- Detect `/relay/connect` auth page and extract token
+- Connect after explicit user confirmation
 - Connect to wss://blitzclaw.com/api/browser-relay
 - Send CDP commands over WebSocket
 - Show connection status (badge: connected/disconnected)
@@ -103,6 +103,16 @@ interface RelayMessage {
 }
 ```
 
+Token generation response should include:
+- `token`
+- `instanceId`
+- `wsUrl`
+- `connectUrl` (e.g. `/relay/connect?token=...&instance=...`)
+
+Generation auth modes:
+- Dashboard user session (Clerk) + `instanceId`
+- Agent request with `X-Instance-Secret` header
+
 ### 3. Instance-Side Relay Client
 
 OpenClaw gateway needs to:
@@ -124,7 +134,7 @@ browser:
 
 - "Browser" tab in dashboard
 - "Connect Your Browser" button
-- Shows connection token (valid 5 min)
+- Generates connect URL + token (valid 5 min)
 - QR code option for mobile
 - Connection status indicator
 - "Disconnect" button

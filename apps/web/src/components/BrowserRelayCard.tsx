@@ -4,12 +4,12 @@ import { useState } from "react";
 
 interface BrowserRelayCardProps {
   instanceId: string;
-  userId?: string;
 }
 
-export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) {
+export function BrowserRelayCard({ instanceId }: BrowserRelayCardProps) {
   const [token, setToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
+  const [connectUrl, setConnectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,11 +19,11 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
 
     try {
       const res = await fetch(
-        `/api/browser-relay?action=generate&instanceId=${encodeURIComponent(instanceId)}`,
+        `/api/browser-relay`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ instanceId, userId }),
+          body: JSON.stringify({ instanceId }),
         }
       );
 
@@ -35,8 +35,9 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
 
       setToken(data.token);
       setWsUrl(
-        data.wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/party/${instanceId}`
+        data.wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/parties/main/${instanceId}`
       );
+      setConnectUrl(data.connectUrl || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate token");
     } finally {
@@ -45,7 +46,7 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
   };
 
   const displayWsUrl =
-    wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/party/${instanceId}`;
+    wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/parties/main/${instanceId}`;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
@@ -56,20 +57,32 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
             Connect Browser
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Generate a relay token to connect your local browser to this
-            instance.
+            Generate an auth link to connect your local browser to this instance.
           </p>
         </div>
       </div>
 
       <div className="space-y-3">
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="w-full px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? "Generating..." : token ? "Regenerate Token" : "Connect Browser"}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="w-full px-4 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? "Generating..." : token ? "Regenerate Link" : "Connect Browser"}
+          </button>
+
+          {connectUrl && (
+            <a
+              href={connectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-4 py-2.5 border border-border text-foreground font-medium rounded-lg hover:bg-secondary transition text-center"
+            >
+              Open Auth Link
+            </a>
+          )}
+        </div>
 
         {error && (
           <p className="text-sm text-red-400 flex items-center gap-1">
@@ -93,6 +106,16 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
 
       {token && (
         <div className="mt-5 rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
+          {connectUrl && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                Connect URL
+              </p>
+              <code className="block text-sm font-mono bg-secondary px-2.5 py-2 rounded-md break-all">
+                {connectUrl}
+              </code>
+            </div>
+          )}
           <div>
             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
               Relay Token
@@ -115,10 +138,10 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
       <div className="mt-5 rounded-lg border border-border p-4">
         <p className="text-sm font-medium mb-2">Connection instructions</p>
         <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
-          <li>Click "Connect Browser" to generate a relay token.</li>
-          <li>Open the BlitzClaw browser relay extension or client.</li>
-          <li>Paste the token and WebSocket URL, then connect.</li>
-          <li>Keep this tab open while the browser is connected.</li>
+          <li>Click "Connect Browser" to generate a secure auth link.</li>
+          <li>Open the link in the same browser where the extension is installed.</li>
+          <li>Confirm "Allow and Connect" on the relay page.</li>
+          <li>Keep your browser open while the agent uses authenticated sessions.</li>
         </ol>
       </div>
     </div>

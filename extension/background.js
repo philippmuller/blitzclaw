@@ -7,10 +7,14 @@
 
 let ws = null;
 let connected = false;
+let connectionState = "disconnected";
 let attachedTabId = null;
 let connectionToken = null;
 let connectionInstanceId = null;
 let reconnectAttempts = 0;
+let connectInFlight = false;
+let lastError = null;
+let peerConnected = false;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
 
@@ -58,18 +62,53 @@ function updateBadge(status) {
   chrome.action.setBadgeBackgroundColor({ color: badge.color });
 }
 
+function setConnectionState(nextState, errorMessage = null) {
+  connectionState = nextState;
+  lastError = errorMessage;
+  updateBadge(nextState);
+}
+
 // Connect to BlitzClaw relay
 async function connect(token) {
+  if (!token) {
+    return { success: false, error: 'Missing token' };
+  }
+
+  if (connectInFlight) {
+    return { success: false, error: 'Connection already in progress' };
+  }
+
   if (ws && ws.readyState === WebSocket.OPEN) {
-    console.log('[BlitzClaw] Already connected');
-    return { success: true };
+    if (connectionToken === token && connected) {
+      console.log('[BlitzClaw] Already connected');
+      return { success: true, connected: true, instanceId: connectionInstanceId };
+    }
+
+    console.log('[BlitzClaw] Switching relay connection');
+    disconnect();
+  }
+
+  // If a stale socket exists, close before reconnecting.
+  if (ws && ws.readyState !== WebSocket.CLOSED) {
+    ws.close();
   }
 
   connectionToken = token;
-  updateBadge('connecting');
+  connected = false;
+  peerConnected = false;
+  connectInFlight = true;
+  setConnectionState('connecting');
 
   return new Promise((resolve) => {
     (async () => {
+      let resolved = false;
+      const resolveOnce = (payload) => {
+        if (resolved) return;
+        resolved = true;
+        connectInFlight = false;
+        resolve(payload);
+      };
+
       try {
         const instanceId = await fetchInstanceId(connectionToken);
         connectionInstanceId = instanceId;
@@ -88,7 +127,7 @@ async function connect(token) {
         ws.onmessage = async (event) => {
           try {
             const message = JSON.parse(event.data);
-            await handleMessage(message, resolve);
+            await handleMessage(message, resolveOnce);
           } catch (e) {
             console.error('[BlitzClaw] Failed to parse message:', e);
           }
@@ -96,14 +135,19 @@ async function connect(token) {
 
         ws.onerror = (error) => {
           console.error('[BlitzClaw] WebSocket error:', error);
-          updateBadge('error');
-          resolve({ success: false, error: 'Connection error' });
+          setConnectionState('error', 'Connection error');
+          resolveOnce({ success: false, error: 'Connection error' });
         };
 
         ws.onclose = () => {
           console.log('[BlitzClaw] WebSocket closed');
+          ws = null;
           connected = false;
-          updateBadge('disconnected');
+          peerConnected = false;
+          if (connectionState !== 'error') {
+            setConnectionState('disconnected');
+          }
+          resolveOnce({ success: false, error: lastError || 'Connection closed' });
           
           // Try to reconnect if we were previously connected
           if (connectionToken && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
@@ -114,9 +158,10 @@ async function connect(token) {
         };
 
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to connect';
         console.error('[BlitzClaw] Failed to connect:', error);
-        updateBadge('error');
-        resolve({ success: false, error: error.message });
+        setConnectionState('error', errorMessage);
+        resolveOnce({ success: false, error: errorMessage });
       }
     })();
   });
@@ -128,22 +173,46 @@ async function handleMessage(message, resolveConnect) {
     case 'auth_success':
       console.log('[BlitzClaw] Authenticated successfully');
       connected = true;
+      peerConnected = false;
       reconnectAttempts = 0;
-      updateBadge('connected');
+      setConnectionState('connected');
       
       // Store token for auto-reconnect
-      chrome.storage.local.set({ connectionToken });
+      chrome.storage.local.set({ connectionToken, connectionInstanceId });
       
       if (resolveConnect) {
-        resolveConnect({ success: true });
+        resolveConnect({
+          success: true,
+          connected: true,
+          instanceId: connectionInstanceId
+        });
       }
       break;
 
     case 'auth_error':
       console.error('[BlitzClaw] Auth failed:', message.error);
-      updateBadge('error');
+      connected = false;
+      setConnectionState('error', message.error || 'Authentication failed');
       if (resolveConnect) {
         resolveConnect({ success: false, error: message.error });
+      }
+      break;
+
+    case 'peer_status':
+      if (typeof message.agentConnected === 'boolean') {
+        peerConnected = message.agentConnected;
+      }
+      break;
+
+    case 'peer_connected':
+      if (message.peer === 'agent') {
+        peerConnected = true;
+      }
+      break;
+
+    case 'peer_disconnected':
+      if (message.peer === 'agent') {
+        peerConnected = false;
       }
       break;
 
@@ -237,6 +306,9 @@ function disconnect() {
   connectionToken = null;
   connectionInstanceId = null;
   reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent auto-reconnect
+  connectInFlight = false;
+  lastError = null;
+  peerConnected = false;
   
   if (attachedTabId) {
     try {
@@ -253,8 +325,8 @@ function disconnect() {
   }
 
   connected = false;
-  updateBadge('disconnected');
-  chrome.storage.local.remove('connectionToken');
+  setConnectionState('disconnected');
+  chrome.storage.local.remove(['connectionToken', 'connectionInstanceId']);
   
   return { success: true };
 }
@@ -263,8 +335,13 @@ function disconnect() {
 function getStatus() {
   return {
     connected,
+    state: connectionState,
     attachedTabId,
-    hasToken: !!connectionToken
+    hasToken: !!connectionToken,
+    instanceId: connectionInstanceId,
+    reconnectAttempts,
+    lastError,
+    peerConnected
   };
 }
 
@@ -290,7 +367,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           await attachToTab(message.tabId);
           sendResponse({ success: true });
         } catch (error) {
-          sendResponse({ success: false, error: error.message });
+          const errorMessage = error instanceof Error ? error.message : 'Failed to attach tab';
+          sendResponse({ success: false, error: errorMessage });
         }
         break;
 
@@ -315,7 +393,7 @@ chrome.storage.local.get('connectionToken', (data) => {
     console.log('[BlitzClaw] Restoring previous connection...');
     connect(data.connectionToken);
   } else {
-    updateBadge('disconnected');
+    setConnectionState('disconnected');
   }
 });
 

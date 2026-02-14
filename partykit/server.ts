@@ -21,6 +21,8 @@ export default class BrowserRelayServer implements Party.Server {
   connections = new Map<string, Connection>();
   extensionConn: Party.Connection | null = null;
   agentConn: Party.Connection | null = null;
+  lastAgentConnectedForExtension = false;
+  lastExtensionConnectedForAgent = false;
 
   constructor(readonly room: Party.Room) {}
 
@@ -153,18 +155,55 @@ export default class BrowserRelayServer implements Party.Server {
   }
 
   notifyPeerStatus() {
-    if (this.extensionConn && this.connections.get(this.extensionConn.id)?.authenticated) {
+    const extensionConnected =
+      !!this.extensionConn && !!this.connections.get(this.extensionConn.id)?.authenticated;
+    const agentConnected =
+      !!this.agentConn && !!this.connections.get(this.agentConn.id)?.authenticated;
+
+    if (extensionConnected && this.extensionConn) {
       this.extensionConn.send(JSON.stringify({
         type: "peer_status",
-        agentConnected: !!this.agentConn && !!this.connections.get(this.agentConn.id)?.authenticated
+        agentConnected
       }));
+
+      if (agentConnected !== this.lastAgentConnectedForExtension) {
+        this.extensionConn.send(JSON.stringify({
+          type: agentConnected ? "peer_connected" : "peer_disconnected",
+          peer: "agent",
+        }));
+      }
     }
 
-    if (this.agentConn && this.connections.get(this.agentConn.id)?.authenticated) {
+    if (agentConnected && this.agentConn) {
       this.agentConn.send(JSON.stringify({
         type: "peer_status",
-        extensionConnected: !!this.extensionConn && !!this.connections.get(this.extensionConn.id)?.authenticated
+        extensionConnected
       }));
+
+      if (extensionConnected !== this.lastExtensionConnectedForAgent) {
+        this.agentConn.send(JSON.stringify({
+          type: extensionConnected ? "peer_connected" : "peer_disconnected",
+          peer: "extension",
+        }));
+      }
+    }
+
+    if (!extensionConnected && this.lastAgentConnectedForExtension) {
+      this.lastAgentConnectedForExtension = false;
+    } else {
+      this.lastAgentConnectedForExtension = agentConnected;
+    }
+
+    if (!agentConnected && this.lastExtensionConnectedForAgent) {
+      this.lastExtensionConnectedForAgent = false;
+    } else {
+      this.lastExtensionConnectedForAgent = extensionConnected;
+    }
+
+    // Reset both when room is empty.
+    if (!extensionConnected && !agentConnected) {
+      this.lastAgentConnectedForExtension = false;
+      this.lastExtensionConnectedForAgent = false;
     }
   }
 

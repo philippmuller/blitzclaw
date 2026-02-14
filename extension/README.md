@@ -12,10 +12,10 @@ Chrome extension that connects your browser to your BlitzClaw AI assistant.
 
 ## Usage
 
-1. Go to your BlitzClaw dashboard
-2. Click "Connect Browser" to get a connection token
-3. Click the BlitzClaw extension icon
-4. Paste the token and click "Connect"
+1. Generate a browser connect link from your BlitzClaw instance
+2. Open the link in Chrome (`/relay/connect?token=...&instance=...`)
+3. Click "Allow and Connect"
+4. Extension connects automatically
 5. Badge shows "ON" when connected
 
 ## How it Works
@@ -35,7 +35,7 @@ The extension:
 - `manifest.json` - Extension configuration
 - `background.js` - Service worker handling WebSocket + CDP
 - `popup.html/js` - UI for connecting
-- `content.js` - Auto-detects tokens on BlitzClaw pages
+- `content.js` - Detects relay connect page + token handoff
 - `icons/` - Extension icons
 
 ## Security
@@ -56,7 +56,6 @@ To test changes:
 
 ## TODO
 
-- [ ] Auto-connect when on BlitzClaw dashboard
 - [ ] Multiple tab support
 - [ ] Tab picker UI
 - [ ] Visual indicator when agent is using browser

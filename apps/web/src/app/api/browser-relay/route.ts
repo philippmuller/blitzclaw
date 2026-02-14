@@ -17,6 +17,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
+import { auth } from "@clerk/nextjs/server";
+import { randomBytes } from "crypto";
 
 // For MVP: Store pending connections in memory
 // Production: Use Redis or similar
@@ -32,34 +34,79 @@ const TOKEN_VALIDITY_MS = 5 * 60 * 1000;
 
 /**
  * Generate a browser relay token for an instance
- * Called by dashboard when user clicks "Connect Browser"
+ * Called by dashboard or agent when browser access is required
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { instanceId, userId } = body;
+    const { instanceId } = body;
 
-    if (!instanceId || !userId) {
-      return NextResponse.json(
-        { error: "Missing instanceId or userId" },
-        { status: 400 }
-      );
-    }
+    let resolvedInstanceId: string | null = null;
+    const instanceSecret = req.headers.get("x-instance-secret");
 
-    // Verify instance belongs to user
-    const instance = await prisma.instance.findFirst({
-      where: {
-        id: instanceId,
-        userId: userId,
-        status: "ACTIVE",
-      },
-    });
+    if (instanceSecret) {
+      // Agent flow: authenticate using instance proxy secret.
+      const secretInstance = await prisma.instance.findFirst({
+        where: {
+          proxySecret: instanceSecret,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
 
-    if (!instance) {
-      return NextResponse.json(
-        { error: "Instance not found or not active" },
-        { status: 404 }
-      );
+      if (!secretInstance) {
+        return NextResponse.json({ error: "Invalid instance secret" }, { status: 401 });
+      }
+
+      if (instanceId && instanceId !== secretInstance.id) {
+        return NextResponse.json(
+          { error: "instanceId does not match authenticated instance" },
+          { status: 403 }
+        );
+      }
+
+      resolvedInstanceId = secretInstance.id;
+    } else {
+      // Dashboard flow: authenticate with Clerk session.
+      if (!instanceId) {
+        return NextResponse.json(
+          { error: "Missing instanceId" },
+          { status: 400 }
+        );
+      }
+
+      const { userId: clerkId } = await auth();
+      if (!clerkId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { clerkId },
+        select: { id: true },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      // Verify instance belongs to user
+      const userInstance = await prisma.instance.findFirst({
+        where: {
+          id: instanceId,
+          userId: user.id,
+          status: "ACTIVE",
+        },
+        select: { id: true },
+      });
+
+      if (!userInstance) {
+        return NextResponse.json(
+          { error: "Instance not found or not active" },
+          { status: 404 }
+        );
+      }
+
+      resolvedInstanceId = userInstance.id;
     }
 
     // Generate token
@@ -69,7 +116,7 @@ export async function POST(req: NextRequest) {
     // Store pending connection
     pendingConnections.set(token, {
       token,
-      instanceId,
+      instanceId: resolvedInstanceId,
       createdAt: now,
       expiresAt: now + TOKEN_VALIDITY_MS,
     });
@@ -79,8 +126,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       token,
+      instanceId: resolvedInstanceId,
       expiresIn: TOKEN_VALIDITY_MS / 1000,
-      wsUrl: getWebSocketUrl(instanceId),
+      wsUrl: getWebSocketUrl(resolvedInstanceId),
+      connectUrl: getConnectUrl(req, token, resolvedInstanceId),
     });
 
   } catch (error) {
@@ -143,12 +192,8 @@ export async function GET(req: NextRequest) {
 
 // Helper: Generate secure random token
 function generateToken(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = 'brc_'; // BlitzClaw Relay Connection
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  // 24 bytes => 32 chars in base64url
+  return `brc_${randomBytes(24).toString("base64url")}`;
 }
 
 // Helper: Get WebSocket URL
@@ -158,6 +203,14 @@ function getWebSocketUrl(instanceId?: string): string {
     return baseUrl;
   }
   return `${baseUrl.replace(/\/$/, '')}/${instanceId}`;
+}
+
+// Helper: Build link users open to approve browser connection
+function getConnectUrl(req: NextRequest, token: string, instanceId: string): string {
+  const url = new URL("/relay/connect", req.nextUrl.origin);
+  url.searchParams.set("token", token);
+  url.searchParams.set("instance", instanceId);
+  return url.toString();
 }
 
 // Helper: Clean up expired tokens

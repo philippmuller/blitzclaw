@@ -10,27 +10,56 @@ const tokenInput = document.getElementById('tokenInput');
 const connectBtn = document.getElementById('connectBtn');
 const disconnectBtn = document.getElementById('disconnectBtn');
 const errorMsg = document.getElementById('errorMsg');
+const relayStateValue = document.getElementById('relayStateValue');
+const instanceValue = document.getElementById('instanceValue');
+const peerValue = document.getElementById('peerValue');
+const tabValue = document.getElementById('tabValue');
 
 // Update UI based on connection status
 function updateUI(status) {
   statusDot.className = 'status-dot';
-  
-  if (status.connected) {
+
+  const state = status.state || (status.connected ? 'connected' : 'disconnected');
+  relayStateValue.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+  instanceValue.textContent = status.instanceId || 'n/a';
+  peerValue.textContent = status.peerConnected ? 'Connected' : 'Waiting';
+  tabValue.textContent = status.attachedTabId ? `Tab ${status.attachedTabId}` : 'Not attached';
+
+  if (state === 'connected') {
     statusDot.classList.add('connected');
     statusText.textContent = 'Connected';
     disconnectedView.classList.add('hidden');
     connectedView.classList.add('active');
-  } else {
-    statusText.textContent = 'Disconnected';
+    errorMsg.textContent = '';
+  } else if (state === 'connecting') {
+    statusDot.classList.add('connecting');
+    statusText.textContent = 'Connecting...';
     disconnectedView.classList.remove('hidden');
     connectedView.classList.remove('active');
+    connectBtn.disabled = true;
+    connectBtn.textContent = 'Connecting...';
+  } else {
+    statusText.textContent = state === 'error' ? 'Connection Error' : 'Disconnected';
+    disconnectedView.classList.remove('hidden');
+    connectedView.classList.remove('active');
+    connectBtn.disabled = false;
+    connectBtn.textContent = 'Connect';
+    if (state === 'error' && status.lastError) {
+      errorMsg.textContent = status.lastError;
+    }
   }
 }
 
-// Get current status on popup open
-chrome.runtime.sendMessage({ action: 'status' }, (response) => {
-  updateUI(response);
-});
+function refreshStatus() {
+  chrome.runtime.sendMessage({ action: 'status' }, (response) => {
+    if (!response) return;
+    updateUI(response);
+  });
+}
+
+// Get current status on popup open + poll while popup is open
+refreshStatus();
+setInterval(refreshStatus, 1000);
 
 // Connect button
 connectBtn.addEventListener('click', async () => {
@@ -52,7 +81,7 @@ connectBtn.addEventListener('click', async () => {
     connectBtn.textContent = 'Connect';
     
     if (response.success) {
-      updateUI({ connected: true });
+      refreshStatus();
       tokenInput.value = '';
     } else {
       errorMsg.textContent = response.error || 'Connection failed';
@@ -64,8 +93,8 @@ connectBtn.addEventListener('click', async () => {
 
 // Disconnect button
 disconnectBtn.addEventListener('click', () => {
-  chrome.runtime.sendMessage({ action: 'disconnect' }, (response) => {
-    updateUI({ connected: false });
+  chrome.runtime.sendMessage({ action: 'disconnect' }, () => {
+    updateUI({ connected: false, state: 'disconnected', peerConnected: false });
   });
 });
 
@@ -79,7 +108,7 @@ tokenInput.addEventListener('keypress', (e) => {
 // Check if we're on BlitzClaw dashboard and auto-fill token
 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   const tab = tabs[0];
-  if (tab && (tab.url.includes('blitzclaw.com') || tab.url.includes('localhost:3000'))) {
+  if (tab && tab.url && (tab.url.includes('blitzclaw.com') || tab.url.includes('localhost:3000'))) {
     // Try to get token from the page
     chrome.tabs.sendMessage(tab.id, { action: 'getToken' }, (response) => {
       if (response && response.token) {
