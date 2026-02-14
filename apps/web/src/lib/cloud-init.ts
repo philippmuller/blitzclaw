@@ -119,7 +119,7 @@ export function generateCloudInit(options: CloudInitOptions): string {
       headless: true,
       noSandbox: true,  // Required for running as root
       defaultProfile: "openclaw",
-      executablePath: "/snap/bin/chromium",
+      executablePath: "/usr/local/bin/playwright-chromium",
     },
     // Cron/reminder support
     cron: {
@@ -252,7 +252,8 @@ ${JSON.stringify({
         {pattern: "pip3"}, {pattern: "mkdir"}, {pattern: "touch"}, {pattern: "cp"},
         {pattern: "mv"}, {pattern: "ln"}, {pattern: "tar"}, {pattern: "zip"},
         {pattern: "unzip"}, {pattern: "gzip"}, {pattern: "echo"}, {pattern: "printf"},
-        {pattern: "base64"}, {pattern: "md5sum"}, {pattern: "sha256sum"}, {pattern: "openclaw"}
+        {pattern: "base64"}, {pattern: "md5sum"}, {pattern: "sha256sum"}, {pattern: "openclaw"},
+        {pattern: "browser-relay-cdp"}, {pattern: "inject-cookies"}
       ]
     }
   }
@@ -282,6 +283,120 @@ ${JSON.stringify({
       # User secrets - managed via BlitzClaw dashboard
       # Source this file to access API keys and tokens
 
+  - path: /usr/local/bin/browser-relay-cdp
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+
+      if [ "$#" -gt 1 ]; then
+        echo "Usage: browser-relay-cdp '<json-payload>'" >&2
+        echo "   or: echo '<json-payload>' | browser-relay-cdp" >&2
+        exit 1
+      fi
+
+      if [ "$#" -eq 1 ]; then
+        PAYLOAD="$1"
+      else
+        PAYLOAD="$(cat)"
+      fi
+
+      if [ -z "$PAYLOAD" ]; then
+        echo "Error: missing CDP JSON payload" >&2
+        exit 1
+      fi
+
+      SECRET="$(cat /etc/blitzclaw/proxy_secret)"
+      curl -sS -X POST ${blitzclawApiUrl}/api/browser-relay/cdp \
+        -H "x-instance-secret: $SECRET" \
+        -H "Content-Type: application/json" \
+        -d "$PAYLOAD"
+
+  - path: /usr/local/bin/inject-cookies
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+
+      if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+        echo "Usage: inject-cookies <cookies-json-file> [storage-state-output]" >&2
+        echo "Accepts raw CDP response, {cookies:[...]}, or cookie array." >&2
+        exit 1
+      fi
+
+      INPUT_FILE="$1"
+      OUTPUT_FILE="${2:-/root/.openclaw/workspace/browser-relay.storage-state.json}"
+
+      if [ ! -f "$INPUT_FILE" ]; then
+        echo "Error: file not found: $INPUT_FILE" >&2
+        exit 1
+      fi
+
+      node - "$INPUT_FILE" "$OUTPUT_FILE" <<'NODE'
+      const fs = require("fs");
+      const path = require("path");
+
+      const inputPath = process.argv[2];
+      const outputPath = process.argv[3];
+      const raw = fs.readFileSync(inputPath, "utf8");
+      const parsed = JSON.parse(raw);
+
+      function extractCookies(data) {
+        if (Array.isArray(data)) return data;
+        if (data && Array.isArray(data.cookies)) return data.cookies;
+        if (data && data.result && Array.isArray(data.result.cookies)) return data.result.cookies;
+        throw new Error("Expected cookie array, {cookies:[...]}, or {result:{cookies:[...]}}");
+      }
+
+      function mapSameSite(value) {
+        if (!value) return undefined;
+        const normalized = String(value).toLowerCase();
+        if (normalized === "strict") return "Strict";
+        if (normalized === "lax") return "Lax";
+        if (normalized === "none" || normalized === "no_restriction") return "None";
+        return undefined;
+      }
+
+      const cookies = extractCookies(parsed)
+        .map((cookie) => {
+          const mapped = {
+            name: String(cookie.name || ""),
+            value: String(cookie.value || ""),
+            path: cookie.path || "/",
+            secure: Boolean(cookie.secure),
+            httpOnly: Boolean(cookie.httpOnly),
+          };
+
+          if (cookie.domain) mapped.domain = String(cookie.domain);
+          if (cookie.url) mapped.url = String(cookie.url);
+
+          const sameSite = mapSameSite(cookie.sameSite);
+          if (sameSite) mapped.sameSite = sameSite;
+
+          if (typeof cookie.expires === "number") {
+            mapped.expires = cookie.expires > 0 ? cookie.expires : -1;
+          }
+
+          if (!mapped.name) return null;
+          if (!mapped.url && !mapped.domain) return null;
+          return mapped;
+        })
+        .filter(Boolean);
+
+      const storageState = {
+        cookies,
+        origins: [],
+      };
+
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, JSON.stringify(storageState, null, 2));
+      process.stdout.write(
+        JSON.stringify({ cookies: cookies.length, output: outputPath }) + "\\n",
+      );
+      NODE
+
+      chmod 600 "$OUTPUT_FILE"
+      
   - path: /root/.openclaw/workspace/AGENTS.md
     permissions: '0644'
     content: |
@@ -306,6 +421,50 @@ ${JSON.stringify({
       \`\`\`bash
       cp /tmp/snap-private-tmp/snap.chromium/tmp/shot.png /root/.openclaw/workspace/
       \`\`\`
+
+      ## Browser Cookie Relay Skill
+
+      Use this flow when a task needs authenticated browsing (LinkedIn, Reddit, etc.) and local browser login is blocked.
+
+      ### Required behavior
+
+      1. Tell the user to connect their local Chrome:
+         "I need browser cookies from your local Chrome session. In your BlitzClaw dashboard click Connect Browser, then open the connect link in Chrome with the extension installed."
+      2. Wait for explicit user confirmation that browser relay is connected.
+      3. Navigate the connected Chrome session to the target site via CDP.
+      4. Ask user to finish login in their Chrome if needed.
+      5. Pull cookies with CDP `Network.getCookies`.
+      6. Convert cookies into Playwright storage state using `inject-cookies`.
+      7. Continue normal automation using the local browser tool with the generated storage state.
+      8. Tell the user they can disconnect/close browser relay when done.
+
+      ### Helper commands
+
+      Proxy secret location: `/etc/blitzclaw/proxy_secret`
+
+      Preferred wrapper:
+      \`\`\`bash
+      browser-relay-cdp '{"method":"Page.navigate","params":{"url":"https://www.linkedin.com"}}'
+      browser-relay-cdp '{"method":"Network.getCookies","params":{"urls":["https://www.linkedin.com"]}}' > /tmp/linkedin-cookies.json
+      inject-cookies /tmp/linkedin-cookies.json /root/.openclaw/workspace/linkedin.storage-state.json
+      \`\`\`
+
+      Direct API fallback:
+      \`\`\`bash
+      SECRET=$(cat /etc/blitzclaw/proxy_secret)
+      curl -X POST ${blitzclawApiUrl}/api/browser-relay/cdp \
+        -H "x-instance-secret: $SECRET" \
+        -H "Content-Type: application/json" \
+        -d '{"method":"Network.getCookies","params":{"urls":["https://www.linkedin.com"]}}'
+      \`\`\`
+
+      `inject-cookies` accepts:
+      - raw CDP response: `{"result":{"cookies":[...]}}`
+      - object with `cookies`
+      - cookie array
+
+      It writes Playwright storage state JSON. Default output:
+      `/root/.openclaw/workspace/browser-relay.storage-state.json`
       
       ## Secrets
       User secrets are available at /root/.openclaw/secrets.env
@@ -335,6 +494,14 @@ ${JSON.stringify({
       done
       
       echo "OpenClaw version: $(openclaw --version)"
+      
+      echo "=== Installing Playwright Chromium ==="
+      npx playwright install chromium --with-deps 2>&1 || echo "Playwright chromium install failed (non-fatal)"
+      PLAYWRIGHT_CHROME=$(find /root/.cache/ms-playwright -name chrome -type f 2>/dev/null | head -1)
+      if [ -n "$PLAYWRIGHT_CHROME" ]; then
+        ln -sf "$PLAYWRIGHT_CHROME" /usr/local/bin/playwright-chromium
+        echo "Playwright Chrome linked at: /usr/local/bin/playwright-chromium"
+      fi
       
       echo "=== Setting permissions ==="
       chmod 700 /root/.openclaw
