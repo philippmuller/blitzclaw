@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = 'BlitzClaw <service@blitzclaw.com>';
+const FROM_EMAIL = 'BlitzClaw <support@blitzclaw.com>';
 const REPLY_TO = 'mailphilippmuller@gmail.com';
 
 export async function sendDiscountEmail(to: string) {
