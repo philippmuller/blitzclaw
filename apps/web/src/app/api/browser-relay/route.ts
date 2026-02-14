@@ -18,19 +18,69 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@blitzclaw/db";
 import { auth } from "@clerk/nextjs/server";
-import { randomBytes } from "crypto";
+import { randomBytes, createHmac } from "crypto";
 
-// For MVP: Store pending connections in memory
-// Production: Use Redis or similar
-const pendingConnections = new Map<string, {
-  token: string;
-  instanceId: string;
-  createdAt: number;
-  expiresAt: number;
-}>();
+// Token validity: 30 minutes (longer since stateless)
+const TOKEN_VALIDITY_MS = 30 * 60 * 1000;
 
-// Token validity: 5 minutes
-const TOKEN_VALIDITY_MS = 5 * 60 * 1000;
+// HMAC secret for signing tokens (use env var in production)
+const TOKEN_SECRET = process.env.BROWSER_RELAY_SECRET || "blitzclaw-relay-secret-change-in-prod";
+
+/**
+ * Generate a stateless HMAC-signed token
+ * Format: brc_<base64(instanceId:expiresAt:signature)>
+ */
+function generateSignedToken(instanceId: string): string {
+  const expiresAt = Date.now() + TOKEN_VALIDITY_MS;
+  const payload = `${instanceId}:${expiresAt}`;
+  const signature = createHmac("sha256", TOKEN_SECRET)
+    .update(payload)
+    .digest("base64url")
+    .slice(0, 16); // Truncate for shorter token
+  const tokenData = Buffer.from(`${payload}:${signature}`).toString("base64url");
+  return `brc_${tokenData}`;
+}
+
+/**
+ * Validate a stateless HMAC-signed token
+ * Returns instanceId if valid, null if invalid/expired
+ */
+function validateSignedToken(token: string): { valid: true; instanceId: string } | { valid: false; error: string } {
+  if (!token.startsWith("brc_")) {
+    return { valid: false, error: "Invalid token format" };
+  }
+
+  try {
+    const tokenData = Buffer.from(token.slice(4), "base64url").toString();
+    const parts = tokenData.split(":");
+    if (parts.length !== 3) {
+      return { valid: false, error: "Invalid token structure" };
+    }
+
+    const [instanceId, expiresAtStr, providedSig] = parts;
+    const expiresAt = parseInt(expiresAtStr, 10);
+
+    // Check expiry
+    if (Date.now() > expiresAt) {
+      return { valid: false, error: "Token expired" };
+    }
+
+    // Verify signature
+    const payload = `${instanceId}:${expiresAtStr}`;
+    const expectedSig = createHmac("sha256", TOKEN_SECRET)
+      .update(payload)
+      .digest("base64url")
+      .slice(0, 16);
+
+    if (providedSig !== expectedSig) {
+      return { valid: false, error: "Invalid signature" };
+    }
+
+    return { valid: true, instanceId };
+  } catch {
+    return { valid: false, error: "Token decode failed" };
+  }
+}
 
 /**
  * Generate a browser relay token for an instance
@@ -109,20 +159,8 @@ export async function POST(req: NextRequest) {
       resolvedInstanceId = userInstance.id;
     }
 
-    // Generate token
-    const token = generateToken();
-    const now = Date.now();
-
-    // Store pending connection
-    pendingConnections.set(token, {
-      token,
-      instanceId: resolvedInstanceId,
-      createdAt: now,
-      expiresAt: now + TOKEN_VALIDITY_MS,
-    });
-
-    // Clean up expired tokens
-    cleanupExpiredTokens();
+    // Generate stateless signed token
+    const token = generateSignedToken(resolvedInstanceId);
 
     return NextResponse.json({
       token,
@@ -159,41 +197,28 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const connection = pendingConnections.get(token);
-
-    if (!connection) {
+    // Validate stateless HMAC-signed token
+    const result = validateSignedToken(token);
+    
+    if (result.valid === false) {
+      const status = result.error === "Token expired" ? 410 : 400;
       return NextResponse.json(
-        { valid: false, error: "Token not found" },
-        { status: 404 }
-      );
-    }
-
-    if (Date.now() > connection.expiresAt) {
-      pendingConnections.delete(token);
-      return NextResponse.json(
-        { valid: false, error: "Token expired" },
-        { status: 410 }
+        { valid: false, error: result.error },
+        { status }
       );
     }
 
     return NextResponse.json({
       valid: true,
-      instanceId: connection.instanceId,
+      instanceId: result.instanceId,
     });
   }
 
   // Return relay status
   return NextResponse.json({
     status: "ok",
-    pendingConnections: pendingConnections.size,
     note: "WebSocket connections handled by separate server",
   });
-}
-
-// Helper: Generate secure random token
-function generateToken(): string {
-  // 24 bytes => 32 chars in base64url
-  return `brc_${randomBytes(24).toString("base64url")}`;
 }
 
 // Helper: Get WebSocket URL
@@ -211,14 +236,4 @@ function getConnectUrl(req: NextRequest, token: string, instanceId: string): str
   url.searchParams.set("token", token);
   url.searchParams.set("instance", instanceId);
   return url.toString();
-}
-
-// Helper: Clean up expired tokens
-function cleanupExpiredTokens(): void {
-  const now = Date.now();
-  for (const [token, connection] of pendingConnections) {
-    if (now > connection.expiresAt) {
-      pendingConnections.delete(token);
-    }
-  }
 }
