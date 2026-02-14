@@ -144,7 +144,7 @@ function generateToken(): string {
 
 // Helper: Get WebSocket URL
 function getWebSocketUrl(instanceId?: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL || 'wss://blitzclaw-relay.partykit.dev/party';
+  const baseUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL || 'wss://blitzclaw-relay.philippmuller.partykit.dev/party';
   if (!instanceId) {
     return baseUrl;
   }

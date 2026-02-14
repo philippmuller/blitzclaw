@@ -15,7 +15,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
 
 // WebSocket relay endpoint
-const RELAY_URL = 'wss://blitzclaw-relay.partykit.dev/party';
+const RELAY_URL = 'wss://blitzclaw-relay.philippmuller.partykit.dev/party';
 const DEV_RELAY_URL = 'ws://localhost:1999/party';
 const API_BASE_URL = 'https://www.blitzclaw.com';
 const DEV_API_BASE_URL = 'http://localhost:3000';

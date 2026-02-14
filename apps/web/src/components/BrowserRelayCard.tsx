@@ -35,7 +35,7 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
 
       setToken(data.token);
       setWsUrl(
-        data.wsUrl || `wss://blitzclaw-relay.partykit.dev/party/${instanceId}`
+        data.wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/party/${instanceId}`
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate token");
@@ -45,7 +45,7 @@ export function BrowserRelayCard({ instanceId, userId }: BrowserRelayCardProps) 
   };
 
   const displayWsUrl =
-    wsUrl || `wss://blitzclaw-relay.partykit.dev/party/${instanceId}`;
+    wsUrl || `wss://blitzclaw-relay.philippmuller.partykit.dev/party/${instanceId}`;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
