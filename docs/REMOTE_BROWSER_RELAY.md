@@ -211,6 +211,63 @@ BlitzClaw + Browser Relay = Cloud power with local context.
 
 ---
 
+## Human-in-the-Loop Authentication Pattern
+
+### The Problem
+
+Many services require OAuth/browser-based authentication that agents cannot complete autonomously:
+- PartyKit deploy requires GitHub login
+- Google OAuth requires browser consent
+- 2FA challenges need human interaction
+- CAPTCHAs block automated flows
+
+### The Pattern
+
+When an agent encounters interactive auth:
+
+1. **Agent detects** auth requirement (redirect to login, 401, "please authenticate" message)
+2. **Agent provides** the URL/link to the human
+3. **Agent instructs** what the human needs to do
+4. **Human completes** the auth flow in their browser
+5. **Agent detects** successful auth (token appears, session valid, etc.)
+6. **Agent continues** with the original task
+
+### Implementation for BlitzClaw
+
+BlitzClaw agents should:
+
+```
+When auth is needed:
+1. Send message: "I need you to authenticate with [Service]"
+2. Provide link: "Please open: https://..."
+3. Give clear steps: "1. Click 'Authorize' 2. Select your account 3. Come back here"
+4. Wait/poll for completion
+5. Confirm: "Thanks! Authentication successful, continuing..."
+```
+
+### Example: PartyKit Deploy
+
+```
+Agent: "I need to deploy to PartyKit but it requires browser login."
+Agent: "Please run this in your terminal:"
+Agent: `cd /path/to/project && npx partykit login`
+Agent: "This will open a browser. Complete the GitHub login, then let me know."
+Human: "Done!"
+Agent: "Great, now deploying..." *runs npx partykit deploy*
+```
+
+### Dashboard Integration
+
+For BlitzClaw dashboard, we could add:
+- "Pending Auth" notifications
+- One-click auth completion buttons
+- Status indicators for services needing re-auth
+
+This pattern applies to: OAuth services, API key setup, 2FA, payment verification, etc.
+
+---
+
 *Created: 2026-02-13*
+*Updated: 2026-02-14 — Added human-in-the-loop auth pattern*
 *Status: Draft*
 *Owner: TBD*
