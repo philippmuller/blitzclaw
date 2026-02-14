@@ -1,0 +1,5 @@
+{
+  "name": "blitzclaw-relay",
+  "main": "partykit/server.ts",
+  "compatibilityDate": "2024-01-01"
+}

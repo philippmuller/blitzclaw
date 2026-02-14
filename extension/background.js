@@ -15,8 +15,8 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
 
 // WebSocket relay endpoint
-const RELAY_URL = 'wss://blitzclaw-relay.philippmuller.partykit.dev/party';
-const DEV_RELAY_URL = 'ws://localhost:1999/party';
+const RELAY_URL = 'wss://blitzclaw-relay.philippmuller.partykit.dev/parties/main';
+const DEV_RELAY_URL = 'ws://localhost:1999/parties/main';
 const API_BASE_URL = 'https://www.blitzclaw.com';
 const DEV_API_BASE_URL = 'http://localhost:3000';
 
@@ -25,7 +25,7 @@ function getApiBase() {
 }
 
 function getRelayUrl(instanceId) {
-  // Use dev URL if we're in development
+  // PartyKit URL format: /parties/main/<room-id>
   const baseUrl = RELAY_URL;
   return `${baseUrl}/${instanceId}`;
 }

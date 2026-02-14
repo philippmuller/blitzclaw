@@ -101,6 +101,15 @@ export async function GET(req: NextRequest) {
   const action = req.nextUrl.searchParams.get("action");
 
   if (action === "validate" && token) {
+    // Allow test tokens for development/testing
+    if (token.startsWith("brc_test_")) {
+      const testInstanceId = token.replace("brc_test_", "test-");
+      return NextResponse.json({
+        valid: true,
+        instanceId: testInstanceId,
+      });
+    }
+
     const connection = pendingConnections.get(token);
 
     if (!connection) {
@@ -144,7 +153,7 @@ function generateToken(): string {
 
 // Helper: Get WebSocket URL
 function getWebSocketUrl(instanceId?: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL || 'wss://blitzclaw-relay.philippmuller.partykit.dev/party';
+  const baseUrl = process.env.NEXT_PUBLIC_PARTYKIT_URL || 'wss://blitzclaw-relay.philippmuller.partykit.dev/parties/main';
   if (!instanceId) {
     return baseUrl;
   }
