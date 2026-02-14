@@ -16,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/polar/(.*)",    // Polar checkout/webhooks
   "/api/proxy/(.*)",    // Proxy endpoints use their own auth (X-BlitzClaw-Instance header)
   "/api/internal/(.*)", // Internal callbacks from instances (auth via X-Instance-Secret)
+  "/api/browser-relay", // Browser relay token validation (extension uses this)
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
