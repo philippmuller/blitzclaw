@@ -26,6 +26,12 @@ model User {
   
   anthropicKey          String?   // BYOK users' Anthropic API key (encrypted in production)
   billingMode           String    @default("managed")  // "byok" or "managed"
+
+  // Email funnel tracking
+  discountEmailSentAt   DateTime?
+  welcomeEmailSentAt    DateTime?
+  powerUserEmailSentAt  DateTime?
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
