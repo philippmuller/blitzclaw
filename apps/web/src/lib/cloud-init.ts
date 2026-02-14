@@ -325,7 +325,10 @@ ${JSON.stringify({
       fi
 
       INPUT_FILE="$1"
-      OUTPUT_FILE="${2:-/root/.openclaw/workspace/browser-relay.storage-state.json}"
+      OUTPUT_FILE="/root/.openclaw/workspace/browser-relay.storage-state.json"
+      if [ "$#" -eq 2 ]; then
+        OUTPUT_FILE="$2"
+      fi
 
       if [ ! -f "$INPUT_FILE" ]; then
         echo "Error: file not found: $INPUT_FILE" >&2
@@ -433,14 +436,14 @@ ${JSON.stringify({
       2. Wait for explicit user confirmation that browser relay is connected.
       3. Navigate the connected Chrome session to the target site via CDP.
       4. Ask user to finish login in their Chrome if needed.
-      5. Pull cookies with CDP `Network.getCookies`.
-      6. Convert cookies into Playwright storage state using `inject-cookies`.
+      5. Pull cookies with CDP \`Network.getCookies\`.
+      6. Convert cookies into Playwright storage state using \`inject-cookies\`.
       7. Continue normal automation using the local browser tool with the generated storage state.
       8. Tell the user they can disconnect/close browser relay when done.
 
       ### Helper commands
 
-      Proxy secret location: `/etc/blitzclaw/proxy_secret`
+      Proxy secret location: \`/etc/blitzclaw/proxy_secret\`
 
       Preferred wrapper:
       \`\`\`bash
@@ -458,13 +461,13 @@ ${JSON.stringify({
         -d '{"method":"Network.getCookies","params":{"urls":["https://www.linkedin.com"]}}'
       \`\`\`
 
-      `inject-cookies` accepts:
-      - raw CDP response: `{"result":{"cookies":[...]}}`
-      - object with `cookies`
+      \`inject-cookies\` accepts:
+      - raw CDP response: \`{"result":{"cookies":[...]}}\`
+      - object with \`cookies\`
       - cookie array
 
       It writes Playwright storage state JSON. Default output:
-      `/root/.openclaw/workspace/browser-relay.storage-state.json`
+      \`/root/.openclaw/workspace/browser-relay.storage-state.json\`
       
       ## Secrets
       User secrets are available at /root/.openclaw/secrets.env
