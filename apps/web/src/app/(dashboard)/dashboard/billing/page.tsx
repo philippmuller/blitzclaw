@@ -1,7 +1,9 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
+import Link from "next/link";
 import { BalanceCard } from "@/components";
 import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
+import { UpgradeButtons } from "./UpgradeButtons";
 
 async function getUserWithUsage(clerkId: string) {
   const user = await prisma.user.findUnique({
@@ -109,6 +111,27 @@ export default async function BillingPage() {
           <p className="text-sm text-muted-foreground">
             ${includedCredits} credits included monthly
           </p>
+        </div>
+      </div>
+
+      {/* Plan Switching */}
+      <UpgradeButtons currentPlan={user.plan} currentBillingMode={user.billingMode} />
+
+      {/* Balance Top-up / Billing Actions */}
+      <div className="bg-card border border-border rounded-xl p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Balance Top-up</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Usage over your included credits is charged automatically. Use the billing portal to add or update payment methods.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/billing/topup"
+            className="inline-flex items-center justify-center px-4 py-2.5 bg-secondary text-foreground font-medium rounded-lg hover:bg-secondary/80 transition"
+          >
+            Open Top-up Options
+          </Link>
         </div>
       </div>
 

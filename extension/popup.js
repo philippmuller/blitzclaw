@@ -14,6 +14,8 @@ const relayStateValue = document.getElementById('relayStateValue');
 const instanceValue = document.getElementById('instanceValue');
 const peerValue = document.getElementById('peerValue');
 const tabValue = document.getElementById('tabValue');
+let detectedApiBase = null;
+let detectedInstanceId = null;
 
 // Update UI based on connection status
 function updateUI(status) {
@@ -53,6 +55,12 @@ function updateUI(status) {
 function refreshStatus() {
   chrome.runtime.sendMessage({ action: 'status' }, (response) => {
     if (!response) return;
+    if (response.apiBase) {
+      detectedApiBase = response.apiBase;
+    }
+    if (response.instanceId) {
+      detectedInstanceId = response.instanceId;
+    }
     updateUI(response);
   });
 }
@@ -76,15 +84,31 @@ connectBtn.addEventListener('click', async () => {
   statusDot.className = 'status-dot connecting';
   statusText.textContent = 'Connecting...';
   
-  chrome.runtime.sendMessage({ action: 'connect', token }, (response) => {
+  chrome.runtime.sendMessage({
+    action: 'connect',
+    token,
+    apiBase: detectedApiBase || undefined,
+    instanceId: detectedInstanceId || undefined,
+  }, (response) => {
+    if (chrome.runtime.lastError) {
+      connectBtn.disabled = false;
+      connectBtn.textContent = 'Connect';
+      errorMsg.textContent = chrome.runtime.lastError.message || 'Connection failed';
+      return;
+    }
+
     connectBtn.disabled = false;
     connectBtn.textContent = 'Connect';
     
-    if (response.success) {
+    if (response && response.success) {
       refreshStatus();
       tokenInput.value = '';
     } else {
-      errorMsg.textContent = response.error || 'Connection failed';
+      const failure = (response && response.error) || 'Connection failed';
+      errorMsg.textContent = failure;
+      if (failure.toLowerCase().includes('already in progress')) {
+        chrome.runtime.sendMessage({ action: 'resetState' });
+      }
       statusDot.className = 'status-dot';
       statusText.textContent = 'Disconnected';
     }
@@ -113,6 +137,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.tabs.sendMessage(tab.id, { action: 'getToken' }, (response) => {
       if (response && response.token) {
         tokenInput.value = response.token;
+      }
+      if (response && response.apiBase) {
+        detectedApiBase = response.apiBase;
+      }
+      if (response && response.instanceId) {
+        detectedInstanceId = response.instanceId;
       }
     });
   }

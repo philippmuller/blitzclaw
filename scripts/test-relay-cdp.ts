@@ -1,121 +1,147 @@
 #!/usr/bin/env npx tsx
 /**
- * Test the full Browser Relay CDP flow:
- * Agent → API → PartyKit → Extension → Chrome → Response
- * 
- * Prerequisites:
- * 1. Extension connected to a test room
- * 2. Tab attached in Chrome
+ * Browser Relay smoke test:
+ * 1) Generate relay token via API (agent auth)
+ * 2) Validate token via API
+ * 3) Run CDP commands via /api/browser-relay/cdp
+ *
+ * Usage:
+ *   npx tsx scripts/test-relay-cdp.ts [instanceId]
  */
 
 import { prisma } from "@blitzclaw/db";
 
-const API_BASE = process.env.API_BASE || "https://blitzclaw.com";
+const API_BASE = process.env.API_BASE || "https://www.blitzclaw.com";
+
+type RelayTokenResponse = {
+  token: string;
+  instanceId: string;
+  connectUrl?: string;
+  wsUrl?: string;
+  expiresIn?: number;
+  error?: string;
+};
 
 async function main() {
-  // Find an active instance to test with (or use a specific one)
-  const instanceId = process.argv[2];
-  
-  let instance;
-  if (instanceId) {
-    instance = await prisma.instance.findUnique({
-      where: { id: instanceId },
-      select: { id: true, name: true, proxySecret: true, status: true },
-    });
-  } else {
-    // Find Philipp's instance
-    instance = await prisma.instance.findFirst({
-      where: { 
-        status: "ACTIVE",
-        user: { email: { contains: "philipp" } }
-      },
-      select: { id: true, name: true, proxySecret: true, status: true },
-    });
-  }
+  const requestedInstanceId = process.argv[2];
+  const instance = await loadInstance(requestedInstanceId);
 
   if (!instance) {
-    console.error("❌ No active instance found");
-    console.log("\nUsage: npx tsx scripts/test-relay-cdp.ts [instanceId]");
+    console.error("No active instance found.");
     process.exit(1);
   }
 
-  console.log(`\n🎯 Testing with instance: ${instance.name} (${instance.id})`);
-  console.log(`   Status: ${instance.status}`);
-  
-  // Generate the connect URL for the extension
-  const connectUrl = `${API_BASE}/relay/connect?token=${instance.proxySecret}`;
-  console.log(`\n📎 Extension connect URL:`);
-  console.log(`   ${connectUrl}`);
-  console.log(`\n⏳ Make sure the extension is connected before continuing...`);
-  console.log(`   Press Enter when ready (or Ctrl+C to cancel)`);
-  
-  await new Promise<void>((resolve) => {
-    process.stdin.once("data", () => resolve());
+  console.log(`\nInstance: ${instance.name || instance.id}`);
+  console.log(`Instance ID: ${instance.id}`);
+
+  const tokenResponse = await generateRelayToken(instance.proxySecret, instance.id);
+  console.log("\nToken generated");
+  console.log(`Token prefix: ${tokenResponse.token.slice(0, 22)}...`);
+  if (tokenResponse.connectUrl) {
+    console.log(`Connect URL: ${tokenResponse.connectUrl}`);
+  }
+  if (tokenResponse.wsUrl) {
+    console.log(`Relay WS URL: ${tokenResponse.wsUrl}`);
+  }
+  if (tokenResponse.expiresIn) {
+    console.log(`Expires in: ${tokenResponse.expiresIn}s`);
+  }
+
+  const validation = await validateToken(tokenResponse.token, instance.id);
+  console.log("\nToken validation");
+  console.log(JSON.stringify(validation, null, 2));
+
+  console.log("\nOpen the connect URL in Chrome and click 'Allow and Connect'.");
+  console.log("Press Enter when extension is connected (Ctrl+C to abort).");
+  await waitForEnter();
+
+  await runCdpTest(instance.proxySecret, "Runtime.evaluate", {
+    expression: "document.title",
+  });
+  await runCdpTest(instance.proxySecret, "Runtime.evaluate", {
+    expression: "location.href",
   });
 
-  // Test 1: Get document title
-  console.log("\n🧪 Test 1: Runtime.evaluate (get document.title)");
-  try {
-    const result1 = await sendCdpCommand(instance.proxySecret, {
-      method: "Runtime.evaluate",
-      params: { expression: "document.title" },
-    });
-    console.log("   ✅ Success:", JSON.stringify(result1, null, 2));
-  } catch (err) {
-    console.log("   ❌ Failed:", err instanceof Error ? err.message : err);
-  }
-
-  // Test 2: Get current URL
-  console.log("\n🧪 Test 2: Runtime.evaluate (get location.href)");
-  try {
-    const result2 = await sendCdpCommand(instance.proxySecret, {
-      method: "Runtime.evaluate",
-      params: { expression: "location.href" },
-    });
-    console.log("   ✅ Success:", JSON.stringify(result2, null, 2));
-  } catch (err) {
-    console.log("   ❌ Failed:", err instanceof Error ? err.message : err);
-  }
-
-  // Test 3: Navigate to a page (optional)
-  console.log("\n🧪 Test 3: Page.navigate (go to example.com)");
-  try {
-    const result3 = await sendCdpCommand(instance.proxySecret, {
-      method: "Page.navigate",
-      params: { url: "https://example.com" },
-    });
-    console.log("   ✅ Success:", JSON.stringify(result3, null, 2));
-  } catch (err) {
-    console.log("   ❌ Failed:", err instanceof Error ? err.message : err);
-  }
-
-  console.log("\n✨ Tests complete!");
-  process.exit(0);
+  console.log("\nDone.");
 }
 
-async function sendCdpCommand(
-  instanceSecret: string,
-  body: { method: string; params?: Record<string, unknown>; timeoutMs?: number }
-): Promise<unknown> {
+async function loadInstance(instanceId?: string) {
+  if (instanceId) {
+    return prisma.instance.findUnique({
+      where: { id: instanceId },
+      select: { id: true, name: true, proxySecret: true, status: true },
+    });
+  }
+
+  return prisma.instance.findFirst({
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, proxySecret: true, status: true },
+  });
+}
+
+async function generateRelayToken(instanceSecret: string, instanceId: string): Promise<RelayTokenResponse> {
+  const response = await fetch(`${API_BASE}/api/browser-relay`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-instance-secret": instanceSecret,
+    },
+    body: JSON.stringify({ instanceId }),
+  });
+
+  const data = (await response.json()) as RelayTokenResponse;
+  if (!response.ok || !data.token) {
+    throw new Error(data.error || `Token generation failed (${response.status})`);
+  }
+  return data;
+}
+
+async function validateToken(token: string, expectedInstanceId: string) {
+  const url = new URL(`${API_BASE}/api/browser-relay`);
+  url.searchParams.set("action", "validate");
+  url.searchParams.set("token", token);
+  url.searchParams.set("instanceId", expectedInstanceId);
+
+  const response = await fetch(url.toString());
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `Validation failed (${response.status})`);
+  }
+  return data;
+}
+
+async function runCdpTest(instanceSecret: string, method: string, params?: Record<string, unknown>) {
+  console.log(`\nCDP ${method}`);
   const response = await fetch(`${API_BASE}/api/browser-relay/cdp`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-instance-secret": instanceSecret,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      method,
+      params: params || {},
+      timeoutMs: 25000,
+    }),
   });
 
   const data = await response.json();
-  
   if (!response.ok || data.ok === false) {
-    throw new Error(data.error || `HTTP ${response.status}`);
+    throw new Error(data.error || `CDP failed (${response.status})`);
   }
-
-  return data.result;
+  console.log(JSON.stringify(data, null, 2));
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
+function waitForEnter(): Promise<void> {
+  return new Promise((resolve) => {
+    process.stdin.resume();
+    process.stdin.once("data", () => resolve());
+  });
+}
+
+main().catch((error) => {
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.error(`\nTest failed: ${message}`);
   process.exit(1);
 });

@@ -16,71 +16,17 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@blitzclaw/db";
+import { InstanceStatus, prisma } from "@blitzclaw/db";
 import { auth } from "@clerk/nextjs/server";
-import { randomBytes, createHmac } from "crypto";
+import {
+  BROWSER_RELAY_TOKEN_VALIDITY_MS,
+  generateBrowserRelayToken,
+  validateBrowserRelayToken,
+} from "@/lib/browser-relay-token";
 
-// Token validity: 30 minutes (longer since stateless)
-const TOKEN_VALIDITY_MS = 30 * 60 * 1000;
+export const runtime = "nodejs";
 
-// HMAC secret for signing tokens (use env var in production)
-const TOKEN_SECRET = process.env.BROWSER_RELAY_SECRET || "blitzclaw-relay-secret-change-in-prod";
-
-/**
- * Generate a stateless HMAC-signed token
- * Format: brc_<base64(instanceId:expiresAt:signature)>
- */
-function generateSignedToken(instanceId: string): string {
-  const expiresAt = Date.now() + TOKEN_VALIDITY_MS;
-  const payload = `${instanceId}:${expiresAt}`;
-  const signature = createHmac("sha256", TOKEN_SECRET)
-    .update(payload)
-    .digest("base64url")
-    .slice(0, 16); // Truncate for shorter token
-  const tokenData = Buffer.from(`${payload}:${signature}`).toString("base64url");
-  return `brc_${tokenData}`;
-}
-
-/**
- * Validate a stateless HMAC-signed token
- * Returns instanceId if valid, null if invalid/expired
- */
-function validateSignedToken(token: string): { valid: true; instanceId: string } | { valid: false; error: string } {
-  if (!token.startsWith("brc_")) {
-    return { valid: false, error: "Invalid token format" };
-  }
-
-  try {
-    const tokenData = Buffer.from(token.slice(4), "base64url").toString();
-    const parts = tokenData.split(":");
-    if (parts.length !== 3) {
-      return { valid: false, error: "Invalid token structure" };
-    }
-
-    const [instanceId, expiresAtStr, providedSig] = parts;
-    const expiresAt = parseInt(expiresAtStr, 10);
-
-    // Check expiry
-    if (Date.now() > expiresAt) {
-      return { valid: false, error: "Token expired" };
-    }
-
-    // Verify signature
-    const payload = `${instanceId}:${expiresAtStr}`;
-    const expectedSig = createHmac("sha256", TOKEN_SECRET)
-      .update(payload)
-      .digest("base64url")
-      .slice(0, 16);
-
-    if (providedSig !== expectedSig) {
-      return { valid: false, error: "Invalid signature" };
-    }
-
-    return { valid: true, instanceId };
-  } catch {
-    return { valid: false, error: "Token decode failed" };
-  }
-}
+const TOKEN_TEST_PREFIX = "brc_test_";
 
 /**
  * Generate a browser relay token for an instance
@@ -160,12 +106,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate stateless signed token
-    const token = generateSignedToken(resolvedInstanceId);
+    const token = generateBrowserRelayToken(resolvedInstanceId);
 
     return NextResponse.json({
       token,
       instanceId: resolvedInstanceId,
-      expiresIn: TOKEN_VALIDITY_MS / 1000,
+      expiresIn: BROWSER_RELAY_TOKEN_VALIDITY_MS / 1000,
       wsUrl: getWebSocketUrl(resolvedInstanceId),
       connectUrl: getConnectUrl(req, token, resolvedInstanceId),
     });
@@ -184,22 +130,34 @@ export async function POST(req: NextRequest) {
  * Called by WebSocket server when extension connects
  */
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get("token");
   const action = req.nextUrl.searchParams.get("action");
+  const token = req.nextUrl.searchParams.get("token");
+  const instanceId = req.nextUrl.searchParams.get("instanceId");
 
-  if (action === "validate" && token) {
+  if (action === "validate") {
+    if (!token) {
+      return NextResponse.json({ valid: false, error: "Missing token" }, { status: 400 });
+    }
+
     // Allow test tokens for development/testing
-    if (token.startsWith("brc_test_")) {
-      const testInstanceId = token.replace("brc_test_", "test-");
+    if (token.startsWith(TOKEN_TEST_PREFIX)) {
+      const testInstanceId = token.replace(TOKEN_TEST_PREFIX, "test-");
+      if (instanceId && instanceId !== testInstanceId) {
+        return NextResponse.json(
+          { valid: false, error: "Token instance mismatch" },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json({
         valid: true,
         instanceId: testInstanceId,
+        wsUrl: getWebSocketUrl(testInstanceId),
       });
     }
 
     // Validate stateless HMAC-signed token
-    const result = validateSignedToken(token);
-    
+    const result = validateBrowserRelayToken(token);
     if (result.valid === false) {
       const status = result.error === "Token expired" ? 410 : 400;
       return NextResponse.json(
@@ -208,9 +166,58 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (instanceId && instanceId !== result.instanceId) {
+      return NextResponse.json(
+        { valid: false, error: "Token instance mismatch" },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       valid: true,
       instanceId: result.instanceId,
+      expiresAt: result.expiresAt,
+      wsUrl: getWebSocketUrl(result.instanceId),
+    });
+  }
+
+  if (action === "validate-agent") {
+    const instanceSecret = req.headers.get("x-instance-secret");
+    if (!instanceSecret) {
+      return NextResponse.json({ valid: false, error: "Missing x-instance-secret header" }, { status: 401 });
+    }
+
+    if (!instanceId) {
+      return NextResponse.json({ valid: false, error: "Missing instanceId" }, { status: 400 });
+    }
+
+    const instance = await prisma.instance.findUnique({
+      where: { proxySecret: instanceSecret },
+      select: { id: true, status: true },
+    });
+
+    if (!instance) {
+      return NextResponse.json({ valid: false, error: "Invalid instance secret" }, { status: 401 });
+    }
+
+    if (instance.id !== instanceId) {
+      return NextResponse.json({ valid: false, error: "Agent not authorized for this relay room" }, { status: 403 });
+    }
+
+    if (
+      instance.status !== InstanceStatus.ACTIVE &&
+      instance.status !== InstanceStatus.PROVISIONING
+    ) {
+      return NextResponse.json(
+        { valid: false, error: `Instance is ${instance.status.toLowerCase()}` },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json({
+      valid: true,
+      instanceId: instance.id,
+      wsUrl: getWebSocketUrl(instance.id),
     });
   }
 

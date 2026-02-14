@@ -1,15 +1,15 @@
 /**
  * Top-up endpoint
- * 
- * With Polar's metered billing, usage overages are billed automatically.
- * Manual top-ups are not needed - users pay per credit used.
- * 
- * This endpoint is kept for future use but currently disabled.
+ *
+ * BlitzClaw uses metered billing with automatic charges for managed plans.
+ * "Top-up" means opening the billing portal to add/update payment method,
+ * review usage, and manage billing preferences.
  */
 
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@blitzclaw/db";
+import { getCustomerPortalUrl } from "@/lib/polar";
 
 export async function POST() {
   const { userId: clerkId } = await auth();
@@ -26,23 +26,38 @@ export async function POST() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // BYOK users don't use balance/top-ups
+  // BYOK users pay Anthropic directly
   if (user.billingMode === "byok") {
     return NextResponse.json(
-      { 
+      {
         error: "Top-ups are not available for BYOK plans. You pay Anthropic directly for API usage.",
-        billingMode: "byok"
+        billingMode: "byok",
       },
       { status: 400 }
     );
   }
 
-  // With Polar metered billing, usage is billed automatically
-  return NextResponse.json(
-    { 
-      error: "Manual top-ups are not needed. Your usage is billed automatically at $0.01 per credit.",
-      message: "Visit the billing portal to view your usage and payment methods.",
-    },
-    { status: 400 }
-  );
+  if (!user.polarCustomerId) {
+    return NextResponse.json(
+      { error: "Billing account not ready yet. Please contact support if this persists." },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const portalUrl = await getCustomerPortalUrl(user.polarCustomerId);
+
+    return NextResponse.json({
+      checkoutUrl: portalUrl,
+      mode: "metered",
+      message:
+        "BlitzClaw bills usage automatically. Use the billing portal to add/update payment methods and review charges.",
+    });
+  } catch (error) {
+    console.error("Failed to create billing portal URL for top-up:", error);
+    return NextResponse.json(
+      { error: "Failed to open billing portal" },
+      { status: 500 }
+    );
+  }
 }

@@ -8,6 +8,7 @@ const DEFAULT_RECONNECT_MIN_DELAY_MS = 1_000;
 const DEFAULT_RECONNECT_MAX_DELAY_MS = 15_000;
 const DEFAULT_RECONNECT_MAX_ATTEMPTS = 10;
 const SHARED_CLIENT_TTL_MS = 10 * 60 * 1000;
+const DEBUG_RELAY = process.env.BROWSER_RELAY_DEBUG === "1";
 
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
@@ -229,6 +230,7 @@ export class BrowserRelayClient {
   private nextCommandId = 1;
   private pendingCommands = new Map<number, PendingCommand>();
   private cdpResultCallbacks = new Set<CdpResultCallback>();
+  private readonly logPrefix: string;
 
   constructor(options: BrowserRelayClientOptions) {
     this.instanceId = options.instanceId;
@@ -240,6 +242,7 @@ export class BrowserRelayClient {
     this.reconnectMinDelayMs = options.reconnect?.minDelayMs ?? DEFAULT_RECONNECT_MIN_DELAY_MS;
     this.reconnectMaxDelayMs = options.reconnect?.maxDelayMs ?? DEFAULT_RECONNECT_MAX_DELAY_MS;
     this.reconnectMaxAttempts = options.reconnect?.maxAttempts ?? DEFAULT_RECONNECT_MAX_ATTEMPTS;
+    this.logPrefix = `[browser-relay][agent][${this.instanceId}]`;
   }
 
   get connectionState(): ConnectionState {
@@ -263,6 +266,7 @@ export class BrowserRelayClient {
     }
 
     if (this.connectPromise) {
+      this.log("debug", "connect_join_inflight");
       return this.connectPromise;
     }
 
@@ -275,6 +279,7 @@ export class BrowserRelayClient {
     this.clearReconnectTimer();
     this.state = "connecting";
     this.authenticated = false;
+    this.log("info", "connect_begin", { relayUrl: this.relayUrl });
 
     const socket = new WebSocketCtor(this.relayUrl);
     this.ws = socket;
@@ -290,6 +295,7 @@ export class BrowserRelayClient {
       };
 
       this.connectTimeoutId = setTimeout(() => {
+        this.log("warn", "connect_timeout");
         this.rejectPendingConnect(new Error("Timed out connecting to browser relay"));
         this.closeSocket();
       }, this.connectTimeoutMs);
@@ -304,6 +310,7 @@ export class BrowserRelayClient {
   }
 
   disconnect(): void {
+    this.log("info", "disconnect_manual");
     this.shouldReconnect = false;
     this.clearReconnectTimer();
     this.failAllPendingCommands(new Error("Browser relay disconnected"));
@@ -344,6 +351,7 @@ export class BrowserRelayClient {
         resolve,
         reject,
       });
+      this.log("debug", "cdp_send", { id, method, timeoutMs });
 
       try {
         this.sendRaw({
@@ -433,14 +441,17 @@ export class BrowserRelayClient {
 
   private scheduleReconnect(): void {
     if (!this.shouldReconnect || !this.reconnectEnabled) {
+      this.log("debug", "reconnect_skip_disabled");
       return;
     }
 
     if (this.reconnectTimerId) {
+      this.log("debug", "reconnect_skip_timer_exists");
       return;
     }
 
     if (this.reconnectAttempts >= this.reconnectMaxAttempts) {
+      this.log("warn", "reconnect_skip_max_attempts");
       return;
     }
 
@@ -450,6 +461,7 @@ export class BrowserRelayClient {
     );
 
     this.reconnectAttempts += 1;
+    this.log("warn", "reconnect_scheduled", { delayMs: delay, attempt: this.reconnectAttempts });
     this.reconnectTimerId = setTimeout(() => {
       this.reconnectTimerId = null;
       void this.connect().catch(() => {
@@ -466,6 +478,7 @@ export class BrowserRelayClient {
   }
 
   private handleSocketOpen = (): void => {
+    this.log("debug", "socket_open");
     try {
       this.sendRaw({
         type: "auth",
@@ -473,6 +486,7 @@ export class BrowserRelayClient {
         token: this.instanceSecret,
       });
     } catch (error) {
+      this.log("error", "socket_auth_send_failed", { error: asError(error, "auth send failed").message });
       this.rejectPendingConnect(asError(error, "Failed to authenticate browser relay socket"));
       this.closeSocket();
     }
@@ -490,6 +504,7 @@ export class BrowserRelayClient {
     this.authenticated = false;
     this.extensionConnected = false;
     this.ws = null;
+    this.log("warn", "socket_closed", { wasConnected, wasConnecting });
 
     if (wasConnecting) {
       this.rejectPendingConnect(new Error("Browser relay socket closed during authentication"));
@@ -503,6 +518,7 @@ export class BrowserRelayClient {
   };
 
   private handleSocketError = (): void => {
+    this.log("warn", "socket_error", { state: this.state });
     if (this.state === "connecting") {
       this.rejectPendingConnect(new Error("Browser relay socket error"));
     }
@@ -516,6 +532,7 @@ export class BrowserRelayClient {
 
     const message = parseIncomingMessage(raw);
     if (!message) {
+      this.log("warn", "message_parse_failed");
       return;
     }
 
@@ -527,10 +544,12 @@ export class BrowserRelayClient {
         this.state = "connected";
         this.authenticated = true;
         this.reconnectAttempts = 0;
+        this.log("info", "auth_success");
         this.resolvePendingConnect();
         return;
 
       case "auth_error":
+        this.log("warn", "auth_error", { error: message.error || "unknown" });
         this.rejectPendingConnect(new Error(message.error || "Browser relay authentication failed"));
         this.closeSocket();
         return;
@@ -563,6 +582,7 @@ export class BrowserRelayClient {
 
       case "error":
         // Relay errors are not command-scoped, so fail all pending commands.
+        this.log("warn", "relay_error", { error: message.error || "unknown" });
         this.failAllPendingCommands(new Error(message.error || "Browser relay error"));
         return;
 
@@ -584,6 +604,7 @@ export class BrowserRelayClient {
   }
 
   private handleCdpResult(message: RelayCdpResultMessage): void {
+    this.log("debug", "cdp_result", { id: message.id });
     const pending = this.pendingCommands.get(message.id);
     if (pending) {
       clearTimeout(pending.timeoutId);
@@ -597,6 +618,7 @@ export class BrowserRelayClient {
   }
 
   private handleCdpError(message: RelayCdpErrorMessage): void {
+    this.log("warn", "cdp_error", { id: message.id, error: message.error || "unknown" });
     const error = new Error(message.error || "CDP command failed");
     const pending = this.pendingCommands.get(message.id);
     if (pending) {
@@ -608,6 +630,29 @@ export class BrowserRelayClient {
     for (const callback of this.cdpResultCallbacks) {
       callback(message);
     }
+  }
+
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    event: string,
+    meta?: Record<string, unknown>
+  ): void {
+    if (!DEBUG_RELAY && level === "debug") {
+      return;
+    }
+
+    const payload = meta ? ` ${JSON.stringify(meta)}` : "";
+    const line = `${this.logPrefix} ${event}${payload}`;
+
+    if (level === "error") {
+      console.error(line);
+      return;
+    }
+    if (level === "warn") {
+      console.warn(line);
+      return;
+    }
+    console.info(line);
   }
 }
 

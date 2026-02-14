@@ -8,7 +8,6 @@ export const metadata = {
 
 const tiers = [
   {
-  {
     name: "Basic",
     price: 19,
     currency: "$",

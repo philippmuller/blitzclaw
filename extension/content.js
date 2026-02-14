@@ -39,9 +39,17 @@ function connectWithToken(token, instanceId) {
   };
 
   if (token) {
-    chrome.runtime.sendMessage({ action: "connect", token, instanceId }, (response) => {
+    chrome.runtime.sendMessage(
+      {
+        action: "connect",
+        token,
+        instanceId,
+        apiBase: window.location.origin,
+      },
+      (response) => {
       dispatchResult(response || { success: false, error: "No response from extension" });
-    });
+      }
+    );
   } else {
     dispatchResult({ success: false, error: "Missing relay token" });
   }
@@ -53,6 +61,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({
       token: getTokenFromPage(),
       instanceId: getInstanceIdFromPage(),
+      apiBase: window.location.origin,
     });
   }
   return true;

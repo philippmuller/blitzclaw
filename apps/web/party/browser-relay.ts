@@ -1,182 +1,322 @@
 import type * as Party from "partykit/server";
 
-type ClientRole = "extension" | "vm";
+type RelayRole = "extension" | "agent";
 
-type AuthMessage = {
-  type: "auth";
+type ConnectionState = {
+  role: RelayRole | null;
   token: string;
-  role?: ClientRole;
-  client?: ClientRole;
+  authenticated: boolean;
 };
 
-type RelayMessage = {
-  type: "cdp" | "cdp_result" | "cdp_event" | "cdp_error" | "ping" | "pong";
-  [key: string]: unknown;
+type AuthPayload = {
+  type: "auth";
+  token?: unknown;
+  role?: unknown;
 };
 
-type ConnectionMeta = {
-  role: ClientRole;
-  instanceId: string;
-};
-
-type ValidateResponse = {
-  valid: boolean;
+type ValidationResponse = {
+  valid?: boolean;
   instanceId?: string;
   error?: string;
 };
 
+type ValidationResult = {
+  ok: boolean;
+  error?: string;
+};
+
+const DEFAULT_API_BASE_URL = "https://www.blitzclaw.com";
+
 export default class BrowserRelayServer implements Party.Server {
-  private connections = new Map<string, ConnectionMeta>();
+  private readonly connections = new Map<string, ConnectionState>();
+  private extensionConn: Party.Connection | null = null;
+  private agentConn: Party.Connection | null = null;
+  private lastAgentConnectedForExtension = false;
+  private lastExtensionConnectedForAgent = false;
 
   constructor(readonly room: Party.Room) {}
 
-  onConnect(connection: Party.Connection) {
-    connection.send(
-      JSON.stringify({
-        type: "ping",
-        message: "auth_required",
-      })
-    );
+  onConnect(conn: Party.Connection) {
+    this.log("info", "connection_open", { connId: conn.id });
+    this.connections.set(conn.id, {
+      role: null,
+      token: "",
+      authenticated: false,
+    });
+
+    this.send(conn, {
+      type: "auth_required",
+      message: "Authenticate with role + token",
+    });
   }
 
-  async onMessage(message: string | ArrayBuffer, connection: Party.Connection) {
-    const data = this.parseMessage(message);
-    if (!data) {
+  async onMessage(rawMessage: string, sender: Party.Connection) {
+    const connState = this.connections.get(sender.id);
+    if (!connState) {
+      this.send(sender, { type: "error", error: "Unknown connection" });
+      return;
+    }
+
+    let data: unknown;
+    try {
+      data = JSON.parse(rawMessage);
+    } catch {
+      this.send(sender, { type: "error", error: "Invalid message format" });
+      return;
+    }
+
+    if (!this.isRecord(data) || typeof data.type !== "string") {
+      this.send(sender, { type: "error", error: "Invalid message payload" });
       return;
     }
 
     if (data.type === "auth") {
-      await this.handleAuth(data, connection);
+      await this.handleAuth(sender, connState, data as AuthPayload);
       return;
     }
 
-    const meta = this.connections.get(connection.id);
-    if (!meta) {
-      connection.send(
-        JSON.stringify({
-          type: "auth_error",
-          error: "Not authenticated",
-        })
-      );
-      connection.close();
+    if (!connState.authenticated || !connState.role) {
+      this.send(sender, { type: "error", error: "Not authenticated" });
       return;
     }
 
-    switch (data.type) {
-      case "cdp":
-        this.forwardToRole("extension", data, connection.id);
-        break;
-      case "cdp_result":
-      case "cdp_event":
-      case "cdp_error":
-        this.forwardToRole("vm", data, connection.id);
-        break;
-      case "ping":
-        connection.send(JSON.stringify({ type: "pong" }));
-        break;
-      default:
-        connection.send(
-          JSON.stringify({
-            type: "error",
-            error: "Unknown message type",
-          })
-        );
-        break;
-    }
+    this.routeMessage(sender, connState.role, data);
   }
 
-  onClose(connection: Party.Connection) {
-    this.connections.delete(connection.id);
+  onClose(conn: Party.Connection) {
+    const state = this.connections.get(conn.id);
+    this.log("info", "connection_close", { connId: conn.id, role: state?.role || "unknown" });
+
+    if (this.extensionConn?.id === conn.id) {
+      this.extensionConn = null;
+    }
+    if (this.agentConn?.id === conn.id) {
+      this.agentConn = null;
+    }
+
+    this.connections.delete(conn.id);
+    this.notifyPeerStatus();
   }
 
-  private parseMessage(message: string | ArrayBuffer): (AuthMessage | RelayMessage) | null {
-    try {
-      const raw = typeof message === "string" ? message : new TextDecoder().decode(message);
-      return JSON.parse(raw);
-    } catch (error) {
-      return null;
-    }
+  onError(conn: Party.Connection, error: Error) {
+    this.log("error", "connection_error", { connId: conn.id, error: error.message });
   }
 
-  private async handleAuth(message: AuthMessage, connection: Party.Connection) {
-    if (!message.token) {
-      connection.send(
-        JSON.stringify({
-          type: "auth_error",
-          error: "Missing token",
-        })
-      );
-      connection.close();
+  private async handleAuth(conn: Party.Connection, state: ConnectionState, payload: AuthPayload) {
+    const token = typeof payload.token === "string" ? payload.token : "";
+    const role = payload.role === "extension" || payload.role === "agent" ? payload.role : null;
+
+    if (!token || !role) {
+      this.authFailAndClose(conn, "Missing or invalid auth payload");
       return;
     }
 
-    const role = message.role || message.client || "extension";
-    const validation = await this.validateToken(message.token);
-
-    if (!validation.valid || !validation.instanceId) {
-      connection.send(
-        JSON.stringify({
-          type: "auth_error",
-          error: validation.error || "Invalid token",
-        })
-      );
-      connection.close();
+    const validation = await this.validateRoleToken(role, token);
+    if (!validation.ok) {
+      this.authFailAndClose(conn, validation.error || "Auth validation failed");
       return;
     }
 
-    if (this.room.id !== validation.instanceId) {
-      connection.send(
-        JSON.stringify({
-          type: "auth_error",
-          error: "Invalid room for token",
-        })
-      );
-      connection.close();
-      return;
+    this.replaceExistingRoleConnection(role, conn.id);
+
+    state.role = role;
+    state.token = token;
+    state.authenticated = true;
+
+    if (role === "extension") {
+      this.extensionConn = conn;
+    } else {
+      this.agentConn = conn;
     }
 
-    this.connections.set(connection.id, {
+    this.log("info", "auth_success", { connId: conn.id, role, roomId: this.room.id });
+    this.send(conn, {
+      type: "auth_success",
       role,
-      instanceId: validation.instanceId,
+      roomId: this.room.id,
     });
-
-    connection.send(
-      JSON.stringify({
-        type: "auth_success",
-        instanceId: validation.instanceId,
-      })
-    );
+    this.notifyPeerStatus();
   }
 
-  private async validateToken(token: string): Promise<ValidateResponse> {
-    const apiBase = "https://www.blitzclaw.com";
-    const url = `${apiBase}/api/browser-relay?action=validate&token=${encodeURIComponent(token)}`;
+  private replaceExistingRoleConnection(role: RelayRole, newConnId: string) {
+    const existing = role === "extension" ? this.extensionConn : this.agentConn;
+    if (!existing || existing.id === newConnId) {
+      return;
+    }
+
+    this.log("warn", "auth_replace_existing", { role, oldConnId: existing.id, newConnId });
+    this.send(existing, { type: "error", error: `Another ${role} connected; closing this socket` });
+    try {
+      existing.close(4001, "Superseded by newer connection");
+    } catch {
+      // Ignore close errors.
+    }
+
+    if (role === "extension") {
+      this.extensionConn = null;
+    } else {
+      this.agentConn = null;
+    }
+  }
+
+  private async validateRoleToken(role: RelayRole, token: string): Promise<ValidationResult> {
+    const apiBase = this.getApiBaseUrl();
+    const encodedRoomId = encodeURIComponent(this.room.id);
+    const validateUrl =
+      role === "extension"
+        ? `${apiBase}/api/browser-relay?action=validate&token=${encodeURIComponent(token)}&instanceId=${encodedRoomId}`
+        : `${apiBase}/api/browser-relay?action=validate-agent&instanceId=${encodedRoomId}`;
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        return { valid: false, error: `Validation failed (${response.status})` };
+      const response = await fetch(validateUrl, {
+        method: "GET",
+        headers:
+          role === "agent"
+            ? {
+                "x-instance-secret": token,
+              }
+            : undefined,
+      });
+
+      const body = (await response.json().catch(() => ({}))) as ValidationResponse;
+      if (!response.ok || body.valid !== true) {
+        const reason = body.error || `Validation failed (${response.status})`;
+        this.log("warn", "auth_validation_failed", { role, roomId: this.room.id, reason });
+        return { ok: false, error: reason };
       }
 
-      const data = (await response.json()) as ValidateResponse;
-      if (!data.valid) {
-        return { valid: false, error: data.error || "Invalid token" };
+      if (body.instanceId !== this.room.id) {
+        return { ok: false, error: "Auth validated for wrong relay room" };
       }
 
-      return { valid: true, instanceId: data.instanceId };
+      return { ok: true };
     } catch (error) {
-      return { valid: false, error: "Validation request failed" };
+      const message = error instanceof Error ? error.message : "Unknown validation error";
+      this.log("error", "auth_validation_request_failed", { role, roomId: this.room.id, error: message });
+      return { ok: false, error: "Relay auth validation request failed" };
     }
   }
 
-  private forwardToRole(role: ClientRole, payload: RelayMessage, senderId: string) {
-    const message = JSON.stringify(payload);
-    for (const connection of this.room.getConnections()) {
-      if (connection.id === senderId) continue;
-      const meta = this.connections.get(connection.id);
-      if (meta?.role === role) {
-        connection.send(message);
+  private routeMessage(sender: Party.Connection, role: RelayRole, data: Record<string, unknown>) {
+    const messageType = typeof data.type === "string" ? data.type : "";
+    this.log("debug", "route_message", { connId: sender.id, role, type: messageType });
+
+    if (role === "agent") {
+      if (messageType !== "cdp" && messageType !== "pong") {
+        this.send(sender, { type: "error", error: `Agent cannot send message type: ${messageType}` });
+        return;
+      }
+
+      if (!this.extensionConn) {
+        this.send(sender, { type: "error", error: "Extension not connected" });
+        return;
+      }
+
+      this.sendRaw(this.extensionConn, data);
+      return;
+    }
+
+    if (
+      messageType !== "cdp_result" &&
+      messageType !== "cdp_error" &&
+      messageType !== "cdp_event" &&
+      messageType !== "pong"
+    ) {
+      this.send(sender, { type: "error", error: `Extension cannot send message type: ${messageType}` });
+      return;
+    }
+
+    if (!this.agentConn) {
+      this.log("debug", "drop_extension_message_without_agent", { type: messageType });
+      return;
+    }
+
+    this.sendRaw(this.agentConn, data);
+  }
+
+  private notifyPeerStatus() {
+    const extensionConnected =
+      !!this.extensionConn && !!this.connections.get(this.extensionConn.id)?.authenticated;
+    const agentConnected = !!this.agentConn && !!this.connections.get(this.agentConn.id)?.authenticated;
+
+    if (extensionConnected && this.extensionConn) {
+      this.send(this.extensionConn, {
+        type: "peer_status",
+        agentConnected,
+      });
+
+      if (agentConnected !== this.lastAgentConnectedForExtension) {
+        this.send(this.extensionConn, {
+          type: agentConnected ? "peer_connected" : "peer_disconnected",
+          peer: "agent",
+        });
       }
     }
+
+    if (agentConnected && this.agentConn) {
+      this.send(this.agentConn, {
+        type: "peer_status",
+        extensionConnected,
+      });
+
+      if (extensionConnected !== this.lastExtensionConnectedForAgent) {
+        this.send(this.agentConn, {
+          type: extensionConnected ? "peer_connected" : "peer_disconnected",
+          peer: "extension",
+        });
+      }
+    }
+
+    this.lastAgentConnectedForExtension = extensionConnected ? agentConnected : false;
+    this.lastExtensionConnectedForAgent = agentConnected ? extensionConnected : false;
+  }
+
+  private authFailAndClose(conn: Party.Connection, error: string) {
+    this.log("warn", "auth_error", { connId: conn.id, error });
+    this.send(conn, { type: "auth_error", error });
+    try {
+      conn.close(4003, "Authentication failed");
+    } catch {
+      // Ignore close errors.
+    }
+  }
+
+  private getApiBaseUrl(): string {
+    const env = (this.room as unknown as { env?: Record<string, unknown> }).env || {};
+    const candidate = env.BROWSER_RELAY_API_BASE_URL || env.API_BASE_URL;
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.replace(/\/$/, "");
+    }
+    return DEFAULT_API_BASE_URL;
+  }
+
+  private send(conn: Party.Connection, data: Record<string, unknown>) {
+    conn.send(JSON.stringify(data));
+  }
+
+  private sendRaw(conn: Party.Connection, data: Record<string, unknown>) {
+    conn.send(JSON.stringify(data));
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+
+  private log(
+    level: "debug" | "info" | "warn" | "error",
+    event: string,
+    meta?: Record<string, unknown>
+  ) {
+    const payload = meta ? ` ${JSON.stringify(meta)}` : "";
+    const line = `[browser-relay][party][${this.room.id}] ${event}${payload}`;
+    if (level === "error") {
+      console.error(line);
+      return;
+    }
+    if (level === "warn") {
+      console.warn(line);
+      return;
+    }
+    console.log(line);
   }
 }

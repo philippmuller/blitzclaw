@@ -39,21 +39,21 @@ export default function TopupPage() {
     fetchUserInfo();
   }, []);
 
-  const handleTopup = async (amount: 25 | 50) => {
-    setLoading(amount);
+  const handleTopup = async (amount?: number) => {
+    setLoading(amount ?? -1);
     setError(null);
 
     try {
       const res = await fetch("/api/billing/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify(amount ? { amount } : {}),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create checkout");
+        throw new Error(data.error || "Failed to open billing portal");
       }
 
       if (data.checkoutUrl) {

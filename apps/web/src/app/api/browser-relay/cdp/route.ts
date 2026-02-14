@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { InstanceStatus, prisma } from "@blitzclaw/db";
 import { getSharedBrowserRelayClient } from "@/lib/browser-relay-client";
+import { randomUUID } from "crypto";
 
 export const runtime = "nodejs";
+const RELAY_DEBUG_ENABLED = process.env.BROWSER_RELAY_DEBUG === "1";
 
 type CdpRequestBody = {
   method: string;
@@ -79,6 +81,7 @@ function mapRelayErrorStatus(errorMessage: string): number {
  * Body: { method: string, params?: object, timeoutMs?: number }
  */
 export async function POST(req: NextRequest) {
+  const requestId = randomUUID().slice(0, 8);
   const instanceSecret = req.headers.get("x-instance-secret");
   if (!instanceSecret) {
     return NextResponse.json({ error: "Missing x-instance-secret header" }, { status: 401 });
@@ -124,6 +127,16 @@ export async function POST(req: NextRequest) {
     instanceSecret,
   });
 
+  if (RELAY_DEBUG_ENABLED) {
+    console.info(`[browser-relay][cdp][${requestId}] dispatch`, {
+      instanceId: instance.id,
+      method: parsed.value.method,
+      timeoutMs: parsed.value.timeoutMs ?? null,
+      relayState: relayClient.connectionState,
+      extensionConnected: relayClient.isExtensionConnected,
+    });
+  }
+
   try {
     const result = await relayClient.sendCdpCommand(
       parsed.value.method,
@@ -133,14 +146,25 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      requestId,
       method: parsed.value.method,
       result,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Failed to execute CDP command";
+    if (RELAY_DEBUG_ENABLED) {
+      console.error(`[browser-relay][cdp][${requestId}] failed`, {
+        instanceId: instance.id,
+        method: parsed.value.method,
+        error: errorMessage,
+        relayState: relayClient.connectionState,
+        extensionConnected: relayClient.isExtensionConnected,
+      });
+    }
     return NextResponse.json(
       {
         ok: false,
+        requestId,
         error: errorMessage,
       },
       { status: mapRelayErrorStatus(errorMessage) }
