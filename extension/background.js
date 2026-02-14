@@ -112,6 +112,8 @@ async function connect(token) {
       try {
         const instanceId = await fetchInstanceId(connectionToken);
         connectionInstanceId = instanceId;
+        // Clear any stale storage, will re-save on successful auth
+        chrome.storage.local.remove(['connectionToken', 'connectionInstanceId']);
         ws = new WebSocket(getRelayUrl(instanceId));
 
         ws.onopen = () => {
@@ -160,6 +162,10 @@ async function connect(token) {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to connect';
         console.error('[BlitzClaw] Failed to connect:', error);
+        // Clear stale token from storage so we don't retry with bad credentials
+        chrome.storage.local.remove(['connectionToken', 'connectionInstanceId']);
+        connectionToken = null;
+        connectionInstanceId = null;
         setConnectionState('error', errorMessage);
         resolveOnce({ success: false, error: errorMessage });
       }
@@ -391,7 +397,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.storage.local.get('connectionToken', (data) => {
   if (data.connectionToken) {
     console.log('[BlitzClaw] Restoring previous connection...');
-    connect(data.connectionToken);
+    connect(data.connectionToken).catch((err) => {
+      console.log('[BlitzClaw] Failed to restore connection, clearing stale token');
+      chrome.storage.local.remove(['connectionToken', 'connectionInstanceId']);
+    });
   } else {
     setConnectionState('disconnected');
   }
