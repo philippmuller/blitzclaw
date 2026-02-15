@@ -66,9 +66,8 @@ export default async function DashboardPage() {
   const creditsCents = user.balance?.creditsCents ?? 0;
   const totalInstances = user.instances.length;
 
-  // Redirect to onboarding if user hasn't completed setup
-  // (no subscription/balance AND no instances)
-  if (creditsCents === 0 && totalInstances === 0) {
+  // Redirect to onboarding if user hasn't completed setup (no instances)
+  if (totalInstances === 0) {
     redirect("/onboarding");
   }
 
@@ -89,6 +88,29 @@ export default async function DashboardPage() {
           Welcome back! Here&apos;s an overview of your BlitzClaw account.
         </p>
       </div>
+
+      {/* Paywall Banner - shown when credits run out */}
+      {!isByokUser && creditsCents <= 0 && totalInstances > 0 && (
+        <div className="bg-red-900/30 border border-red-700 rounded-xl p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-red-300 mb-1">Your credits have run out</h2>
+              <p className="text-muted-foreground text-sm mb-4">
+                Subscribe to add credits and keep your assistant running. Your instance is paused until you add credits.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  href="/dashboard/billing"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition"
+                >
+                  Add Credits →
+                </Link>
+              </div>
+            </div>
+            <div className="text-4xl">💳</div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className={`grid grid-cols-1 ${isByokUser ? 'md:grid-cols-1 max-w-md' : 'md:grid-cols-3'} gap-6`}>

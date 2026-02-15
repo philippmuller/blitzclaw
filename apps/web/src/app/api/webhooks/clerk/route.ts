@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         email,
         balance: {
           create: {
-            creditsCents: 0,
+            creditsCents: 500,
             autoTopupEnabled: false,
             topupThresholdCents: 500,
             topupAmountCents: 2000,

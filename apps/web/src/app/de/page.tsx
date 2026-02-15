@@ -34,10 +34,9 @@ export default async function HomeDe() {
       include: { balance: true, instances: true },
     });
 
-    const hasBalance = (user?.balance?.creditsCents ?? 0) > 0;
     const hasInstances = (user?.instances?.length ?? 0) > 0;
 
-    if (!hasBalance && !hasInstances) {
+    if (!hasInstances) {
       redirect("/onboarding");
     }
     redirect("/dashboard");
@@ -82,7 +81,7 @@ export default async function HomeDe() {
                 href="/onboarding"
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
               >
-                Jetzt starten
+                Kostenlos starten
               </Link>
             </SignedOut>
             <SignedIn>
@@ -110,7 +109,7 @@ export default async function HomeDe() {
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30">
-                  Jetzt starten
+                  Kostenlos starten
                 </button>
               </SignInButton>
             </SignedOut>
@@ -381,7 +380,7 @@ export default async function HomeDe() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Heute noch loschatten — ab $19/Monat
+              Kostenlos testen — $5 Startguthaben, keine Karte nötig
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
               Anmelden, Telegram verbinden, loschatten. Dein Assistent ist in
@@ -390,7 +389,7 @@ export default async function HomeDe() {
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
-                  Jetzt starten →
+                  Kostenlos starten →
                 </button>
               </SignInButton>
             </SignedOut>

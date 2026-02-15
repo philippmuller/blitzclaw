@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useClerk, useAuth } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle, Circle, Loader2, Bot, CreditCard, Sparkles, ExternalLink, Key, AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, Circle, Loader2, Bot, Sparkles } from "lucide-react";
 
-type Step = "billing" | "telegram" | "persona" | "launching";
+type Step = "telegram" | "persona" | "launching";
 
 type Tier = "basic" | "pro";
 type BillingMode = "byok" | "managed";
@@ -29,12 +29,11 @@ function OnboardingContent() {
   const { signOut } = useClerk();
   const { getToken } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   const [state, setState] = useState<OnboardingState>({
-    step: "billing",
+    step: "telegram",
     hasSubscription: false,
-    hasOwnKey: false, // Default to managed billing
+    hasOwnKey: false,
     billingMode: "byok",
     tier: "basic",
     autoTopup: true,
@@ -50,50 +49,6 @@ function OnboardingContent() {
   const [hasCapacity, setHasCapacity] = useState(true);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
-
-  // Check if returning from checkout - wait for webhook to credit balance
-  useEffect(() => {
-    const subscription = searchParams.get("subscription");
-    const tier = searchParams.get("tier");
-    
-    if (subscription === "success") {
-      setState(s => ({ ...s, step: "telegram", hasSubscription: true }));
-      
-      // For managed tiers, poll until balance is credited (webhook may be delayed)
-      if (tier !== "byok") {
-        const pollBalance = async () => {
-          let attempts = 0;
-          const maxAttempts = 30; // 30 seconds max
-          
-          const check = async (): Promise<boolean> => {
-            try {
-              const res = await fetch("/api/auth/me");
-              if (res.ok) {
-                const data = await res.json();
-                if (data.balance && data.balance > 0) {
-                  console.log("✅ Balance credited:", data.balance);
-                  return true;
-                }
-              }
-            } catch (e) {
-              console.error("Balance check failed:", e);
-            }
-            return false;
-          };
-          
-          while (attempts < maxAttempts) {
-            if (await check()) return;
-            await new Promise(r => setTimeout(r, 1000));
-            attempts++;
-          }
-          
-          console.warn("⚠️ Balance not credited after 30s - webhook may have failed");
-        };
-        
-        pollBalance();
-      }
-    }
-  }, [searchParams]);
 
   // Check capacity on load
   useEffect(() => {
@@ -144,9 +99,6 @@ function OnboardingContent() {
       const res = await fetch("/api/auth/me");
       if (res.ok) {
         const data = await res.json();
-        if (data.balance && data.balance > 0) {
-          setState(s => ({ ...s, hasSubscription: true, step: "telegram" }));
-        }
         if (data.instances && data.instances.length > 0) {
           // Already has instance, go to dashboard
           router.push("/dashboard");
@@ -154,52 +106,6 @@ function OnboardingContent() {
       }
     } catch (e) {
       console.error("Failed to check user status:", e);
-    }
-  }
-
-  async function handleSubscribe() {
-    setLoading(true);
-    setError(null);
-    
-    const effectiveBillingMode = state.hasOwnKey ? "byok" : "managed";
-    const effectiveTier = state.tier;
-    
-    try {
-      // Force token refresh before API call
-      const token = await getToken();
-      
-      const res = await fetch("/api/billing/subscribe", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(token && { "Authorization": `Bearer ${token}` }),
-        },
-        body: JSON.stringify({ 
-          tier: effectiveTier, 
-          autoTopup: state.autoTopup,
-          anthropicKey: state.hasOwnKey ? state.anthropicKey : undefined,
-        }),
-      });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to start subscription");
-      }
-      
-      const { checkoutUrl } = await res.json();
-      
-      // Save auto-topup preference and anthropic key for instance creation
-      localStorage.setItem("blitzclaw_auto_topup", state.autoTopup ? "true" : "false");
-      localStorage.setItem("blitzclaw_billing_mode", effectiveBillingMode);
-      if (state.hasOwnKey && state.anthropicKey) {
-        localStorage.setItem("blitzclaw_anthropic_key", state.anthropicKey);
-      }
-      
-      // Redirect to Creem checkout
-      window.location.href = checkoutUrl;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-      setLoading(false);
     }
   }
 
@@ -326,6 +232,7 @@ function OnboardingContent() {
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold mb-2">Welcome to BlitzClaw</h1>
           <p className="text-gray-400">Let&apos;s get your AI assistant running in minutes</p>
+          <p className="mt-2 text-sm text-green-400">🎉 You have $5 in free credits — no card required!</p>
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
             className="mt-4 text-sm text-gray-500 hover:text-gray-300 underline"
@@ -337,14 +244,12 @@ function OnboardingContent() {
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-12 gap-2">
           {[
-            { key: "billing", label: "Billing" },
             { key: "telegram", label: "Telegram" },
             { key: "persona", label: "Persona" },
             { key: "launching", label: "Launch" },
           ].map((s, i) => {
             const isActive = state.step === s.key;
             const isPast = 
-              (s.key === "billing" && ["telegram", "persona", "launching"].includes(state.step)) ||
               (s.key === "telegram" && ["persona", "launching"].includes(state.step)) ||
               (s.key === "persona" && state.step === "launching");
             
@@ -362,7 +267,7 @@ function OnboardingContent() {
                   )}
                   <span className="text-sm">{s.label}</span>
                 </div>
-                {i < 3 && <div className="w-8 h-px bg-gray-700 mx-1" />}
+                {i < 2 && <div className="w-8 h-px bg-gray-700 mx-1" />}
               </div>
             );
           })}
@@ -377,177 +282,7 @@ function OnboardingContent() {
 
         {/* Step Content */}
         <div className="bg-gray-900 rounded-xl p-8 border border-gray-800">
-          {/* STEP 1: Billing */}
-          {state.step === "billing" && (
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <CreditCard className="w-8 h-8 text-blue-500" />
-                <h2 className="text-2xl font-semibold">Choose Your Plan</h2>
-              </div>
-              
-              <div className="space-y-6">
-                {/* BYOK toggle hidden for launch - can re-enable later
-                <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-gray-400" />
-                      <span className="font-medium">I have my own Anthropic API key</span>
-                    </div>
-                    <button
-                      onClick={() => setState(s => ({ ...s, hasOwnKey: !s.hasOwnKey }))}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        state.hasOwnKey ? "bg-blue-600" : "bg-gray-600"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                          state.hasOwnKey ? "translate-x-6" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-                */}
-
-                {/* Plan Selection — always visible */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Basic Tier */}
-                    <button
-                      onClick={() => setState(s => ({ ...s, tier: "basic" }))}
-                      className={`p-5 rounded-xl border text-left transition-all ${
-                        state.tier === "basic"
-                          ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                          : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                      }`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-lg font-semibold">Basic</span>
-                        <span className="text-2xl font-bold">$19<span className="text-sm text-gray-400 font-normal">/mo</span></span>
-                      </div>
-                      <ul className="text-gray-400 text-sm space-y-1">
-                        <li>✓ Dedicated server</li>
-                        <li>✓ $5 credits included</li>
-                        <li>✓ Pay as you go</li>
-                      </ul>
-                    </button>
-
-                    {/* Pro Tier */}
-                    <button
-                      onClick={() => setState(s => ({ ...s, tier: "pro" }))}
-                      className={`p-5 rounded-xl border text-left transition-all relative ${
-                        state.tier === "pro"
-                          ? "border-blue-500 bg-blue-900/20 ring-2 ring-blue-500/50"
-                          : "border-gray-700 bg-gray-800 hover:border-gray-600"
-                      }`}
-                    >
-                      <span className="absolute -top-2 right-3 bg-green-600 text-xs px-2 py-0.5 rounded-full">Best Value</span>
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-lg font-semibold">Pro</span>
-                        <span className="text-2xl font-bold">$39<span className="text-sm text-gray-400 font-normal">/mo</span></span>
-                      </div>
-                      <ul className="text-gray-400 text-sm space-y-1">
-                        <li>✓ Dedicated server</li>
-                        <li>✓ $15 credits included</li>
-                        <li>✓ Priority support</li>
-                        <li>✓ Advanced tools</li>
-                      </ul>
-                    </button>
-                  </div>
-                </div>
-
-                {/* BYOK API Key Input — shown when toggle is on */}
-                {state.hasOwnKey && (
-                  <div className="p-4 bg-gray-800/50 rounded-lg space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Anthropic API Key</label>
-                      <input
-                        type="password"
-                        value={state.anthropicKey}
-                        onChange={(e) => setState(s => ({ ...s, anthropicKey: e.target.value }))}
-                        placeholder="sk-ant-api03-..."
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">console.anthropic.com</a>. You pay Anthropic directly for AI usage.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Info Box */}
-                <div className="text-sm text-gray-400 bg-gray-800/50 rounded-lg p-4 space-y-2">
-                  <p>
-                    Every plan runs on its own <strong className="text-gray-300">secure, isolated server</strong>. 
-                    {state.hasOwnKey 
-                      ? " With BYOK, typical AI usage costs $2-40/day depending on how much you chat."
-                      : " Credits are used for AI responses. Top up via our dashboard when you run low."
-                    }
-                  </p>
-                  {state.tier === "pro" && (
-                    <p className="text-yellow-400/80">
-                      ⏱️ Pro servers have more power — provisioning may take up to 5 minutes.
-                    </p>
-                  )}
-                </div>
-
-                {/* Waitlist form when no capacity */}
-                {!hasCapacity ? (
-                  <div className="p-4 bg-yellow-900/30 border border-yellow-700 rounded-lg space-y-4">
-                    <div className="flex items-center gap-2 text-yellow-300">
-                      <AlertTriangle className="w-5 h-5" />
-                      <span className="font-medium">We&apos;re at capacity!</span>
-                    </div>
-                    <p className="text-gray-400 text-sm">
-                      All servers are currently assigned. Join the waitlist and we&apos;ll email you when a spot opens up.
-                    </p>
-                    {waitlistSubmitted ? (
-                      <div className="text-green-400 text-sm">
-                        ✓ You&apos;re on the list! We&apos;ll email you soon.
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="email"
-                          value={waitlistEmail}
-                          onChange={(e) => setWaitlistEmail(e.target.value)}
-                          placeholder="your@email.com"
-                          className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                        />
-                        <button
-                          onClick={handleJoinWaitlist}
-                          disabled={loading || !waitlistEmail.includes("@")}
-                          className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium"
-                        >
-                          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Join Waitlist"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleSubscribe}
-                    disabled={
-                      loading ||
-                      (state.hasOwnKey && !state.anthropicKey.startsWith("sk-ant-"))
-                    }
-                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium flex items-center justify-center gap-2"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        Continue — ${state.tier === "pro" ? "39" : "19"}/mo
-                        <ExternalLink className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: Telegram */}
+          {/* STEP 1: Telegram */}
           {state.step === "telegram" && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -593,7 +328,7 @@ function OnboardingContent() {
             </div>
           )}
 
-          {/* STEP 3: Persona */}
+          {/* STEP 2: Persona */}
           {state.step === "persona" && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -654,7 +389,7 @@ function OnboardingContent() {
             </div>
           )}
 
-          {/* STEP 4: Launching */}
+          {/* STEP 3: Launching */}
           {state.step === "launching" && (
             <div className="text-center py-8">
               <Loader2 className="w-16 h-16 animate-spin text-blue-500 mx-auto mb-6" />
@@ -690,15 +425,6 @@ function OnboardingContent() {
   );
 }
 
-// Wrap in Suspense for useSearchParams
 export default function OnboardingPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    }>
-      <OnboardingContent />
-    </Suspense>
-  );
+  return <OnboardingContent />;
 }
