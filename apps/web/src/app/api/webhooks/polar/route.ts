@@ -166,8 +166,8 @@ export async function POST(request: Request) {
         },
       });
 
-      // Credit balance for subscription - $5 for basic, $15 for pro
-      const creditsCents = plan === "pro" ? 1500 : 500;
+      // Credit balance for subscription - $5 for basic, $20 for pro
+      const creditsCents = plan === "pro" ? 2000 : 500;
       const existingBalance = await prisma.balance.findUnique({ where: { userId: user.id } });
 
       if (existingBalance) {
