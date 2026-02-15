@@ -4,6 +4,24 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@blitzclaw/db";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "BlitzClaw — Your AI assistant, ready in a minute",
+  description: "Deploy a personal AI assistant with one click. Telegram integration, browser automation, and Claude models. Server in Germany, 5 minute setup.",
+  openGraph: {
+    title: "BlitzClaw — Your AI assistant, ready in a minute",
+    description: "Deploy a personal AI assistant with one click. Telegram integration, browser automation, and Claude models. Server in Germany, 5 minute setup.",
+    type: "website",
+    url: "https://www.blitzclaw.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BlitzClaw — Your AI assistant, ready in a minute",
+    description: "Deploy a personal AI assistant with one click. Telegram integration, browser automation, and Claude models.",
+  },
+};
+
 // Make page dynamic (queries DB)
 export const dynamic = "force-dynamic";
 
