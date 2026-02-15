@@ -7,7 +7,7 @@ import { prisma } from "@blitzclaw/db";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BlitzClaw — Dein KI-Assistent. Auf Telegram. In 60 Sekunden live.",
+  title: "BlitzClaw — Dein KI-Assistent. Auf Telegram. Kein Server. Kein Setup. Einfach chatten.",
   description:
     "Recherche, Browser-Automatisierung, Tagesplanung — alles aus einem Chat. Powered by Claude. Kein Setup nötig.",
   openGraph: {
@@ -100,7 +100,7 @@ export default async function HomeDe() {
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-6 pt-20 pb-12 text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Dein KI-Assistent.<br />Auf Telegram.<br />In 60 Sekunden live.
+            Dein KI-Assistent.<br />Auf Telegram.<br />Kein Server. Kein Setup. Einfach chatten.
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Recherche, Browser-Automatisierung, Tagesplanung — alles aus einem
@@ -381,7 +381,7 @@ export default async function HomeDe() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              In 60 Sekunden loschatten — ab $19/Monat
+              Heute noch loschatten — ab $19/Monat
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
               Anmelden, Telegram verbinden, loschatten. Dein Assistent ist in

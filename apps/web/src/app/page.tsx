@@ -7,7 +7,7 @@ import { prisma } from "@blitzclaw/db";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BlitzClaw — Your AI assistant. On Telegram. Running in 60 seconds.",
+  title: "BlitzClaw — Your AI assistant. On Telegram. No servers. No setup. Just chat.",
   description:
     "Research, automate browsers, manage your day — all from a Telegram chat. Powered by Claude. No setup required.",
   openGraph: {
@@ -106,7 +106,7 @@ export default async function Home() {
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-6 pt-20 pb-12 text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Your AI assistant.<br />On Telegram.<br />Running in 60 seconds.
+            Your AI assistant.<br />On Telegram.<br />No servers. No setup. Just chat.
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
             Research, automate browsers, manage your day — all from a chat.
@@ -385,7 +385,7 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Start chatting in 60 seconds — from $19/mo
+              Start chatting today — from $19/mo
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
               Sign up, connect Telegram, start chatting. Your assistant is live
