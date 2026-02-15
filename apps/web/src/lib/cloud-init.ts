@@ -125,9 +125,9 @@ export function generateCloudInit(options: CloudInitOptions): string {
     cron: {
       enabled: true,
     },
-    // Web tools config (Brave Search)
-    ...(braveApiKey ? {
-      tools: {
+    // Tools config
+    tools: {
+      ...(braveApiKey ? {
         web: {
           search: {
             enabled: true,
@@ -138,8 +138,25 @@ export function generateCloudInit(options: CloudInitOptions): string {
             enabled: true,
           },
         },
-      },
-    } : {}),
+      } : {}),
+      media: {
+        audio: {
+          enabled: true,
+          language: "auto",
+          models: [
+            {
+              type: "cli",
+              command: "whisper",
+              args: [
+                "--model", "base",
+                "--output_format", "json",
+                "{{MediaPath}}"
+              ]
+            }
+          ]
+        }
+      }
+    },
     ...(telegramBotToken ? {
       channels: {
         telegram: {
@@ -196,11 +213,7 @@ packages:
   - fail2ban
   - ufw
   - jq
-  - chromium
-  - fonts-liberation
-  - libnss3
-  - libatk-bridge2.0-0
-  - libgtk-3-0
+  - python3.12-venv
 
 write_files:
   - path: /etc/blitzclaw/instance_id
@@ -538,6 +551,11 @@ ${JSON.stringify({
         -H "X-Instance-Secret: ${proxySecret}" \
         -d '{"instance_id": "'"$SERVER_ID"'"}' \
         || echo "Callback failed (non-fatal)"
+      
+      echo "=== Installing Whisper (local speech-to-text) ==="
+      python3 -m venv /opt/whisper-venv
+      /opt/whisper-venv/bin/pip install openai-whisper 2>&1 || echo "Whisper install failed (non-fatal)"
+      ln -sf /opt/whisper-venv/bin/whisper /usr/local/bin/whisper 2>/dev/null || true
       
       touch /etc/blitzclaw/ready
       echo "=== Setup complete ==="

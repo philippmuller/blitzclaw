@@ -12,6 +12,7 @@ const isPublicRoute = createRouteMatcher([
   "/guide",             // Getting started guide
   "/guides",            // Tips & guides page
   "/agents",            // Sub-agents explainer
+  "/de",                // German landing page
   "/relay/connect",     // Browser relay auth-link confirmation page
   "/api/webhooks/(.*)",
   "/api/polar/(.*)",    // Polar checkout/webhooks

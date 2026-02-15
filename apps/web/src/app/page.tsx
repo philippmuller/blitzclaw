@@ -88,7 +88,7 @@ export default async function Home() {
                 href="/onboarding"
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
               >
-                Get Started Free
+                Get Started
               </Link>
             </SignedOut>
             <SignedIn>
@@ -116,7 +116,7 @@ export default async function Home() {
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30">
-                  Get Started Free
+                  Get Started
                 </button>
               </SignInButton>
             </SignedOut>
@@ -385,7 +385,7 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Try free — $5 in credits, no card required
+              Start chatting in 60 seconds — from $19/mo
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
               Sign up, connect Telegram, start chatting. Your assistant is live
@@ -394,7 +394,7 @@ export default async function Home() {
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
-                  Get Started Free →
+                  Get Started →
                 </button>
               </SignInButton>
             </SignedOut>
