@@ -7,27 +7,21 @@ import { prisma } from "@blitzclaw/db";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BlitzClaw — Your AI assistant. On Telegram. Running in 60 seconds.",
+  title: "BlitzClaw — Dein KI-Assistent. Auf Telegram. In 60 Sekunden live.",
   description:
-    "Research, automate browsers, manage your day — all from a Telegram chat. Powered by Claude. No setup required.",
+    "Recherche, Browser-Automatisierung, Tagesplanung — alles aus einem Chat. Powered by Claude. Kein Setup nötig.",
   openGraph: {
-    title: "BlitzClaw — Your AI assistant on Telegram",
+    title: "BlitzClaw — Dein KI-Assistent auf Telegram",
     description:
-      "Research, automate browsers, manage your day — all from a chat. Powered by Claude. No setup required.",
+      "Recherche, Browser-Automatisierung, Tagesplanung — alles aus einem Chat. Powered by Claude. Kein Setup nötig.",
     type: "website",
-    url: "https://www.blitzclaw.com",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "BlitzClaw — Your AI assistant on Telegram",
-    description:
-      "Research, automate browsers, manage your day — all from a chat. Powered by Claude.",
+    url: "https://www.blitzclaw.com/de",
   },
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function HomeDe() {
   const availableServers = await prisma.serverPool.count({
     where: { status: "AVAILABLE" },
   });
@@ -56,39 +50,39 @@ export default async function Home() {
       <div className="relative">
         {/* Nav */}
         <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-          <div className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <Link href="/de" className="text-2xl font-bold text-foreground flex items-center gap-2">
             <span>⚡</span> BlitzClaw
-          </div>
+          </Link>
           <div className="flex items-center gap-4">
             <Link
               href="/pricing"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Pricing
+              Preise
             </Link>
             <Link
               href="/guide"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition"
             >
-              Guide
+              Anleitung
             </Link>
             <Link
-              href="/de"
+              href="/"
               className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition text-sm"
             >
-              DE
+              EN
             </Link>
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition">
-                  Sign In
+                  Anmelden
                 </button>
               </SignInButton>
               <Link
                 href="/onboarding"
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium"
               >
-                Get Started Free
+                Kostenlos starten
               </Link>
             </SignedOut>
             <SignedIn>
@@ -98,7 +92,7 @@ export default async function Home() {
               >
                 Dashboard
               </Link>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/de" />
             </SignedIn>
           </div>
         </nav>
@@ -106,17 +100,17 @@ export default async function Home() {
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-6 pt-20 pb-12 text-center">
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-            Your AI assistant.<br />On Telegram.<br />Running in 60 seconds.
+            Dein KI-Assistent.<br />Auf Telegram.<br />In 60 Sekunden live.
           </h1>
           <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Research, automate browsers, manage your day — all from a chat.
-            Powered by Claude. No setup required.
+            Recherche, Browser-Automatisierung, Tagesplanung — alles aus einem
+            Chat. Powered by Claude. Kein Setup nötig.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30">
-                  Get Started Free
+                  Kostenlos starten
                 </button>
               </SignInButton>
             </SignedOut>
@@ -125,25 +119,24 @@ export default async function Home() {
                 href="/dashboard"
                 className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition shadow-lg shadow-primary/25"
               >
-                Go to Dashboard →
+                Zum Dashboard →
               </Link>
             </SignedIn>
             <a
               href="#demo"
               className="px-8 py-4 border border-border text-foreground text-lg font-medium rounded-xl hover:bg-secondary transition"
             >
-              Watch Demo
+              Demo ansehen
             </a>
           </div>
           <p className="mt-6 text-xs text-muted-foreground/70">
             {availableServers > 0 ? (
               <span className="text-green-500">
-                ● {availableServers} server{availableServers !== 1 ? "s" : ""}{" "}
-                ready for instant deployment
+                ● {availableServers} Server sofort verfügbar
               </span>
             ) : (
               <span className="text-amber-500">
-                ● High demand — join waitlist for next available slot
+                ● Hohe Nachfrage — Warteliste für den nächsten Platz
               </span>
             )}
           </p>
@@ -166,31 +159,31 @@ export default async function Home() {
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🏠</div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Your own server
+              Dein eigener Server
             </h3>
             <p className="text-muted-foreground">
-              A dedicated instance in Germany. Not shared. Your data stays in
-              your environment — always.
+              Eine dedizierte Instanz in Deutschland. Nicht geteilt. Deine Daten
+              bleiben in deiner Umgebung — immer.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🧠</div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Claude built in
+              Claude integriert
             </h3>
             <p className="text-muted-foreground">
-              No API keys needed. Latest Claude models included. Simple
-              usage-based pricing after your monthly credits.
+              Keine API-Keys nötig. Aktuelle Claude-Modelle inklusive.
+              Nutzungsbasierte Abrechnung nach deinem monatlichen Guthaben.
             </p>
           </div>
           <div className="bg-card border border-border p-6 rounded-xl hover:border-primary/50 transition">
             <div className="text-3xl mb-4">🌐</div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Browser automation
+              Browser-Automatisierung
             </h3>
             <p className="text-muted-foreground">
-              Screenshots, web scraping, website monitoring — built in and ready
-              to go from day one.
+              Screenshots, Web Scraping, Website-Monitoring — alles eingebaut
+              und ab Tag eins einsatzbereit.
             </p>
           </div>
         </div>
@@ -198,27 +191,27 @@ export default async function Home() {
         {/* Comparison Table */}
         <div id="comparison" className="max-w-4xl mx-auto px-6 py-20">
           <h2 className="text-3xl font-bold text-foreground text-center mb-4">
-            Traditional Setup vs BlitzClaw
+            Klassisches Setup vs BlitzClaw
           </h2>
           <p className="text-muted-foreground text-center mb-12">
-            Skip the DevOps. Get straight to chatting.
+            Kein DevOps. Direkt loschatten.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="text-lg font-semibold text-muted-foreground mb-6">
-                Traditional Method
+                Klassische Methode
               </h3>
               <div className="space-y-3 text-sm">
                 {[
-                  ["Purchase a virtual machine", "15 min"],
-                  ["Create SSH keys & store securely", "10 min"],
-                  ["Connect to server via SSH", "5 min"],
-                  ["Install Node.js and NPM", "5 min"],
-                  ["Install OpenClaw", "7 min"],
-                  ["Configure OpenClaw", "10 min"],
-                  ["Connect AI provider", "4 min"],
-                  ["Pair with Telegram", "4 min"],
+                  ["Virtuellen Server kaufen", "15 Min"],
+                  ["SSH-Keys erstellen & sichern", "10 Min"],
+                  ["Per SSH verbinden", "5 Min"],
+                  ["Node.js und NPM installieren", "5 Min"],
+                  ["OpenClaw installieren", "7 Min"],
+                  ["OpenClaw konfigurieren", "10 Min"],
+                  ["KI-Anbieter verbinden", "4 Min"],
+                  ["Telegram verknüpfen", "4 Min"],
                 ].map(([step, time]) => (
                   <div
                     key={step}
@@ -229,13 +222,13 @@ export default async function Home() {
                   </div>
                 ))}
                 <div className="flex justify-between py-3 font-semibold">
-                  <span className="text-foreground">Total</span>
-                  <span className="text-red-400">~60 min</span>
+                  <span className="text-foreground">Gesamt</span>
+                  <span className="text-red-400">~60 Min</span>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                Non-technical? Multiply by 10× — you have to learn each step
-                first.
+                Nicht technisch? Rechne ×10 — jeden Schritt musst du erst
+                lernen.
               </p>
             </div>
 
@@ -245,15 +238,16 @@ export default async function Home() {
               </h3>
               <div className="flex flex-col items-center justify-center h-[280px]">
                 <div className="text-6xl font-bold text-primary mb-2">
-                  ~1 min
+                  ~1 Min
                 </div>
                 <p className="text-muted-foreground text-center max-w-xs">
-                  Sign up, pick a plan, connect Telegram — your assistant is
+                  Anmelden, Plan wählen, Telegram verbinden — dein Assistent ist
                   live.
                 </p>
               </div>
               <p className="text-xs text-muted-foreground mt-4 text-center">
-                Servers are pre-configured and waiting. Simple, secure, fast.
+                Server sind vorkonfiguriert und warten. Einfach, sicher,
+                schnell.
               </p>
             </div>
           </div>
@@ -262,41 +256,42 @@ export default async function Home() {
         {/* Use Case Stories */}
         <div className="max-w-5xl mx-auto px-6 py-20">
           <h2 className="text-3xl font-bold text-foreground text-center mb-4">
-            What people use it for
+            Wofür andere es nutzen
           </h2>
           <p className="text-muted-foreground text-center mb-12">
-            Real workflows, not feature lists.
+            Echte Workflows, keine Feature-Listen.
           </p>
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="text-3xl mb-4">🎙️</div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Voice note → research report
+                Sprachnachricht → Recherche-Report
               </h3>
               <p className="text-muted-foreground">
-                Send a voice message with a question. Get a structured research
-                report back — with sources. Perfect on the go.
+                Schick eine Sprachnachricht mit deiner Frage. Bekomm einen
+                strukturierten Report zurück — mit Quellen. Perfekt für
+                unterwegs.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="text-3xl mb-4">👁️</div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Monitor and alert
+                Überwachen und benachrichtigen
               </h3>
               <p className="text-muted-foreground">
-                Watch a website, competitor page, or job board. Get a Telegram
-                message when something changes. Runs on autopilot.
+                Beobachte eine Website, Konkurrenz-Seite oder Jobbörse. Bekomm
+                eine Telegram-Nachricht bei Änderungen. Läuft im Hintergrund.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="text-3xl mb-4">✉️</div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                Email drafts in seconds
+                E-Mail-Entwürfe in Sekunden
               </h3>
               <p className="text-muted-foreground">
-                Forward an email, describe the tone you want. Get a polished
-                reply you can send as-is or tweak.
+                Leite eine E-Mail weiter, beschreib den gewünschten Ton. Bekomm
+                eine fertige Antwort, die du direkt senden oder anpassen kannst.
               </p>
             </div>
           </div>
@@ -305,7 +300,7 @@ export default async function Home() {
         {/* Pricing Teaser */}
         <div className="max-w-4xl mx-auto px-6 py-20">
           <h2 className="text-3xl font-bold text-foreground text-center mb-12">
-            Simple pricing
+            Einfache Preise
           </h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             <div className="bg-card border border-border rounded-xl p-6 text-center">
@@ -313,25 +308,25 @@ export default async function Home() {
                 Basic
               </h3>
               <div className="text-4xl font-bold text-foreground mb-2">$19</div>
-              <p className="text-muted-foreground text-sm mb-4">/month</p>
+              <p className="text-muted-foreground text-sm mb-4">/Monat</p>
               <p className="text-muted-foreground text-sm">
-                Dedicated server, Claude access, browser automation. Includes
-                monthly credits.
+                Dedizierter Server, Claude-Zugang, Browser-Automatisierung.
+                Monatliches Guthaben inklusive.
               </p>
             </div>
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/30 rounded-xl p-6 text-center">
               <h3 className="text-lg font-semibold text-primary mb-2">Pro</h3>
               <div className="text-4xl font-bold text-foreground mb-2">$39</div>
-              <p className="text-muted-foreground text-sm mb-4">/month</p>
+              <p className="text-muted-foreground text-sm mb-4">/Monat</p>
               <p className="text-muted-foreground text-sm">
-                Everything in Basic, plus more credits, priority support, and
-                advanced features.
+                Alles aus Basic, plus mehr Guthaben, Priority-Support und
+                erweiterte Features.
               </p>
             </div>
           </div>
           <p className="text-center mt-8">
             <Link href="/pricing" className="text-primary hover:underline">
-              See full pricing details →
+              Alle Preisdetails →
             </Link>
           </p>
         </div>
@@ -344,38 +339,39 @@ export default async function Home() {
           <div className="space-y-6">
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="font-semibold text-foreground mb-2">
-                Do I need API keys?
+                Brauche ich API-Keys?
               </h3>
               <p className="text-muted-foreground">
-                No. Claude is included — no Anthropic account or API keys
-                required.
+                Nein. Claude ist inklusive — kein Anthropic-Account oder
+                API-Keys nötig.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="font-semibold text-foreground mb-2">
-                How does billing work?
+                Wie funktioniert die Abrechnung?
               </h3>
               <p className="text-muted-foreground">
-                Monthly subscription covers hosting and included credits.
-                Additional usage is billed automatically — no manual top-ups.
+                Monatliches Abo deckt Hosting und enthaltenes Guthaben.
+                Zusätzliche Nutzung wird automatisch abgerechnet — kein
+                manuelles Aufladen.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="font-semibold text-foreground mb-2">
-                Is my data secure?
+                Sind meine Daten sicher?
               </h3>
               <p className="text-muted-foreground">
-                Your instance runs on a dedicated server in Germany. Your data
-                stays in your environment — it&apos;s not shared with other
-                users.
+                Deine Instanz läuft auf einem dedizierten Server in Deutschland.
+                Deine Daten bleiben in deiner Umgebung — sie werden nicht mit
+                anderen Nutzern geteilt.
               </p>
             </div>
             <div className="bg-card border border-border rounded-xl p-6">
               <h3 className="font-semibold text-foreground mb-2">
-                Can I cancel anytime?
+                Kann ich jederzeit kündigen?
               </h3>
               <p className="text-muted-foreground">
-                Yes. Cancel from your dashboard. No lock-in, no questions.
+                Ja. Direkt im Dashboard kündigen. Keine Bindung, keine Fragen.
               </p>
             </div>
           </div>
@@ -385,16 +381,16 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-12">
             <h2 className="text-3xl font-bold text-foreground mb-4">
-              Try free — $5 in credits, no card required
+              Kostenlos testen — $5 Startguthaben, keine Karte nötig
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Sign up, connect Telegram, start chatting. Your assistant is live
-              in under a minute.
+              Anmelden, Telegram verbinden, loschatten. Dein Assistent ist in
+              unter einer Minute live.
             </p>
             <SignedOut>
               <SignInButton mode="modal">
                 <button className="px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition">
-                  Get Started Free →
+                  Kostenlos starten →
                 </button>
               </SignInButton>
             </SignedOut>
@@ -403,7 +399,7 @@ export default async function Home() {
                 href="/dashboard"
                 className="inline-block px-8 py-4 bg-primary text-primary-foreground text-lg font-medium rounded-xl hover:bg-primary/90 transition"
               >
-                Go to Dashboard →
+                Zum Dashboard →
               </Link>
             </SignedIn>
           </div>
@@ -414,18 +410,19 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-6 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
               <p className="text-yellow-200/60 text-xs leading-relaxed text-center">
-                ⚠️ BlitzClaw instances are for personal use. Security risks
-                increase with skills/integrations you enable. We work to provide
-                safe defaults but prompt injection and other vulnerabilities
-                remain possible. This is an open-source project — use at your
-                own risk.
+                ⚠️ BlitzClaw-Instanzen sind für den persönlichen Gebrauch.
+                Sicherheitsrisiken steigen mit aktivierten
+                Skills/Integrationen. Wir arbeiten an sicheren Standardwerten,
+                aber Prompt Injection und andere Schwachstellen bleiben möglich.
+                Open-Source-Projekt — Nutzung auf eigene Verantwortung.
               </p>
             </div>
             <div className="mb-6 text-center">
               <p className="text-muted-foreground/60 text-xs">
-                This platform is an independent product and is not affiliated
-                with Anthropic, OpenAI, or Google. We use various LLMs through
-                our custom interface as part of our product offering.
+                Diese Plattform ist ein unabhängiges Produkt und nicht mit
+                Anthropic, OpenAI oder Google verbunden. Wir nutzen
+                verschiedene LLMs über unser eigenes Interface als Teil unseres
+                Produktangebots.
               </p>
             </div>
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -444,19 +441,19 @@ export default async function Home() {
                   href="/terms"
                   className="hover:text-foreground transition"
                 >
-                  Terms
+                  AGB
                 </Link>
                 <Link
                   href="/privacy"
                   className="hover:text-foreground transition"
                 >
-                  Privacy
+                  Datenschutz
                 </Link>
                 <Link
                   href="/refund"
                   className="hover:text-foreground transition"
                 >
-                  Refunds
+                  Erstattung
                 </Link>
                 <Link
                   href="/impressum"
