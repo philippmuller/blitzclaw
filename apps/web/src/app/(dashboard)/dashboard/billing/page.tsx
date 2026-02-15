@@ -115,7 +115,7 @@ export default async function BillingPage() {
       </div>
 
       {/* Plan Switching */}
-      <UpgradeButtons currentPlan={user.plan} currentBillingMode={user.billingMode} />
+      <UpgradeButtons currentPlan={user.plan} currentBillingMode={user.billingMode} hasSubscription={!!user.polarSubscriptionId} />
 
       {/* Balance Top-up / Billing Actions */}
       <div className="bg-card border border-border rounded-xl p-6">

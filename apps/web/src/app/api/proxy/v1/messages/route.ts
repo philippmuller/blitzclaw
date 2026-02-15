@@ -91,8 +91,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3. Daily spend limit (safety cap) - Polar handles actual billing
-  // No balance blocking since Polar meters usage and bills overages
+  // 3. Balance check - block requests when credits run out (free trial or managed billing)
+  const userBalance = instance.user?.balance;
+  const isByok = instance.user?.billingMode === "byok";
+  if (!isByok && userBalance && userBalance.creditsCents <= 0) {
+    return NextResponse.json(
+      {
+        error: "Insufficient credits",
+        code: "CREDITS_DEPLETED",
+        message: "Your credits have run out. Please subscribe or add credits to continue.",
+      },
+      { status: 402 }
+    );
+  }
+
+  // 4. Daily spend limit (safety cap)
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   

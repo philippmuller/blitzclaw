@@ -5,19 +5,48 @@ import { useState } from "react";
 interface UpgradeButtonsProps {
   currentPlan: string | null; // "basic" | "pro" | null
   currentBillingMode: string | null; // "managed" | "byok"
+  hasSubscription: boolean;
 }
 
 const TIERS = [
-  { id: "basic", name: "Basic", price: 19, credits: 5, description: "$5 credits included" },
-  { id: "pro", name: "Pro", price: 39, credits: 15, description: "$15 credits included" },
+  { id: "basic", name: "Basic", price: 19, credits: 5, description: "$5 credits included monthly" },
+  { id: "pro", name: "Pro", price: 39, credits: 20, description: "$20 credits included monthly" },
 ];
 
-export function UpgradeButtons({ currentPlan, currentBillingMode }: UpgradeButtonsProps) {
+export function UpgradeButtons({ currentPlan, currentBillingMode, hasSubscription }: UpgradeButtonsProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const openPortal = async (actionLabel: string) => {
-    setLoading(actionLabel);
+  const handleSubscribe = async (plan: string) => {
+    setLoading(`plan-${plan}`);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/polar/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, byokMode: false }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create checkout");
+      }
+
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      throw new Error("Checkout URL not available");
+    } catch (e) {
+      setError((e as Error).message);
+      setLoading(null);
+    }
+  };
+
+  const openPortal = async () => {
+    setLoading("portal");
     setError(null);
 
     try {
@@ -43,9 +72,13 @@ export function UpgradeButtons({ currentPlan, currentBillingMode }: UpgradeButto
   return (
     <div className="bg-card border border-border rounded-xl p-6 space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-1">Plan & Billing Options</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-1">
+          {hasSubscription ? "Plan & Billing" : "Subscribe"}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Switch plans or billing mode anytime from the billing portal.
+          {hasSubscription
+            ? "Manage your subscription or switch plans."
+            : "Subscribe to add monthly credits and keep your assistant running."}
         </p>
       </div>
 
@@ -78,43 +111,41 @@ export function UpgradeButtons({ currentPlan, currentBillingMode }: UpgradeButto
               <p className="text-2xl font-bold text-foreground mb-1">${tier.price}/mo</p>
               <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
 
-              <button
-                onClick={() => openPortal(actionLabel)}
-                disabled={loading !== null}
-                className="w-full px-3 py-2 rounded-lg border border-border bg-secondary text-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                {loading === actionLabel
-                  ? "Opening portal..."
-                  : isCurrent
-                  ? "Manage in portal"
-                  : `Switch to ${tier.name}`}
-              </button>
+              {hasSubscription ? (
+                <button
+                  onClick={openPortal}
+                  disabled={loading !== null}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-secondary text-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  {loading === "portal"
+                    ? "Opening portal..."
+                    : isCurrent
+                    ? "Manage subscription"
+                    : `Switch to ${tier.name}`}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSubscribe(tier.id)}
+                  disabled={loading !== null}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                    tier.id === "pro"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "border border-border bg-secondary text-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {loading === actionLabel ? "Creating checkout..." : `Subscribe to ${tier.name}`}
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
-      <div className="p-4 border border-border rounded-xl bg-secondary/20">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Billing Mode</p>
-            <p className="text-sm text-muted-foreground">
-              Current mode: <span className="capitalize">{currentBillingMode || "managed"}</span>
-            </p>
-          </div>
-          <button
-            onClick={() => openPortal("mode")}
-            disabled={loading !== null}
-            className="px-3 py-2 rounded-lg border border-border bg-secondary text-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium whitespace-nowrap"
-          >
-            {loading === "mode" ? "Opening portal..." : "Switch mode"}
-          </button>
-        </div>
-      </div>
-
-      <p className="text-xs text-muted-foreground">
-        Note: plan and billing-mode changes are processed by Polar in the customer portal.
-      </p>
+      {hasSubscription && (
+        <p className="text-xs text-muted-foreground">
+          Subscription changes are managed through the Polar billing portal.
+        </p>
+      )}
     </div>
   );
 }
